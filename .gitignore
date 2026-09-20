@@ -1,0 +1,47 @@
+# Dependencies and build
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Cursor / local tooling
+.cursor/
+.cursorignore
+agent-transcripts/
+
+# OneDrive / Windows
+~$*
+*.tmp
+*.lnk
+
+# Saved third-party pages and browser download dumps
+*_files/
+*PropertyPro*
+*.download
+Properties _ Landlord Panel.html

@@ -1,0 +1,100 @@
+/**
+ * Rentivo Design Tokens
+ * Master source of visual values adhering to UI/UX Design Brief
+ * Brand colors: Deep Navy (#000052) and Lavender (#BE89FF)
+ */
+
+:root {
+  /* Brand Palette */
+  --color-navy: #000052;
+  --color-navy-dark: #00003A;
+  --color-navy-soft: #1B1B68;
+  --color-navy-rgb: 0, 0, 82;
+
+  --color-lilac: #BE89FF;
+  --color-lilac-hover: #AA6EF7;
+  --color-lilac-rgb: 190, 137, 255;
+  --color-lilac-50: #FAF6FF;
+  --color-lilac-100: #F1E5FF;
+  --color-lilac-200: #E2CCFF;
+
+  /* Surfaces & Backgrounds */
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F7F5FB;
+  --color-surface-card: #FFFFFF;
+  --color-canvas: #F4F3F8;
+
+  /* Typography Colors */
+  --color-text: #11112B;
+  --color-text-muted: #5D5D78;
+  --color-text-light: #8E8EA8;
+  --color-text-inverse: #FFFFFF;
+
+  /* Borders & Dividers */
+  --color-border: #E4E1ED;
+  --color-border-light: #EFEBF5;
+  --color-border-focus: #BE89FF;
+
+  /* Semantic Alerts */
+  --color-success: #16794A;
+  --color-success-bg: #E8F7F0;
+  --color-warning: #A15C00;
+  --color-warning-bg: #FFF5E5;
+  --color-danger: #B42318;
+  --color-danger-bg: #FEE4E2;
+
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-base: 1rem;     /* 16px */
+  --font-size-md: 1.125rem;   /* 18px */
+  --font-size-lg: 1.25rem;    /* 20px */
+  --font-size-xl: 1.5rem;     /* 24px */
+  --font-size-2xl: 1.875rem;  /* 30px */
+  --font-size-3xl: 2.25rem;   /* 36px */
+  --font-size-4xl: 3rem;      /* 48px */
+  --font-size-display: 3.5rem;/* 56px */
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Elevation Shadows */
+  --shadow-xs: 0 1px 3px rgba(17, 17, 43, 0.05);
+  --shadow-sm: 0 4px 12px rgba(17, 17, 43, 0.06);
+  --shadow-md: 0 10px 24px -4px rgba(17, 17, 43, 0.08);
+  --shadow-lg: 0 20px 40px -8px rgba(17, 17, 43, 0.12);
+  --shadow-brand: 0 12px 30px -8px rgba(0, 0, 82, 0.22);
+  --shadow-card-hover: 0 18px 36px -10px rgba(0, 0, 82, 0.16);
+
+  /* Corner Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Spacing Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Motion & Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Layout Widths */
+  --container-max: 1280px;
+  --nav-height: 76px;
+}

@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rentivo — Verified Homes in Ibadan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#000052;
+    --navy-soft:#2b2b78;
+    --lilac:#BE89FF;
+    --lilac-soft:#F1E7FF;
+    --bg:#FAFAFC;
+    --card:#FFFFFF;
+    --ink:#0E0E2C;
+    --muted:#6B6B84;
+    --line:#E7E5F0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Plus Jakarta Sans', sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{text-decoration:none;color:inherit;}
+  .page{max-width:1240px;margin:0 auto;padding:0 32px;}
+
+  /* NAV */
+  .nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:26px 0;
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:-0.01em;color:var(--navy);}
+  .logo-mark{
+    width:26px;height:26px;border-radius:8px;
+    background:linear-gradient(145deg,var(--navy),var(--lilac));
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .logo-mark svg{width:14px;height:14px;}
+  .nav-links{display:flex;gap:36px;font-size:14.5px;font-weight:500;color:var(--ink);}
+  .nav-links a{opacity:.75;transition:opacity .15s ease;}
+  .nav-links a:hover{opacity:1;}
+  .nav-links a.active{opacity:1;color:var(--navy);font-weight:600;}
+  .nav-right{display:flex;align-items:center;gap:18px;}
+  .nav-login{font-size:14.5px;font-weight:600;color:var(--navy);opacity:.85;}
+  .btn-pill{
+    background:var(--navy);color:#fff;font-size:14px;font-weight:600;
+    padding:11px 22px;border-radius:999px;border:none;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+
+  /* HERO */
+  .hero{padding:34px 0 0;text-align:center;}
+  .badge{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--lilac-soft);color:var(--navy);
+    font-size:13px;font-weight:600;
+    padding:7px 16px;border-radius:999px;margin-bottom:22px;
+  }
+  .badge .dot{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--lilac);
+    box-shadow:0 0 0 3px rgba(190,137,255,.28);
+  }
+  h1{
+    font-size:52px;line-height:1.12;font-weight:800;
+    letter-spacing:-0.022em;margin:0 0 20px;color:var(--navy);
+  }
+  h1 img{height:0.82em;vertical-align:-0.08em;margin:0 4px;}
+  .sub{
+    max-width:520px;margin:0 auto 34px;
+    font-size:15.5px;line-height:1.6;color:var(--muted);font-weight:500;
+  }
+
+  /* SEARCH BAR */
+  .search{
+    display:flex;align-items:stretch;
+    background:#fff;border:1px solid var(--line);
+    border-radius:18px;padding:8px;
+    max-width:660px;margin:0 auto 46px;
+    box-shadow:0 12px 28px -18px rgba(0,0,82,.28);
+  }
+  .search-field{
+    flex:1;text-align:left;padding:8px 20px;position:relative;
+  }
+  .search-field + .search-field{border-left:1px solid var(--line);}
+  .search-field label{
+    display:block;font-size:11.5px;font-weight:700;color:var(--navy);
+    margin-bottom:3px;
+  }
+  .search-field select{
+    appearance:none;border:none;background:transparent;
+    font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);
+    padding:0;width:100%;cursor:pointer;
+  }
+  .search-field select:focus{outline:none;}
+  .search-btn{
+    width:52px;height:52px;flex-shrink:0;align-self:center;margin-left:4px;
+    border-radius:14px;border:none;cursor:pointer;
+    background:var(--navy);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .search-btn svg{width:19px;height:19px;stroke:#fff;}
+
+  /* MAP */
+  .map-wrap{
+    position:relative;
+    height:400px;
+    border-radius:22px;
+    overflow:hidden;
+    margin-bottom:56px;
+    background:
+      radial-gradient(circle at 18% 30%, rgba(190,137,255,.16), transparent 42%),
+      radial-gradient(circle at 82% 68%, rgba(0,0,82,.10), transparent 45%),
+      #F3F1FA;
+  }
+  .map-wrap svg.roads{position:absolute;inset:0;width:100%;height:100%;}
+  .pin{
+    position:absolute;width:34px;height:34px;border-radius:50%;
+    background:#fff;border:1.5px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 8px 16px -8px rgba(0,0,82,.35);
+  }
+  .pin svg{width:15px;height:15px;}
+  .pin.verified{border-color:var(--lilac);}
+  .pin-active{
+    position:absolute;width:46px;height:46px;border-radius:50%;
+    background:var(--navy);color:#fff;font-weight:700;font-size:14px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 8px rgba(0,0,82,.10);
+  }
+
+  .listing-card{
+    position:absolute;left:50%;top:50%;
+    transform:translate(-50%,-50%);
+    width:236px;background:#fff;border-radius:18px;
+    box-shadow:0 24px 48px -20px rgba(0,0,82,.35);
+    overflow:hidden;text-align:left;
+  }
+  .listing-card .photo{
+    position:relative;height:118px;
+    background:url('https://images.unsplash.com/photo-1668911494509-14baf3b42fda?auto=format&fit=crop&w=400&q=80') center/cover;
+  }
+  .listing-card .photo .new-tag{
+    position:absolute;top:10px;right:10px;
+    background:#fff;color:var(--navy);font-size:10.5px;font-weight:700;
+    padding:3px 9px;border-radius:999px;
+  }
+  .listing-card .photo .verified-tag{
+    position:absolute;top:10px;left:10px;
+    background:var(--lilac);color:#fff;font-size:10px;font-weight:700;
+    padding:3px 8px;border-radius:999px;
+    display:flex;align-items:center;gap:3px;
+  }
+  .listing-card .body{padding:14px 14px 16px;}
+  .listing-card .title{font-size:14.5px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+  .listing-card .loc{
+    display:flex;align-items:center;gap:4px;
+    font-size:12px;color:var(--muted);font-weight:500;margin-bottom:9px;
+  }
+  .listing-card .loc svg{width:11px;height:11px;flex-shrink:0;}
+  .listing-card .specs{
+    display:flex;gap:10px;margin-bottom:12px;
+  }
+  .listing-card .specs span{
+    display:flex;align-items:center;gap:4px;
+    font-size:11.5px;color:var(--muted);font-weight:600;
+  }
+  .listing-card .specs svg{width:12px;height:12px;}
+  .listing-card .foot{
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .listing-card .price{font-size:14px;font-weight:800;color:var(--navy);}
+  .listing-card .price span{display:block;font-size:9.5px;font-weight:600;color:var(--muted);}
+  .listing-card .view-btn{
+    background:var(--ink);color:#fff;font-size:11px;font-weight:700;
+    padding:7px 12px;border-radius:8px;
+  }
+
+  /* STATS */
+  .stats{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    gap:24px;padding-bottom:70px;
+  }
+  .stat{text-align:left;border-left:1px solid var(--line);padding-left:18px;}
+  .stat:first-child{border-left:none;padding-left:0;}
+  .stat .num{font-size:30px;font-weight:800;color:var(--navy);letter-spacing:-0.01em;}
+  .stat .label{font-size:12.5px;font-weight:600;color:var(--muted);margin-top:2px;}
+
+  /* INTRO */
+  .intro{
+    position:relative;
+    text-align:center;
+    padding:20px 0 76px;
+  }
+  .intro h2{
+    font-size:36px;font-weight:800;letter-spacing:-0.02em;
+    color:var(--navy);margin:0 0 16px;line-height:1.18;
+  }
+  .intro-sub{font-size:15px;color:var(--muted);font-weight:500;line-height:1.6;margin:0 0 28px;}
+  .intro-ctas{display:flex;justify-content:center;gap:12px;}
+  .btn-outline{
+    display:inline-flex;align-items:center;gap:8px;
+    border:1.5px solid var(--line);color:var(--navy);
+    font-size:14px;font-weight:700;padding:12px 22px;border-radius:999px;
+  }
+  .btn-outline span{color:var(--lilac);font-weight:800;}
+  .btn-ghost{
+    color:var(--navy);font-size:14px;font-weight:700;
+    padding:12px 22px;border-radius:999px;
+  }
+  .intro-orbit{
+    position:absolute;top:8px;display:flex;flex-direction:column;gap:14px;
+  }
+  .intro-orbit--left{left:2%;}
+  .intro-orbit--right{right:2%;top:60px;}
+  .intro-orbit img{
+    width:64px;height:64px;border-radius:50%;object-fit:cover;
+    border:4px solid #fff;box-shadow:0 10px 22px -10px rgba(0,0,82,.35);
+  }
+  .intro-orbit--left img:last-child{margin-left:34px;width:52px;height:52px;}
+  .intro-orbit--right img:last-child{margin-left:-30px;width:52px;height:52px;}
+
+  /* TILES */
+  .tiles{
+    display:grid;grid-template-columns:1fr 1.4fr 1fr 1fr;
+    gap:16px;padding-bottom:80px;
+  }
+  .tile{
+    height:180px;border-radius:20px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px;font-weight:800;letter-spacing:-0.01em;
+    background-size:cover;background-position:center;
+  }
+  .tile--word{background:var(--lilac-soft);color:var(--navy);}
+  .tile--dark{background:var(--navy);color:#fff;}
+  .tile--photo{position:relative;}
+  .tile--accent{background:var(--lilac);}
+  .tile--accent svg{width:34px;height:34px;}
+
+  /* INITIATIVES */
+  .initiatives{padding-bottom:96px;}
+  .init-head{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:24px;margin-bottom:30px;
+  }
+  .init-head h2{
+    font-size:28px;font-weight:800;letter-spacing:-0.02em;color:var(--navy);margin:0;
+  }
+  .init-head p{
+    font-size:13.5px;color:var(--muted);font-weight:500;line-height:1.55;
+    text-align:right;margin:0;max-width:260px;
+  }
+  .init-table{border-top:1px solid var(--line);}
+  .init-row{
+    display:grid;grid-template-columns:2fr 1fr 1fr 32px;
+    align-items:center;gap:16px;
+    padding:20px 4px;border-bottom:1px solid var(--line);
+    position:relative;
+  }
+  .init-row--label{
+    color:var(--muted);font-size:12px;font-weight:700;padding:0 4px 12px;border-bottom:none;
+  }
+  .init-title{font-size:15.5px;font-weight:700;color:var(--ink);}
+  .init-tag{
+    display:inline-flex;width:fit-content;
+    border:1px solid var(--line);color:var(--navy);
+    font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;
+  }
+  .init-tag--accent{background:var(--lilac);border-color:var(--lilac);color:#fff;}
+  .init-date{font-size:13.5px;color:var(--muted);font-weight:600;}
+  .init-arrow{
+    width:32px;height:32px;border-radius:50%;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;color:var(--navy);
+  }
+  .init-row--photo{margin-top:6px;}
+  .init-photo{
+    position:absolute;right:56px;top:-46px;
+    width:150px;height:96px;border-radius:14px;
+    background-size:cover;background-position:center;
+    box-shadow:0 16px 30px -14px rgba(0,0,82,.4);
+  }
+
+  /* WHY CHOOSE US — CAROUSEL */
+  .why{padding:20px 0 96px;}
+  .why-top{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    margin-bottom:34px;gap:24px;
+  }
+  .eyebrow{
+    display:block;font-size:11.5px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--lilac);margin-bottom:12px;
+  }
+  .why-top h2{
+    font-size:34px;font-weight:800;letter-spacing:-0.02em;color:var(--navy);
+    margin:0;line-height:1.16;
+  }
+  .why-nav{display:flex;gap:10px;flex-shrink:0;}
+  .nav-arrow{
+    width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line);
+    background:#fff;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .nav-arrow svg{width:17px;height:17px;}
+  .nav-arrow--active{background:var(--navy);border-color:var(--navy);}
+
+  .why-track{
+    display:flex;gap:18px;overflow-x:auto;
+    scroll-snap-type:x mandatory;padding-bottom:6px;
+    margin:0 -32px;padding-left:32px;padding-right:32px;
+    scrollbar-width:none;
+  }
+  .why-track::-webkit-scrollbar{display:none;}
+  .why-card{
+    scroll-snap-align:start;flex-shrink:0;
+    width:275px;height:460px;border-radius:24px;
+    padding:24px;display:flex;flex-direction:column;
+    position:relative;overflow:hidden;
+  }
+  .why-card--lilac{background:var(--lilac);}
+  .why-card--sand{background:#EDE7DC;}
+  .why-card--navy{background:var(--navy);}
+  .why-card--teal{background:#BFE3DD;}
+
+  .why-card-top{display:flex;align-items:center;gap:8px;margin-bottom:22px;}
+  .chip{
+    background:rgba(255,255,255,.6);color:var(--navy);
+    font-size:11.5px;font-weight:700;padding:6px 12px;border-radius:999px;
+  }
+  .chip--dark{background:rgba(255,255,255,.14);color:#fff;}
+
+  .why-card h3{
+    font-size:26px;font-weight:800;letter-spacing:-0.02em;line-height:1.12;
+    color:var(--navy);margin:0 0 10px;
+  }
+  .why-card--navy h3{color:#fff;}
+  .why-card p{
+    font-size:13.5px;font-weight:500;line-height:1.55;
+    color:rgba(0,0,82,.72);margin:0 0 18px;max-width:210px;
+  }
+  .why-card--navy p{color:rgba(255,255,255,.72);}
+
+  .why-card-photo{
+    flex:1;border-radius:16px;background-size:cover;background-position:center;
+    position:relative;display:flex;align-items:flex-end;
+  }
+  .read-more{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.92);color:var(--navy);
+    font-size:12.5px;font-weight:700;padding:9px 8px 9px 16px;
+    border-radius:999px;margin:14px;
+  }
+  .read-more span{
+    width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12px;
+  }
+  .read-more--light{background:rgba(255,255,255,.94);}
+
+  /* COVERAGE */
+  .coverage{text-align:center;padding-bottom:100px;}
+  .coverage h2{font-size:30px;font-weight:800;color:var(--navy);letter-spacing:-0.02em;margin:0 0 12px;}
+  .coverage p{font-size:14.5px;color:var(--muted);font-weight:500;line-height:1.6;margin:0 0 26px;}
+  .coverage-chips{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;}
+  .coverage-chips span{
+    border:1px solid var(--line);color:var(--navy);
+    font-size:13.5px;font-weight:600;padding:9px 18px;border-radius:999px;
+    background:#fff;
+  }
+
+  /* FOOTER */
+  .site-footer{background:var(--navy);color:#fff;padding-top:64px;}
+  .footer-grid{
+    display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1.3fr;
+    gap:32px;padding-bottom:48px;
+  }
+  .logo--light{color:#fff;}
+  .footer-brand p{font-size:13.5px;color:rgba(255,255,255,.65);line-height:1.6;margin:14px 0 20px;font-weight:500;}
+  .footer-social{display:flex;gap:10px;}
+  .footer-social a{
+    width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.25);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .footer-social svg{width:15px;height:15px;}
+  .footer-col h4{font-size:13px;font-weight:700;color:#fff;margin:0 0 16px;}
+  .footer-col a{
+    display:block;font-size:13.5px;color:rgba(255,255,255,.65);font-weight:500;
+    margin-bottom:12px;
+  }
+  .footer-col--newsletter p{font-size:13px;color:rgba(255,255,255,.65);line-height:1.55;margin:0 0 14px;font-weight:500;}
+  .footer-form{display:flex;background:rgba(255,255,255,.08);border-radius:10px;padding:4px;}
+  .footer-form input{
+    flex:1;background:transparent;border:none;color:#fff;font-size:13px;
+    padding:8px 10px;font-family:inherit;
+  }
+  .footer-form input::placeholder{color:rgba(255,255,255,.5);}
+  .footer-form button{
+    width:34px;height:34px;border-radius:8px;border:none;background:var(--lilac);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;
+  }
+  .footer-form button svg{width:15px;height:15px;stroke:#000052;}
+  .footer-bottom{
+    display:flex;justify-content:space-between;align-items:center;
+    border-top:1px solid rgba(255,255,255,.14);
+    padding:22px 32px;font-size:12.5px;color:rgba(255,255,255,.55);font-weight:500;
+  }
+  .footer-legal{display:flex;gap:22px;}
+  .footer-legal a{color:rgba(255,255,255,.55);}
+
+  /* MICRO-INTERACTIONS */
+  .btn-pill,.btn-outline,.btn-ghost,.search-btn,.nav-arrow,.init-arrow,
+  .footer-social a,.coverage-chips span,.read-more,.why-card,.listing-card,
+  .why-link,.nav-links a{
+    transition:transform .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease, opacity .18s ease;
+  }
+  .btn-pill:hover{transform:translateY(-1px);background:var(--navy-soft);}
+  .search-btn:hover{background:var(--navy-soft);}
+  .nav-arrow:hover{border-color:var(--navy);}
+  .nav-arrow--active:hover{background:var(--navy-soft);border-color:var(--navy-soft);}
+  .why-card:hover{transform:translateY(-4px);box-shadow:0 22px 40px -18px rgba(0,0,82,.35);}
+  .read-more:hover{transform:translateY(-1px);}
+  .coverage-chips span:hover{border-color:var(--lilac);color:var(--navy);background:var(--lilac-soft);}
+  .init-arrow:hover{background:var(--navy);border-color:var(--navy);color:#fff;}
+  .footer-social a:hover{background:rgba(255,255,255,.1);border-color:#fff;}
+  .listing-card:hover{transform:translate(-50%,-52%);}
+  @media (prefers-reduced-motion: reduce){
+    .btn-pill,.btn-outline,.btn-ghost,.search-btn,.nav-arrow,.init-arrow,
+    .footer-social a,.coverage-chips span,.read-more,.why-card,.listing-card,
+    .why-link,.nav-links a{transition:none;}
+    .why-card:hover,.listing-card:hover,.btn-pill:hover{transform:none;}
+  }
+
+  @media(max-width:880px){
+    .why-track{margin:0 -20px;padding-left:20px;padding-right:20px;}
+    .why-card{width:230px;height:410px;}
+    .footer-grid{grid-template-columns:1fr 1fr;row-gap:36px;}
+    .footer-brand{grid-column:1 / -1;}
+    .footer-bottom{flex-direction:column;gap:10px;align-items:flex-start;}
+    .tiles{grid-template-columns:repeat(2,1fr);}
+    .init-row{grid-template-columns:1.6fr 1fr 32px;}
+    .init-date{display:none;}
+    .init-head{flex-direction:column;align-items:flex-start;}
+    .init-head p{text-align:left;}
+    .intro-orbit{display:none;}
+    .init-photo{display:none;}
+    .nav-links{display:none;}
+    h1{font-size:34px;}
+    .search{flex-direction:column;border-radius:18px;}
+    .search-field + .search-field{border-left:none;border-top:1px solid var(--line);}
+    .search-btn{width:100%;margin:6px 0 0;border-radius:12px;}
+    .map-wrap{height:340px;}
+    .stats{grid-template-columns:repeat(2,1fr);row-gap:28px;}
+    .stat:nth-child(odd){border-left:none;padding-left:0;}
+  }
+
+  @media(max-width:640px){
+    .page{padding-left:20px;padding-right:20px;}
+    .nav{padding:18px 0;flex-wrap:wrap;gap:12px;}
+    .logo{font-size:17px;}
+    .nav-right{gap:10px;}
+    .nav-login{display:none;}
+    .btn-pill{padding:10px 16px;font-size:13px;}
+    .hero{padding-top:18px;}
+    .badge{font-size:12px;padding:6px 13px;}
+    h1{font-size:27px;}
+    .sub{font-size:13.5px;max-width:320px;}
+    .search{max-width:100%;}
+    .map-wrap{height:280px;border-radius:16px;}
+    .listing-card{width:170px;border-radius:14px;}
+    .listing-card .photo{height:82px;}
+    .listing-card .body{padding:10px 10px 12px;}
+    .listing-card .title{font-size:12.5px;}
+    .stats{gap:16px;}
+    .stat{padding-left:14px;}
+    .stat:nth-child(odd){padding-left:0;}
+    .stat .num{font-size:22px;}
+    .intro h2{font-size:26px;}
+    .why-top{flex-direction:column;align-items:flex-start;gap:16px;}
+    .why-top h2{font-size:26px;}
+    .why-card{width:210px;height:390px;padding:20px;}
+    .why-card h3{font-size:22px;}
+    .coverage h2{font-size:24px;}
+    .init-head h2{font-size:22px;}
+    .init-row{grid-template-columns:1.4fr 1fr 28px;}
+    .init-tag{font-size:11px;padding:4px 9px;}
+    .footer-grid{grid-template-columns:1fr;gap:28px;}
+    .footer-brand{grid-column:auto;}
+    .footer-bottom{padding:20px;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="nav">
+    <div class="logo">
+      <span class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 11L12 4l9 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      Rentivo
+    </div>
+    <div class="nav-links">
+      <a href="#" class="active">Home</a>
+      <a href="#">Browse homes</a>
+      <a href="#">How it works</a>
+      <a href="#">About</a>
+    </div>
+    <div class="nav-right">
+      <a href="#" class="nav-login">Log in</a>
+      <a href="#" class="btn-pill">Browse homes</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <span class="badge"><span class="dot"></span>Now live in Ibadan</span>
+    <h1>Find verified homes<br>in Ibadan, minus the guesswork</h1>
+    <p class="sub">Browse real listings, compare agents with real evidence, and pay one flat ₦5,000 access fee only when you're ready to move forward.</p>
+
+    <div class="search">
+      <div class="search-field">
+        <label>Location</label>
+        <select>
+          <option>All Ibadan areas</option>
+          <option>Bodija</option>
+          <option>Akobo</option>
+          <option>Jericho</option>
+          <option>Ring Road</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>Home type</label>
+        <select>
+          <option>All types</option>
+          <option>Apartment</option>
+          <option>Duplex</option>
+          <option>Bungalow</option>
+          <option>Land</option>
+        </select>
+      </div>
+      <div class="search-field">
+        <label>Budget</label>
+        <select>
+          <option>₦500K – ₦5M</option>
+          <option>₦5M – ₦20M</option>
+          <option>₦20M – ₦80M</option>
+          <option>₦80M+</option>
+        </select>
+      </div>
+      <button class="search-btn" aria-label="Search">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="map-wrap">
+      <svg class="roads" viewBox="0 0 1176 400" fill="none">
+        <path d="M0 90 C 260 60, 420 160, 700 120 S 1100 40, 1176 70" stroke="#E4E0F2" stroke-width="2"/>
+        <path d="M0 260 C 300 300, 480 220, 760 270 S 1050 330, 1176 300" stroke="#E4E0F2" stroke-width="2"/>
+        <path d="M180 0 C 210 120, 140 220, 230 400" stroke="#E4E0F2" stroke-width="2"/>
+        <path d="M940 0 C 900 140, 990 240, 950 400" stroke="#E4E0F2" stroke-width="2"/>
+      </svg>
+
+      <div class="pin verified" style="left:9%; top:22%;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 8v13h5v-6h6v6h5V8l-8-6z" stroke="#000052" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pin verified" style="left:16%; top:60%;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 8v13h5v-6h6v6h5V8l-8-6z" stroke="#000052" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pin" style="left:79%; top:20%;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 8v13h5v-6h6v6h5V8l-8-6z" stroke="#000052" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pin verified" style="left:85%; top:64%;">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 8v13h5v-6h6v6h5V8l-8-6z" stroke="#000052" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="pin-active" style="left:47%; top:82%;">12</div>
+
+      <div class="listing-card">
+        <div class="photo">
+          <span class="new-tag">New</span>
+          <span class="verified-tag">
+            <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 14.5 7.2 16.9l.9-5.4L4.2 7.7l5.4-.8L12 2z"/></svg>
+            Verified
+          </span>
+        </div>
+        <div class="body">
+          <div class="title">Modern duplex — Bodija</div>
+          <div class="loc">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 5 5 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-4-3-7-7-7z" stroke="#6B6B84" stroke-width="1.6"/><circle cx="12" cy="9" r="2.4" stroke="#6B6B84" stroke-width="1.6"/></svg>
+            Bodija, Ibadan
+          </div>
+          <div class="specs">
+            <span>4 bed</span>
+            <span>3 bath</span>
+            <span>320 sqm</span>
+          </div>
+          <div class="foot">
+            <div class="price">₦85,000,000<span>For sale</span></div>
+            <div class="view-btn">View listing</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="num">500+</div><div class="label">Verified listings</div></div>
+      <div class="stat"><div class="num">80+</div><div class="label">Vetted agents</div></div>
+      <div class="stat"><div class="num">₦5,000</div><div class="label">Flat access fee</div></div>
+      <div class="stat"><div class="num">100%</div><div class="label">Browse before signup</div></div>
+    </div>
+  </section>
+
+  <section class="intro">
+    <div class="intro-orbit intro-orbit--left">
+      <img src="https://images.unsplash.com/photo-1768638687896-35bde623d532?auto=format&fit=crop&w=200&q=80" alt="">
+      <img src="https://images.unsplash.com/photo-1760067537293-6b30141d6a52?auto=format&fit=crop&w=200&q=80" alt="">
+    </div>
+    <h2>Let's find your<br>next home in Ibadan.</h2>
+    <p class="intro-sub">We make browsing transparent, verification real,<br>and moving forward simple.</p>
+    <div class="intro-ctas">
+      <a href="#" class="btn-outline">View listings <span>→</span></a>
+      <a href="#" class="btn-ghost">How it works</a>
+    </div>
+    <div class="intro-orbit intro-orbit--right">
+      <img src="https://images.unsplash.com/photo-1741156386380-0236c72eb6f9?auto=format&fit=crop&w=200&q=80" alt="">
+      <img src="https://images.unsplash.com/photo-1763827657709-b1bbc3c4945b?auto=format&fit=crop&w=200&q=80" alt="">
+    </div>
+  </section>
+
+  <section class="tiles">
+    <div class="tile tile--word">We</div>
+    <div class="tile tile--photo" style="background-image:url('https://images.unsplash.com/photo-1768638687896-35bde623d532?auto=format&fit=crop&w=500&q=80')"></div>
+    <div class="tile tile--accent">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#000052" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="tile tile--word tile--dark">Verify</div>
+  </section>
+
+  <section class="initiatives">
+    <div class="init-head">
+      <h2>Recently verified homes</h2>
+      <p>Every listing below has been visited, checked, and<br>confirmed by our Ibadan team.</p>
+    </div>
+    <div class="init-table">
+      <div class="init-row init-row--label">
+        <span>Property</span>
+        <span>Type</span>
+        <span>Verified</span>
+        <span></span>
+      </div>
+      <div class="init-row">
+        <span class="init-title">Luxury duplex — Bodija</span>
+        <span class="init-tag">Duplex</span>
+        <span class="init-date">12/03/24</span>
+        <a href="#" class="init-arrow">→</a>
+      </div>
+      <div class="init-row">
+        <span class="init-title">2 bedroom flat — Akobo</span>
+        <span class="init-tag init-tag--accent">Apartment</span>
+        <span class="init-date">29/05/24</span>
+        <a href="#" class="init-arrow">→</a>
+      </div>
+      <div class="init-row init-row--photo">
+        <span class="init-title">Land parcel — Ring Road</span>
+        <span class="init-tag">Land</span>
+        <span class="init-date">06/06/24</span>
+        <a href="#" class="init-arrow">→</a>
+        <div class="init-photo" style="background-image:url('https://images.unsplash.com/photo-1668911494509-14baf3b42fda?auto=format&fit=crop&w=300&q=80')"></div>
+      </div>
+      <div class="init-row">
+        <span class="init-title">Self-contained studio — Jericho</span>
+        <span class="init-tag">Apartment</span>
+        <span class="init-date">18/06/24</span>
+        <a href="#" class="init-arrow">→</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="why">
+    <div class="why-top">
+      <div>
+        <span class="eyebrow">Why Rentivo</span>
+        <h2>Built around trust,<br>not guesswork.</h2>
+      </div>
+      <div class="why-nav">
+        <button class="nav-arrow" aria-label="Previous" onclick="document.querySelector('.why-track').scrollBy({left:-300,behavior:'smooth'})">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="#000052" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="nav-arrow nav-arrow--active" aria-label="Next" onclick="document.querySelector('.why-track').scrollBy({left:300,behavior:'smooth'})">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="why-track">
+      <article class="why-card why-card--lilac">
+        <div class="why-card-top">
+          <span class="chip">100% inspected</span>
+          <span class="chip">For buyers</span>
+        </div>
+        <h3>Verified<br>listings</h3>
+        <p>Every home is inspected in person before it ever goes live.</p>
+        <div class="why-card-photo" style="background-image:url('https://images.unsplash.com/photo-1760067537293-6b30141d6a52?auto=format&fit=crop&w=500&q=80')">
+          <a href="#" class="read-more">Read more <span>→</span></a>
+        </div>
+      </article>
+
+      <article class="why-card why-card--sand">
+        <div class="why-card-top">
+          <span class="chip">₦5,000</span>
+          <span class="chip">One time</span>
+        </div>
+        <h3>Flat access<br>fee</h3>
+        <p>One clear price unlocks full contact details. No surprise charges.</p>
+        <div class="why-card-photo" style="background-image:url('https://images.unsplash.com/photo-1768638687896-35bde623d532?auto=format&fit=crop&w=500&q=80')">
+          <a href="#" class="read-more">Read more <span>→</span></a>
+        </div>
+      </article>
+
+      <article class="why-card why-card--navy">
+        <div class="why-card-top">
+          <span class="chip chip--dark">Verified</span>
+          <span class="chip chip--dark">Direct contact</span>
+        </div>
+        <h3>Real agent<br>access</h3>
+        <p>Reach a named, vetted agent directly — never a call centre.</p>
+        <div class="why-card-photo" style="background-image:url('https://images.unsplash.com/photo-1741156386380-0236c72eb6f9?auto=format&fit=crop&w=500&q=80')">
+          <a href="#" class="read-more read-more--light">Read more <span>→</span></a>
+        </div>
+      </article>
+
+      <article class="why-card why-card--teal">
+        <div class="why-card-top">
+          <span class="chip">No account</span>
+          <span class="chip">Free</span>
+        </div>
+        <h3>Browse<br>freely</h3>
+        <p>Explore every listing before you ever create an account.</p>
+        <div class="why-card-photo" style="background-image:url('https://images.unsplash.com/photo-1763827657709-b1bbc3c4945b?auto=format&fit=crop&w=500&q=80')">
+          <a href="#" class="read-more">Read more <span>→</span></a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+
+  <section class="coverage">
+    <h2>Where we cover</h2>
+    <p>Verified listings across these Ibadan neighbourhoods,<br>with more areas added every month.</p>
+    <div class="coverage-chips">
+      <span>Bodija</span><span>Akobo</span><span>Jericho</span>
+      <span>Ring Road</span><span>Iwo Road</span><span>Ologuneru</span><span>Agodi</span>
+    </div>
+  </section>
+
+</div>
+
+<footer class="site-footer">
+  <div class="page footer-grid">
+    <div class="footer-brand">
+      <div class="logo logo--light">
+        <span class="logo-mark">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M3 11L12 4l9 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        Rentivo
+      </div>
+      <p>Verified homes in Ibadan. Browse freely,<br>pay one flat fee when you're ready.</p>
+      <div class="footer-social">
+        <a href="#" aria-label="Instagram">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#fff" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="#fff" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1" fill="#fff"/></svg>
+        </a>
+        <a href="#" aria-label="X">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </a>
+        <a href="#" aria-label="WhatsApp">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 18l1-4a7 7 0 1 1 3 3l-4 1z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <h4>Explore</h4>
+      <a href="#">Browse homes</a>
+      <a href="#">Verified agents</a>
+      <a href="#">Pricing</a>
+      <a href="#">How it works</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="#">About Rentivo</a>
+      <a href="#">Careers</a>
+      <a href="#">Our verification process</a>
+      <a href="#">Blog</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="#">Help centre</a>
+      <a href="#">Contact us</a>
+      <a href="#">Report a listing</a>
+      <a href="#">Safety tips</a>
+    </div>
+    <div class="footer-col footer-col--newsletter">
+      <h4>Stay updated</h4>
+      <p>New verified listings in your inbox, weekly.</p>
+      <form class="footer-form" onsubmit="return false;">
+        <input type="email" placeholder="Your email">
+        <button type="submit" aria-label="Subscribe">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#000052" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="page footer-bottom">
+    <span>© 2026 Rentivo. Built for the Ibadan pilot.</span>
+    <div class="footer-legal">
+      <a href="#">Privacy policy</a>
+      <a href="#">Terms of use</a>
+      <a href="#">Ibadan, Nigeria</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

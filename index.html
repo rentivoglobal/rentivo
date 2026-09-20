@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Rentivo — Find a verified place in Ibadan</title>
+  <link rel="stylesheet" href="css/rentivo.css">
+</head>
+
+<body>
+  <div class="shell">
+    <div class="page">
+
+      <nav class="nav">
+        <a class="logo" href="index.html">
+          <img class="logo-img" src="RENTIVO-lockup.svg" alt="Rentivo">
+        </a>
+        <div class="nav-links">
+          <a href="index.html" class="active">Home</a>
+          <a href="#listings">Properties</a>
+          <a href="#choose">About</a>
+          <a href="email.html">Contact</a>
+          <a href="save.html" class="nav-mobile-only">Log in</a>
+        </div>
+        <div class="nav-right">
+          <a href="save.html" class="nav-login">Log in</a>
+          <a href="#listings" class="btn-pill">Browse listings</a>
+          <button class="menu-btn" aria-label="Open menu"
+            aria-expanded="false"><span></span><span></span><span></span></button>
+        </div>
+      </nav>
+    </div>
+
+    <section class="hero">
+      <div class="hero-map" aria-hidden="true">
+        <svg class="hero-roads" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">
+          <path class="road" d="M-20 210 C 180 160, 340 280, 560 230 S 900 140, 1300 190" />
+          <path class="road road--wide" d="M-20 390 C 220 430, 430 340, 680 400 S 1040 470, 1300 430" />
+          <path class="road" d="M-20 540 C 260 500, 480 600, 760 560 S 1080 500, 1300 560" />
+          <path class="road" d="M160 -20 C 190 160, 90 340, 210 760" />
+          <path class="road road--thin" d="M430 -20 C 400 200, 520 380, 470 760" />
+          <path class="road" d="M820 -20 C 860 180, 760 400, 890 760" />
+          <path class="road road--thin" d="M1100 -20 C 1060 200, 1160 390, 1080 760" />
+          <path class="road road--thin" d="M40 120 C 280 80, 520 150, 780 90 S 1140 40, 1300 80" />
+          <circle class="zone" cx="220" cy="300" r="70" />
+          <circle class="zone" cx="1040" cy="420" r="90" />
+          <circle class="zone" cx="640" cy="560" r="80" />
+          <circle class="node" cx="210" cy="392" r="4" />
+          <circle class="node" cx="470" cy="400" r="4" />
+          <circle class="node" cx="890" cy="408" r="4" />
+          <circle class="node" cx="680" cy="400" r="4" />
+          <text x="118" y="268">Agodi</text>
+          <text x="78" y="430">Akobo</text>
+          <text x="70" y="590">Iwo Road</text>
+          <text x="1088" y="250">Ring Road</text>
+          <text x="1124" y="430">Jericho</text>
+          <text x="1040" y="600">Bodija</text>
+          <g class="map-flow">
+            <path class="flow-line flow-a" d="M-20 210 C 180 160, 340 280, 560 230 S 900 140, 1300 190" />
+            <path class="flow-line flow-b" d="M-20 390 C 220 430, 430 340, 680 400 S 1040 470, 1300 430" />
+            <path class="flow-line flow-c" d="M160 -20 C 190 160, 90 340, 210 760" />
+            <path class="flow-line flow-a" d="M820 -20 C 860 180, 760 400, 890 760" />
+            <path class="flow-line flow-b" d="M-20 540 C 260 500, 480 600, 760 560 S 1080 500, 1300 560" />
+            <path class="flow-line flow-c" d="M1100 -20 C 1060 200, 1160 390, 1080 760" />
+          </g>
+        </svg>
+      </div>
+      <div class="hero-fade"></div>
+
+      <div class="hero-copy">
+        <span class="badge"><span class="badge-pin"></span>Now live in Ibadan</span>
+        <h1>Find a verified place<br>to rent your next home</h1>
+
+        <form class="search" action="#listings">
+          <span class="search-lead" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M16.7585 14.9558H15.8131L15.4781 14.6329C16.914 12.9586 17.6559 10.6744 17.2491 8.2467C16.6867 4.92206 13.9105 2.26714 10.56 1.86053C5.49833 1.23866 1.23839 5.4961 1.86063 10.5548C2.26748 13.9034 4.92396 16.6779 8.25054 17.2399C10.6797 17.6466 12.9652 16.9051 14.6405 15.47L14.9635 15.8049V16.7496L20.0491 21.8322C20.5398 22.3226 21.3415 22.3226 21.8321 21.8322C22.3227 21.3419 22.3227 20.5407 21.8321 20.0503L16.7585 14.9558ZM9.57878 14.9558C6.59921 14.9558 4.19402 12.552 4.19402 9.57416C4.19402 6.59634 6.59921 4.19256 9.57878 4.19256C12.5583 4.19256 14.9635 6.59634 14.9635 9.57416C14.9635 12.552 12.5583 14.9558 9.57878 14.9558Z" />
+            </svg>
+          </span>
+          <div class="search-field">
+            <label>Location</label>
+            <select>
+              <option>All Ibadan areas</option>
+              <option>Bodija</option>
+              <option>Akobo</option>
+              <option>Jericho</option>
+              <option>Ring Road</option>
+              <option>Iwo Road</option>
+              <option>Agodi</option>
+            </select>
+          </div>
+          <div class="search-field">
+            <label>Looking for</label>
+            <select>
+              <option>Homes &amp; commercial</option>
+              <option>Home to rent</option>
+              <option>Shop or office</option>
+            </select>
+          </div>
+          <div class="search-field">
+            <label>Budget</label>
+            <select>
+              <option>₦400K – ₦1.5M</option>
+              <option>₦1.5M – ₦4M</option>
+              <option>₦4M+</option>
+            </select>
+          </div>
+          <button class="search-btn" type="submit">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path
+                d="M16.7585 14.9558H15.8131L15.4781 14.6329C16.914 12.9586 17.6559 10.6744 17.2491 8.2467C16.6867 4.92206 13.9105 2.26714 10.56 1.86053C5.49833 1.23866 1.23839 5.4961 1.86063 10.5548C2.26748 13.9034 4.92396 16.6779 8.25054 17.2399C10.6797 17.6466 12.9652 16.9051 14.6405 15.47L14.9635 15.8049V16.7496L20.0491 21.8322C20.5398 22.3226 21.3415 22.3226 21.8321 21.8322C22.3227 21.3419 22.3227 20.5407 21.8321 20.0503L16.7585 14.9558ZM9.57878 14.9558C6.59921 14.9558 4.19402 12.552 4.19402 9.57416C4.19402 6.59634 6.59921 4.19256 9.57878 4.19256C12.5583 4.19256 14.9635 6.59634 14.9635 9.57416C14.9635 12.552 12.5583 14.9558 9.57878 14.9558Z" />
+            </svg>
+            <span>Search</span>
+          </button>
+        </form>
+      </div>
+
+      <div class="hero-scene">
+        <svg class="map-connectors" id="map-connectors" aria-hidden="true">
+          <path class="connector-line" id="connector-line" />
+        </svg>
+        <div class="hero-pins" id="hero-pins"></div>
+        <div class="listing-stage">
+          <div class="listing-card" id="featured-card"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="page">
+      <div class="stats">
+        <p class="stats-line">Free to browse · Dated checks on verified homes · Flat access fee after confirm · You
+          choose the next step</p>
+      </div>
+
+      <section class="value" id="choose">
+        <div class="value-copy reveal reveal-left">
+          <span class="eyebrow">— Reason to choose us</span>
+          <h2>See the evidence behind every listing</h2>
+          <p>We handle the heavy lifting by checking properties in person, showing what was verified and when, and
+            letting you browse before you share a phone number.</p>
+          <a href="#listings" class="btn-pill">Browse listings <span>→</span></a>
+        </div>
+        <div class="value-grid reveal reveal-right">
+          <article class="value-card">
+            <div class="value-searchbar" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="9.6" cy="9.6" r="5" stroke="currentColor" stroke-width="1.7" />
+                <path d="M13.7 13.7L21.2 21.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+              </svg>
+              <span>Search listings</span>
+            </div>
+            <h3>Browse without an account</h3>
+            <p>Filter Ibadan homes and shops, then inspect the evidence before you sign up.</p>
+          </article>
+          <article class="value-card">
+            <div class="trust-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path class="shield"
+                  d="M12 2.3l8.1 3.45v6.65c0 5.35-3.45 9.2-8.1 10.9-4.65-1.7-8.1-5.55-8.1-10.9V5.75L12 2.3z" />
+                <path class="check" d="M10.1 13.15l-2.15-2.15-.95.95 3.1 3.15 6.1-6.1-.95-.95z" />
+              </svg>
+            </div>
+            <h3>Dated verification</h3>
+            <p>Each Verified badge shows what was checked and the date it was done.</p>
+          </article>
+          <article class="value-card value-card--wide">
+            <div class="value-wide-copy">
+              <div class="value-pin" aria-hidden="true">
+                <span class="value-bubble">Flat fee</span>
+                <span class="value-pin-mark"><i></i></span>
+              </div>
+              <svg class="value-dash" viewBox="0 0 180 70" fill="none" aria-hidden="true">
+                <path d="M8 58 C 70 8, 120 8, 172 28" stroke="#BE89FF" stroke-width="1.8" stroke-dasharray="5 6"
+                  stroke-linecap="round" />
+              </svg>
+              <h3>Pay only after confirmation</h3>
+              <p>The access fee is requested only when the lister confirms the property is still available.</p>
+            </div>
+            <div class="value-wide-media">
+              <img class="stack-mid"
+                src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=360&q=80" alt="">
+              <img class="stack-back"
+                src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=360&q=80"
+                alt="">
+              <img class="stack-front"
+                src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=520&q=80"
+                alt="Verified duplex in Bodija">
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="goals" id="goals">
+        <div class="sec-head reveal">
+          <span class="eyebrow">Start with your goal</span>
+          <h2>What are you looking for?</h2>
+          <p>Choose the path that fits your search. You can change it later, or browse everything now.</p>
+        </div>
+        <div class="goal-grid">
+          <a class="goal-card" href="#listings">
+            <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
+              alt="">
+            <h3>A home to rent</h3>
+            <p>Self-contain, flat, duplex, or bungalow across Ibadan.</p>
+          </a>
+          <a class="goal-card" href="#listings">
+            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80"
+              alt="">
+            <h3>A shop or office</h3>
+            <p>Commercial space for a business, with the same check dates shown.</p>
+          </a>
+          <a class="goal-card goal-card--soft" href="#listings">
+            <div class="goal-copy">
+              <h3>I am not sure yet</h3>
+              <p>Browse all available Ibadan options and filter as you go.</p>
+              <span class="goal-go">Browse listings <span>→</span></span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <section class="listings" id="listings">
+        <div class="init-head reveal">
+          <div>
+            <span class="eyebrow">See real options first</span>
+            <h2>Browse before you create an account.</h2>
+          </div>
+          <p>Filter by area, price, type, and availability. Open any listing to inspect the evidence.</p>
+        </div>
+        <div class="listing-grid">
+          <article class="home-card reveal">
+            <div class="photo"
+              style="background-image:url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=700&q=80')">
+              <div class="tags"><span class="tag">Verified</span></div>
+            </div>
+            <div class="body">
+              <h3>2 bedroom flat — Akobo</h3>
+              <div class="meta">Tolu Adekunle · Independent lister</div>
+              <div class="row">
+                <div class="price">₦850,000<span>Per year</span></div>
+                <a class="view-btn" href="save.html?id=akobo-flat">Save listing</a>
+              </div>
+            </div>
+          </article>
+          <article class="home-card reveal">
+            <div class="photo"
+              style="background-image:url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=700&q=80')">
+              <div class="tags"><span class="tag">Verified</span></div>
+            </div>
+            <div class="body">
+              <h3>4 bedroom duplex — Bodija</h3>
+              <div class="meta">Samuel Adeyemi · Bodija Homes</div>
+              <div class="row">
+                <div class="price">₦4,200,000<span>Per year</span></div>
+                <a class="view-btn" href="save.html?id=bodija-duplex">Save listing</a>
+              </div>
+            </div>
+          </article>
+          <article class="home-card reveal">
+            <div class="photo"
+              style="background-image:url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=700&q=80')">
+              <div class="tags"><span class="tag">Verified</span></div>
+            </div>
+            <div class="body">
+              <h3>Shop space — Ring Road</h3>
+              <div class="meta">Ifeoma Okeke · Ring Road Agency</div>
+              <div class="row">
+                <div class="price">₦1,200,000<span>Per year</span></div>
+                <a class="view-btn" href="save.html?id=ring-shop">Save listing</a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="why">
+        <div class="why-top reveal">
+          <div>
+            <span class="eyebrow">Why Rentivo</span>
+            <h2>Built around trust,<br>not guesswork.</h2>
+          </div>
+          <div class="why-nav">
+            <button class="nav-arrow" data-scroll="-300" aria-label="Previous">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M15 6l-6 6 6 6" stroke="#000052" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </button>
+            <button class="nav-arrow nav-arrow--active" data-scroll="300" aria-label="Next">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M9 6l6 6-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="why-track">
+          <article class="why-card why-card--muted">
+            <div class="why-card-top">
+              <div class="trust-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path class="shield"
+                    d="M12 2.3l8.1 3.45v6.65c0 5.35-3.45 9.2-8.1 10.9-4.65-1.7-8.1-5.55-8.1-10.9V5.75L12 2.3z" />
+                  <path class="check" d="M10.1 13.15l-2.15-2.15-.95.95 3.1 3.15 6.1-6.1-.95-.95z" />
+                </svg>
+              </div>
+              <span class="chip">Verified</span>
+            </div>
+            <h3>Verified<br>listings</h3>
+            <p>Every verified home shows the checks completed and the date they were done.</p>
+            <div class="why-card-photo"
+              style="background-image:url('https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80')">
+              <a href="#choose" class="read-more">Read more <span>→</span></a>
+            </div>
+          </article>
+          <article class="why-card why-card--muted">
+            <div class="why-card-top"><span class="chip">After confirm</span></div>
+            <h3>Flat access<br>fee</h3>
+            <p>One clear price, requested only after availability is confirmed. No surprise charges.</p>
+            <div class="why-card-photo"
+              style="background-image:url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=500&q=80')">
+              <a href="#choose" class="read-more">Read more <span>→</span></a>
+            </div>
+          </article>
+          <article class="why-card why-card--muted">
+            <div class="why-card-top"><span class="chip">Direct</span></div>
+            <h3>Real lister<br>access</h3>
+            <p>Reach a named lister or agency — never a silent handoff to a call centre.</p>
+            <div class="why-card-photo"
+              style="background-image:url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=500&q=80')">
+              <a href="#choose" class="read-more">Read more <span>→</span></a>
+            </div>
+          </article>
+          <article class="why-card why-card--muted">
+            <div class="why-card-top"><span class="chip">No account</span></div>
+            <h3>Browse<br>freely</h3>
+            <p>Explore every listing before you ever create an account or share a phone number.</p>
+            <div class="why-card-photo"
+              style="background-image:url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=500&q=80')">
+              <a href="#listings" class="read-more">Browse listings <span>→</span></a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+    </div>
+
+    <section class="recover" id="recover">
+      <div class="page">
+        <div class="recover-simple reveal">
+          <span class="eyebrow">If something changes</span>
+          <h2>Not the right fit? You still have options.</h2>
+          <p>Hide a listing, report something inaccurate, or get support if a lister does not respond — before you pay,
+            and after you look.</p>
+          <div class="recover-actions" role="group" aria-label="Recovery actions">
+            <a href="email.html" class="recover-action">Report</a>
+            <a href="#listings" class="recover-action">Hide</a>
+            <a href="email.html" class="recover-action recover-action--solid">Get support <span>→</span></a>
+            <a href="#listings" class="btn-pill">Browse listings</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer" id="footer">
+      <div class="page footer-inner">
+        <div class="footer-grid">
+          <div class="footer-col footer-col--newsletter">
+            <a class="logo logo--on-dark" href="index.html">
+              <img class="logo-img" src="RENTIVO-lockup.svg" alt="Rentivo">
+            </a>
+            <h4>Weekly verified listings</h4>
+            <p>Newly checked Ibadan homes in your inbox. Unsubscribe in one click.</p>
+            <form class="footer-form" action="email.html" method="get">
+              <label class="sr-only" for="footer-email">Email</label>
+              <input id="footer-email" name="email" type="email" required placeholder="Your email" autocomplete="email">
+              <button type="submit">Subscribe</button>
+            </form>
+          </div>
+          <div class="footer-col">
+            <h4>Explore</h4>
+            <a href="#listings">Browse listings</a>
+            <a href="#choose">Why Rentivo</a>
+            <a href="save.html">Save a listing</a>
+          </div>
+          <div class="footer-col">
+            <h4>Support</h4>
+            <a href="#recover">Help centre</a>
+            <a href="email.html">Contact</a>
+          </div>
+          <div class="footer-col">
+            <h4>Ibadan</h4>
+            <nav class="footer-places" aria-label="Areas we cover">
+              <a href="#listings">Bodija</a>
+              <a href="#listings">Akobo</a>
+              <a href="#listings">Jericho</a>
+              <a href="#listings">Ring Road</a>
+            </nav>
+            <div class="footer-social">
+              <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.6" />
+                  <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" />
+                  <circle cx="17.2" cy="6.8" r="1" fill="currentColor" />
+                </svg></a>
+              <a href="#" aria-label="X"><svg viewBox="0 0 24 24" fill="none">
+                  <path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                </svg></a>
+              <a href="#" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="none">
+                  <path d="M6 18l1-4a7 7 0 1 1 3 3l-4 1z" stroke="currentColor" stroke-width="1.6"
+                    stroke-linejoin="round" />
+                </svg></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page footer-bottom">
+        <span>© 2026 Rentivo. Ibadan, Nigeria.</span>
+        <div class="footer-legal">
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/rentivo.js"></script>
+</body>
+
+</html>

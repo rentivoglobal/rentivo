@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 220" fill="none" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+  <path fill="#000052" d="M0 132C118 86 214 168 338 128C458 90 536 64 662 108C790 154 886 78 1018 92C1154 106 1248 58 1440 96V220H0V132Z"/>
+
+  <!-- left bungalow -->
+  <g transform="translate(48 78)">
+    <rect x="18" y="38" width="92" height="58" rx="4" fill="#BE89FF"/>
+    <path d="M8 42L64 8L120 42H8Z" fill="#A46AE8"/>
+    <rect x="34" y="54" width="18" height="16" rx="2" fill="#000052"/>
+    <rect x="76" y="54" width="18" height="16" rx="2" fill="#000052"/>
+    <rect x="54" y="70" width="16" height="26" rx="2" fill="#000052"/>
+  </g>
+
+  <!-- trees left -->
+  <g fill="#BE89FF">
+    <circle cx="178" cy="118" r="10"/>
+    <rect x="176" y="118" width="4" height="22" rx="1" fill="#8A4FE0"/>
+    <circle cx="198" cy="108" r="14"/>
+    <rect x="196" y="108" width="4" height="32" rx="1" fill="#8A4FE0"/>
+    <circle cx="222" cy="122" r="8"/>
+    <rect x="220" y="122" width="4" height="18" rx="1" fill="#8A4FE0"/>
+  </g>
+
+  <!-- shop -->
+  <g transform="translate(268 86)">
+    <rect x="8" y="36" width="70" height="56" rx="3" fill="#9B64E6"/>
+    <path d="M4 36H82L74 52H12L4 36Z" fill="#BE89FF"/>
+    <rect x="20" y="58" width="16" height="14" rx="1.5" fill="#F1E7FF"/>
+    <rect x="48" y="58" width="16" height="14" rx="1.5" fill="#F1E7FF"/>
+    <rect x="34" y="74" width="14" height="18" rx="1.5" fill="#000052"/>
+  </g>
+
+  <!-- duplex -->
+  <g transform="translate(430 48)">
+    <rect x="10" y="40" width="54" height="86" rx="3" fill="#BE89FF"/>
+    <rect x="64" y="58" width="48" height="68" rx="3" fill="#A46AE8"/>
+    <rect x="22" y="54" width="12" height="12" rx="1.5" fill="#000052"/>
+    <rect x="40" y="54" width="12" height="12" rx="1.5" fill="#000052"/>
+    <rect x="22" y="76" width="12" height="12" rx="1.5" fill="#000052"/>
+    <rect x="40" y="76" width="12" height="12" rx="1.5" fill="#000052"/>
+    <rect x="76" y="72" width="12" height="12" rx="1.5" fill="#000052"/>
+    <rect x="94" y="72" width="12" height="12" rx="1.5" fill="#000052"/>
+    <rect x="28" y="98" width="16" height="28" rx="2" fill="#000052"/>
+  </g>
+
+  <!-- trees mid -->
+  <g fill="#BE89FF">
+    <circle cx="582" cy="104" r="11"/>
+    <rect x="580" y="104" width="4" height="28" rx="1" fill="#8A4FE0"/>
+    <circle cx="606" cy="96" r="16"/>
+    <rect x="604" y="96" width="4" height="40" rx="1" fill="#8A4FE0"/>
+    <circle cx="632" cy="108" r="9"/>
+    <rect x="630" y="108" width="4" height="22" rx="1" fill="#8A4FE0"/>
+  </g>
+
+  <!-- low skyline -->
+  <g transform="translate(668 42)" fill="#BE89FF">
+    <rect x="0" y="58" width="22" height="72" rx="2" fill="#9B64E6"/>
+    <rect x="26" y="28" width="28" height="102" rx="2"/>
+    <rect x="58" y="46" width="20" height="84" rx="2" fill="#A46AE8"/>
+    <rect x="82" y="18" width="34" height="112" rx="2"/>
+    <rect x="120" y="40" width="24" height="90" rx="2" fill="#9B64E6"/>
+    <rect x="148" y="62" width="18" height="68" rx="2" fill="#A46AE8"/>
+    <rect x="90" y="30" width="6" height="8" rx="1" fill="#F1E7FF"/>
+    <rect x="102" y="30" width="6" height="8" rx="1" fill="#F1E7FF"/>
+    <rect x="34" y="42" width="5" height="7" rx="1" fill="#000052"/>
+    <rect x="44" y="42" width="5" height="7" rx="1" fill="#000052"/>
+  </g>
+
+  <!-- map pin balloon -->
+  <g transform="translate(900 18)">
+    <path d="M32 0C18 0 8 12 8 28c0 20 24 44 24 44s24-24 24-44C56 12 46 0 32 0z" fill="#BE89FF"/>
+    <circle cx="32" cy="26" r="10" fill="#000052"/>
+    <circle cx="32" cy="26" r="4" fill="#F1E7FF"/>
+  </g>
+
+  <!-- trees right of pin -->
+  <g fill="#BE89FF">
+    <circle cx="980" cy="92" r="13"/>
+    <rect x="978" y="92" width="4" height="30" rx="1" fill="#8A4FE0"/>
+    <circle cx="1006" cy="104" r="9"/>
+    <rect x="1004" y="104" width="4" height="20" rx="1" fill="#8A4FE0"/>
+  </g>
+
+  <!-- right home -->
+  <g transform="translate(1128 58)">
+    <rect x="22" y="42" width="108" height="62" rx="4" fill="#BE89FF"/>
+    <path d="M10 48L76 6L142 48H10Z" fill="#A46AE8"/>
+    <rect x="40" y="58" width="20" height="16" rx="2" fill="#000052"/>
+    <rect x="92" y="58" width="20" height="16" rx="2" fill="#000052"/>
+    <rect x="66" y="74" width="18" height="30" rx="2" fill="#000052"/>
+  </g>
+
+  <!-- trees far right -->
+  <g fill="#BE89FF">
+    <circle cx="1310" cy="108" r="12"/>
+    <rect x="1308" y="108" width="4" height="28" rx="1" fill="#8A4FE0"/>
+    <circle cx="1336" cy="98" r="16"/>
+    <rect x="1334" y="98" width="4" height="38" rx="1" fill="#8A4FE0"/>
+    <circle cx="1366" cy="112" r="9"/>
+    <rect x="1364" y="112" width="4" height="20" rx="1" fill="#8A4FE0"/>
+    <circle cx="1390" cy="104" r="11"/>
+    <rect x="1388" y="104" width="4" height="26" rx="1" fill="#8A4FE0"/>
+  </g>
+</svg>

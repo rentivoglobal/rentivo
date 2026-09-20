@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rentivo Admin — Verification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.28.1/tabler-icons.min.css">
+<style>
+  :root{
+    --navy:#000052; --navy-900:#00003D; --lilac:#BE89FF;
+    --lilac-050:#F8F3FF; --lilac-100:#F0E6FF;
+    --ink:#17172B; --muted:#636377; --line:#E6E3EE;
+    --surface:#FFFFFF; --canvas:#F7F8FA;
+    --emerald-50:#ECFDF5; --emerald-700:#047857; --emerald-200:#A7F3D0;
+    --amber-50:#FFFBEB; --amber-700:#B45309; --amber-200:#FDE68A;
+    --indigo-50:#EEF2FF; --indigo-700:#4338CA; --indigo-200:#C7D2FE;
+    --rose-50:#FFF1F2; --rose-700:#BE123C; --rose-200:#FECDD3;
+    --slate-50:#F8FAFC; --slate-700:#334155; --slate-200:#E2E8F0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',-apple-system,sans-serif;background:var(--canvas);color:var(--ink);-webkit-font-smoothing:antialiased;}
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ---------- top nav ---------- */
+  .topnav{background:var(--navy);border-bottom:1px solid rgba(255,255,255,.08);position:sticky;top:0;z-index:30;transition:box-shadow .25s ease;}
+  .topnav.scrolled{box-shadow:0 8px 20px -12px rgba(0,0,0,.4);}
+  .topnav-inner{max-width:1500px;margin:0 auto;padding:0 32px;display:flex;align-items:center;gap:36px;height:60px;}
+  @media (max-width:767px){.topnav-inner{padding:0 16px;gap:20px;}}
+  .top-logo{font-size:17px;font-weight:800;color:#fff;flex:none;display:flex;align-items:center;gap:8px;}
+  .top-logo span{color:var(--lilac);}
+  .admin-tag{font-size:10.5px;font-weight:700;background:rgba(190,137,255,.18);color:var(--lilac);padding:3px 8px;border-radius:6px;letter-spacing:.03em;}
+  .top-nav-line{position:relative;display:flex;gap:4px;flex:1;overflow-x:auto;scrollbar-width:none;}
+  .top-nav-line::-webkit-scrollbar{display:none;}
+  .top-link{display:flex;align-items:center;gap:8px;padding:19px 4px;font-size:13.5px;font-weight:600;color:#A9A6D0;white-space:nowrap;transition:color .18s ease;flex:none;}
+  .top-link i{font-size:16px;}
+  .top-link:hover{color:#fff;}
+  .top-link.active{color:#fff;}
+  .top-nav-underline{position:absolute;bottom:0;height:2.5px;background:var(--lilac);border-radius:2px;transition:left .28s cubic-bezier(.4,0,.2,1), width .28s cubic-bezier(.4,0,.2,1);}
+  .top-right{display:flex;align-items:center;gap:12px;flex:none;}
+  .top-search{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:8px 12px;}
+  .top-search input{border:none;background:none;outline:none;color:#fff;font-family:inherit;font-size:13px;width:150px;}
+  .top-search input::placeholder{color:#8E8BB8;}
+  .top-search i{color:#8E8BB8;font-size:15px;}
+  .top-icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:#C9C6E8;flex:none;position:relative;}
+  .top-icon-btn .ping{position:absolute;top:6px;right:7px;width:6px;height:6px;border-radius:50%;background:#F87171;}
+  .top-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--lilac),#8F5BD6);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#fff;flex:none;}
+
+  /* ---------- main ---------- */
+  .main{padding:26px 32px 60px;max-width:1500px;width:100%;margin:0 auto;}
+  @media (max-width:767px){.main{padding:18px;}}
+
+  .topline{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;margin-bottom:20px;}
+  .topline h1{font-size:22px;font-weight:800;margin:0 0 4px;letter-spacing:-0.01em;}
+  .topline p{margin:0;font-size:13.5px;color:var(--muted);}
+  .btn-secondary{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:600;color:var(--ink);transition:border-color .15s ease;}
+  .btn-secondary:hover{border-color:var(--navy);}
+  .btn-primary{display:flex;align-items:center;gap:8px;border:none;background:var(--navy);color:#fff;padding:9px 15px;border-radius:10px;font-size:13px;font-weight:700;transition:background .15s ease;}
+  .btn-primary:hover{background:var(--navy-900);}
+
+  /* stat strip */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  @media (max-width:1000px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:520px){.stats-grid{grid-template-columns:1fr;}}
+  .stat-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;}
+  .stat-label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;}
+  .stat-value{font-size:24px;font-weight:800;color:var(--navy);}
+  .stat-sub{font-size:11.5px;color:var(--muted);margin-top:6px;}
+
+  /* toolbar */
+  .toolbar{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    background:#fff;border:1px solid var(--line);border-radius:14px 14px 0 0;padding:14px 18px;
+  }
+  .toolbar-left{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .seg-tabs{display:flex;gap:4px;background:var(--canvas);border-radius:10px;padding:4px;}
+  .seg-tab{font-size:12.5px;font-weight:600;color:var(--muted);padding:7px 13px;border-radius:8px;}
+  .seg-tab.on{background:#fff;color:var(--navy);box-shadow:0 2px 6px rgba(23,23,43,.08);}
+  .select-mini{border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:600;color:var(--ink);background:#fff;}
+  .toolbar-right{display:flex;align-items:center;gap:10px;}
+  .search-mini{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;background:#fff;}
+  .search-mini input{border:none;outline:none;font-family:inherit;font-size:12.5px;width:150px;}
+  .search-mini i{color:var(--muted);font-size:14px;}
+
+  /* bulk bar */
+  .bulk-bar{
+    display:none;align-items:center;justify-content:space-between;gap:14px;
+    background:var(--navy);color:#fff;padding:12px 18px;font-size:13px;font-weight:600;flex-wrap:wrap;
+  }
+  .bulk-bar.show{display:flex;}
+  .bulk-actions{display:flex;gap:8px;}
+  .bulk-actions button{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;}
+  .bulk-actions button:hover{background:rgba(255,255,255,.16);}
+
+  .panel-table{background:#fff;border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px;overflow:hidden;margin-bottom:26px;}
+  table{width:100%;border-collapse:collapse;}
+  thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:11px 16px;font-weight:700;background:var(--canvas);}
+  th.num,td.num{text-align:right;}
+  th.center,td.center{text-align:center;}
+  tbody tr{border-top:1px solid var(--line);transition:background .12s ease;cursor:pointer;}
+  tbody tr:hover{background:#FAFAFD;}
+  tbody tr.overdue td.days{color:var(--rose-700);font-weight:700;}
+  tbody td{padding:13px 16px;font-size:13px;vertical-align:middle;}
+  .prop-cell{display:flex;align-items:center;gap:10px;}
+  .thumb{width:42px;height:42px;border-radius:9px;object-fit:cover;flex:none;background:var(--lilac-050);}
+  .prop-info .title{font-weight:600;font-size:13px;}
+  .prop-info .area{font-size:11px;color:var(--muted);}
+  .cat-chip{font-size:10.5px;font-weight:600;background:var(--lilac-100);color:var(--navy);padding:3px 8px;border-radius:6px;}
+  .lister-cell{display:flex;align-items:center;gap:8px;}
+  .l-avatar{width:26px;height:26px;border-radius:50%;background:var(--lilac-100);color:var(--navy);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex:none;}
+  .inspector-cell{font-size:12.5px;}
+  .inspector-cell.unassigned{color:var(--muted);font-style:italic;}
+  .table-scroll{overflow-x:auto;}
+
+  .dot-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;border:1px solid;white-space:nowrap;}
+  .dot-badge .dot{width:6px;height:6px;border-radius:50%;flex:none;}
+  .db-emerald{background:var(--emerald-50);color:var(--emerald-700);border-color:var(--emerald-200);}
+  .db-emerald .dot{background:var(--emerald-700);}
+  .db-amber{background:var(--amber-50);color:var(--amber-700);border-color:var(--amber-200);}
+  .db-amber .dot{background:var(--amber-700);}
+  .db-indigo{background:var(--indigo-50);color:var(--indigo-700);border-color:var(--indigo-200);}
+  .db-indigo .dot{background:var(--indigo-700);}
+  .db-slate{background:var(--slate-50);color:var(--slate-700);border-color:var(--slate-200);}
+  .db-slate .dot{background:var(--slate-700);}
+
+  .action-cell{position:relative;text-align:right;}
+  .dots-btn{border:1px solid var(--line);background:#fff;width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;}
+  .menu{position:absolute;right:16px;top:38px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(23,23,43,.14);min-width:172px;padding:6px;z-index:5;display:none;}
+  .menu.open{display:block;}
+  .menu button{width:100%;display:flex;align-items:center;gap:9px;text-align:left;background:none;border:none;padding:9px 10px;border-radius:7px;font-size:12.5px;font-weight:500;color:var(--ink);}
+  .menu button:hover{background:var(--canvas);}
+  .menu button.danger{color:var(--rose-700);}
+  .menu button i{font-size:15px;}
+
+  /* drawer */
+  .overlay{position:fixed;inset:0;background:rgba(23,23,43,.4);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:40;}
+  .overlay.show{opacity:1;pointer-events:auto;}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:440px;max-width:94vw;background:#fff;box-shadow:-20px 0 50px rgba(23,23,43,.18);transform:translateX(100%);transition:transform .3s ease;z-index:41;display:flex;flex-direction:column;}
+  .drawer.show{transform:translateX(0);}
+  .drawer-head{display:flex;justify-content:space-between;align-items:center;padding:20px 22px;border-bottom:1px solid var(--line);}
+  .drawer-head h3{margin:0;font-size:16px;font-weight:700;}
+  .drawer-close{border:none;background:var(--canvas);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+  .drawer-body{padding:22px;overflow-y:auto;flex:1;}
+  .drawer-prop{display:flex;gap:12px;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--line);}
+  .drawer-prop img{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--lilac-050);}
+  .drawer-meta-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:8px 0;border-bottom:1px solid var(--line);}
+  .drawer-meta-row:last-child{border-bottom:none;}
+  .drawer-meta-row b{color:var(--ink);font-weight:600;}
+
+  .section-label{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:20px 0 10px;}
+  .checklist{display:flex;flex-direction:column;gap:10px;}
+  .check-item{display:flex;align-items:flex-start;gap:10px;font-size:13px;}
+  .check-item input{margin-top:2px;accent-color:var(--emerald-700);width:16px;height:16px;flex:none;}
+
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+  .field select, .field input, .field textarea{
+    width:100%;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--ink);
+  }
+  .field textarea{resize:vertical;min-height:70px;}
+
+  .drawer-footer{padding:16px 22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;}
+  .btn-approve{background:var(--emerald-700);color:#fff;border:none;padding:13px;border-radius:10px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-changes{background:var(--amber-50);color:var(--amber-700);border:1px solid var(--amber-200);padding:13px;border-radius:10px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-revoke{background:none;color:var(--rose-700);border:1px solid var(--rose-200);padding:11px;border-radius:10px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <header class="topnav" id="topnav">
+    <div class="topnav-inner">
+      <div class="top-logo">RENT<span>ivo</span><span class="admin-tag">ADMIN</span></div>
+      <nav class="top-nav-line" id="topNavLine">
+        <a class="top-link" data-section="overview"><i class="ti ti-layout-dashboard"></i>Overview</a>
+        <a class="top-link" data-section="listings"><i class="ti ti-building"></i>Listings</a>
+        <a class="top-link active" data-section="verification"><i class="ti ti-shield-check"></i>Verification</a>
+        <a class="top-link" data-section="escalations"><i class="ti ti-alert-triangle"></i>Escalations</a>
+        <a class="top-link" data-section="users"><i class="ti ti-users"></i>Users</a>
+        <a class="top-link" data-section="reports"><i class="ti ti-flag"></i>Reports</a>
+        <span class="top-nav-underline" id="topNavUnderline"></span>
+      </nav>
+      <div class="top-right">
+        <div class="top-search"><i class="ti ti-search"></i><input placeholder="Search listings, users..."></div>
+        <button class="top-icon-btn"><i class="ti ti-bell"></i><span class="ping"></span></button>
+        <div class="top-avatar">RV</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <div class="topline">
+      <div>
+        <h1>Verification queue</h1>
+        <p>Every listing needing a physical inspection before it can carry the Verified badge.</p>
+      </div>
+      <button class="btn-primary"><i class="ti ti-user-plus"></i>Assign inspector</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Awaiting inspection</div><div class="stat-value num">11</div><div class="stat-sub">4 unassigned</div></div>
+      <div class="stat-card"><div class="stat-label">Avg time to inspection</div><div class="stat-value num">1.8 days</div><div class="stat-sub">Target: under 2 days</div></div>
+      <div class="stat-card"><div class="stat-label">Verified rate</div><div class="stat-value num">69%</div><div class="stat-sub">98 of 142 active listings</div></div>
+      <div class="stat-card"><div class="stat-label">Overdue (48h+)</div><div class="stat-value num" style="color:var(--rose-700);">3</div><div class="stat-sub">Needs inspector reassignment</div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="seg-tabs">
+          <span class="seg-tab on" data-tab="all">All (11)</span>
+          <span class="seg-tab" data-tab="pending">Pending (4)</span>
+          <span class="seg-tab" data-tab="scheduled">Scheduled (3)</span>
+          <span class="seg-tab" data-tab="progress">In progress (2)</span>
+          <span class="seg-tab" data-tab="completed">Completed (2)</span>
+        </div>
+        <select class="select-mini"><option>All areas</option><option>Bodija</option><option>Ring Road</option><option>Sango</option><option>UI area</option></select>
+        <select class="select-mini"><option>All inspectors</option><option>Tayo A.</option><option>Musa I.</option><option>Unassigned</option></select>
+      </div>
+      <div class="toolbar-right">
+        <div class="search-mini"><i class="ti ti-search"></i><input placeholder="Search property or lister"></div>
+      </div>
+    </div>
+
+    <div class="bulk-bar" id="bulkBar">
+      <span id="bulkCount">2 selected</span>
+      <div class="bulk-actions">
+        <button><i class="ti ti-user-plus"></i>Assign inspector</button>
+        <button><i class="ti ti-calendar-event"></i>Schedule</button>
+        <button><i class="ti ti-x"></i>Clear</button>
+      </div>
+    </div>
+
+    <div class="panel-table">
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:34px;"><input type="checkbox" id="checkAll"></th>
+            <th>Property</th><th>Category</th><th>Lister</th><th>Submitted</th><th class="center">Status</th><th>Inspector</th><th class="num">Days in queue</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr data-row>
+            <td><input type="checkbox" class="rowcheck"></td>
+            <td><div class="prop-cell"><img class="thumb" src="https://loremflickr.com/100/100/apartment/all?lock=301" alt=""><div class="prop-info"><div class="title">2-Bed Flat, Bodija</div><div class="area">Bodija</div></div></div></td>
+            <td><span class="cat-chip">Residential</span></td>
+            <td><div class="lister-cell"><div class="l-avatar">AB</div>Adeola B.</div></td>
+            <td class="num">Sep 15</td>
+            <td class="center"><span class="dot-badge db-amber"><span class="dot"></span>Pending</span></td>
+            <td><span class="inspector-cell unassigned">Unassigned</span></td>
+            <td class="num days">3</td>
+            <td class="action-cell">
+              <button class="dots-btn" data-menu="m1"><i class="ti ti-dots-vertical"></i></button>
+              <div class="menu" id="m1">
+                <button><i class="ti ti-eye"></i>View listing</button>
+                <button><i class="ti ti-calendar-event"></i>Schedule inspection</button>
+                <button><i class="ti ti-shield-check"></i>Approve verified</button>
+                <button><i class="ti ti-message-2"></i>Request changes</button>
+                <button class="danger"><i class="ti ti-ban"></i>Revoke</button>
+              </div>
+            </td>
+          </tr>
+          <tr class="overdue" data-row>
+            <td><input type="checkbox" class="rowcheck"></td>
+            <td><div class="prop-cell"><img class="thumb" src="https://loremflickr.com/100/100/shopfront/all?lock=302" alt=""><div class="prop-info"><div class="title">Retail shop, Sango</div><div class="area">Sango</div></div></div></td>
+            <td><span class="cat-chip">Commercial</span></td>
+            <td><div class="lister-cell"><div class="l-avatar">FO</div>Femi O.</div></td>
+            <td class="num">Sep 13</td>
+            <td class="center"><span class="dot-badge db-indigo"><span class="dot"></span>Scheduled</span></td>
+            <td><span class="inspector-cell">Tayo A.</span></td>
+            <td class="num days">5</td>
+            <td class="action-cell">
+              <button class="dots-btn" data-menu="m2"><i class="ti ti-dots-vertical"></i></button>
+              <div class="menu" id="m2">
+                <button><i class="ti ti-eye"></i>View listing</button>
+                <button><i class="ti ti-calendar-event"></i>Reschedule</button>
+                <button><i class="ti ti-shield-check"></i>Approve verified</button>
+                <button><i class="ti ti-message-2"></i>Request changes</button>
+                <button class="danger"><i class="ti ti-ban"></i>Revoke</button>
+              </div>
+            </td>
+          </tr>
+          <tr data-row>
+            <td><input type="checkbox" class="rowcheck"></td>
+            <td><div class="prop-cell"><img class="thumb" src="https://loremflickr.com/100/100/duplex/all?lock=303" alt=""><div class="prop-info"><div class="title">3-Bed Duplex, UI area</div><div class="area">UI area</div></div></div></td>
+            <td><span class="cat-chip">Residential</span></td>
+            <td><div class="lister-cell"><div class="l-avatar">CJ</div>Chidi J.</div></td>
+            <td class="num">Sep 13</td>
+            <td class="center"><span class="dot-badge db-slate"><span class="dot"></span>In progress</span></td>
+            <td><span class="inspector-cell">Tayo A.</span></td>
+            <td class="num days">2</td>
+            <td class="action-cell">
+              <button class="dots-btn" data-menu="m3"><i class="ti ti-dots-vertical"></i></button>
+              <div class="menu" id="m3">
+                <button><i class="ti ti-eye"></i>View listing</button>
+                <button><i class="ti ti-shield-check"></i>Approve verified</button>
+                <button><i class="ti ti-message-2"></i>Request changes</button>
+                <button class="danger"><i class="ti ti-ban"></i>Revoke</button>
+              </div>
+            </td>
+          </tr>
+          <tr data-row>
+            <td><input type="checkbox" class="rowcheck"></td>
+            <td><div class="prop-cell"><img class="thumb" src="https://loremflickr.com/100/100/office/all?lock=304" alt=""><div class="prop-info"><div class="title">Office suite, Ring Road</div><div class="area">Ring Road</div></div></div></td>
+            <td><span class="cat-chip">Commercial</span></td>
+            <td><div class="lister-cell"><div class="l-avatar">BK</div>Bimbo K.</div></td>
+            <td class="num">Sep 10</td>
+            <td class="center"><span class="dot-badge db-emerald"><span class="dot"></span>Completed</span></td>
+            <td><span class="inspector-cell">Musa I.</span></td>
+            <td class="num days">—</td>
+            <td class="action-cell">
+              <button class="dots-btn" data-menu="m4"><i class="ti ti-dots-vertical"></i></button>
+              <div class="menu" id="m4">
+                <button><i class="ti ti-eye"></i>View listing</button>
+                <button class="danger"><i class="ti ti-ban"></i>Revoke</button>
+              </div>
+            </td>
+          </tr>
+          <tr class="overdue" data-row>
+            <td><input type="checkbox" class="rowcheck"></td>
+            <td><div class="prop-cell"><img class="thumb" src="https://loremflickr.com/100/100/warehouse/all?lock=305" alt=""><div class="prop-info"><div class="title">Warehouse, Iwo Road</div><div class="area">Iwo Road</div></div></div></td>
+            <td><span class="cat-chip">Commercial</span></td>
+            <td><div class="lister-cell"><div class="l-avatar">TO</div>Tobi O.</div></td>
+            <td class="num">Sep 12</td>
+            <td class="center"><span class="dot-badge db-amber"><span class="dot"></span>Pending</span></td>
+            <td><span class="inspector-cell unassigned">Unassigned</span></td>
+            <td class="num days">6</td>
+            <td class="action-cell">
+              <button class="dots-btn" data-menu="m5"><i class="ti ti-dots-vertical"></i></button>
+              <div class="menu" id="m5">
+                <button><i class="ti ti-eye"></i>View listing</button>
+                <button><i class="ti ti-calendar-event"></i>Schedule inspection</button>
+                <button><i class="ti ti-shield-check"></i>Approve verified</button>
+                <button><i class="ti ti-message-2"></i>Request changes</button>
+                <button class="danger"><i class="ti ti-ban"></i>Revoke</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- inspection detail / approval drawer -->
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h3>Verification detail</h3>
+    <button class="drawer-close" id="closeDrawerBtn"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-prop">
+      <img src="https://loremflickr.com/100/100/apartment/all?lock=301" alt="">
+      <div>
+        <div style="font-weight:700;font-size:14.5px;">2-Bed Flat, Bodija</div>
+        <div style="font-size:12.5px;color:var(--muted);">Bodija, Ibadan · Residential</div>
+      </div>
+    </div>
+
+    <div class="drawer-meta-row"><span>Lister</span><b>Adeola B.</b></div>
+    <div class="drawer-meta-row"><span>Submitted</span><b>Sep 15, 2026</b></div>
+    <div class="drawer-meta-row"><span>Days in queue</span><b style="color:var(--rose-700);">3 days</b></div>
+
+    <div class="section-label">Assign & schedule</div>
+    <div class="field">
+      <label>Inspector</label>
+      <select><option>Unassigned</option><option>Tayo A.</option><option>Musa I.</option></select>
+    </div>
+    <div class="field">
+      <label>Inspection date</label>
+      <input type="date">
+    </div>
+
+    <div class="section-label">Verification checklist</div>
+    <div class="checklist">
+      <label class="check-item"><input type="checkbox">Property exists at the stated address</label>
+      <label class="check-item"><input type="checkbox">Listing details match what was observed on-site</label>
+      <label class="check-item"><input type="checkbox">Lister identity confirmed on-site</label>
+      <label class="check-item"><input type="checkbox">Photos accurately represent current condition</label>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Approval note (visible to lister if changes are requested)</label>
+      <textarea placeholder="e.g. Kitchen photos don't match current fittings — please re-upload."></textarea>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn-approve"><i class="ti ti-shield-check"></i>Approve verified badge</button>
+    <button class="btn-changes"><i class="ti ti-message-2"></i>Request changes from lister</button>
+    <button class="btn-revoke"><i class="ti ti-ban"></i>Revoke verification</button>
+  </div>
+</div>
+
+<script>
+  var topLinks = document.querySelectorAll('.top-link');
+  var underline = document.getElementById('topNavUnderline');
+  function positionUnderline(el){ underline.style.left = el.offsetLeft + 'px'; underline.style.width = el.offsetWidth + 'px'; }
+  window.addEventListener('load', function(){ positionUnderline(document.querySelector('.top-link.active')); });
+  window.addEventListener('resize', function(){ positionUnderline(document.querySelector('.top-link.active')); });
+  topLinks.forEach(function(link){
+    link.addEventListener('click', function(){
+      topLinks.forEach(function(l){l.classList.remove('active');});
+      link.classList.add('active');
+      positionUnderline(link);
+    });
+  });
+  var topnav = document.getElementById('topnav');
+  window.addEventListener('scroll', function(){ topnav.classList.toggle('scrolled', window.scrollY > 8); });
+
+  document.querySelectorAll('.seg-tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      document.querySelectorAll('.seg-tab').forEach(function(x){x.classList.remove('on');});
+      t.classList.add('on');
+    });
+  });
+
+  document.querySelectorAll('.dots-btn').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var menu = document.getElementById(btn.getAttribute('data-menu'));
+      var wasOpen = menu.classList.contains('open');
+      document.querySelectorAll('.menu.open').forEach(function(m){m.classList.remove('open');});
+      if(!wasOpen) menu.classList.add('open');
+    });
+  });
+  document.addEventListener('click', function(){
+    document.querySelectorAll('.menu.open').forEach(function(m){m.classList.remove('open');});
+  });
+
+  // row click opens drawer (ignore checkbox / menu clicks)
+  function openDrawer(){
+    document.getElementById('overlay').classList.add('show');
+    document.getElementById('drawer').classList.add('show');
+  }
+  function closeDrawer(){
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('drawer').classList.remove('show');
+  }
+  document.querySelectorAll('[data-row]').forEach(function(row){
+    row.addEventListener('click', function(e){
+      if(e.target.closest('input') || e.target.closest('.action-cell')) return;
+      openDrawer();
+    });
+  });
+  document.getElementById('closeDrawerBtn').addEventListener('click', closeDrawer);
+  document.getElementById('overlay').addEventListener('click', closeDrawer);
+
+  // bulk select
+  var checkAll = document.getElementById('checkAll');
+  var rowchecks = document.querySelectorAll('.rowcheck');
+  var bulkBar = document.getElementById('bulkBar');
+  var bulkCount = document.getElementById('bulkCount');
+  function updateBulk(){
+    var checked = document.querySelectorAll('.rowcheck:checked').length;
+    bulkBar.classList.toggle('show', checked > 0);
+    bulkCount.textContent = checked + ' selected';
+  }
+  checkAll.addEventListener('change', function(){
+    rowchecks.forEach(function(c){c.checked = checkAll.checked;});
+    updateBulk();
+  });
+  rowchecks.forEach(function(c){ c.addEventListener('change', updateBulk); c.addEventListener('click', function(e){e.stopPropagation();}); });
+  document.querySelector('.bulk-actions button:last-child').addEventListener('click', function(){
+    checkAll.checked = false;
+    rowchecks.forEach(function(c){c.checked = false;});
+    updateBulk();
+  });
+</script>
+
+</body>
+</html>

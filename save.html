@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rentivo — Save a listing</title>
+<link rel="stylesheet" href="css/rentivo.css">
+</head>
+<body>
+<div class="page">
+  <nav class="nav">
+    <a class="logo" href="index.html">
+      <img class="logo-img" src="RENTIVO-lockup.svg" alt="Rentivo">
+    </a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="index.html#listings">Browse homes</a>
+      <a href="email.html">Email updates</a>
+      <a href="save.html" class="nav-mobile-only">Save a listing</a>
+    </div>
+    <div class="nav-right">
+      <a href="save.html" class="nav-login active">Save a listing</a>
+      <a href="index.html#listings" class="btn-pill">Browse listings</a>
+      <button class="menu-btn" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
+    </div>
+  </nav>
+
+  <header class="page-hero">
+    <div class="kicker">Save for later</div>
+    <h1 class="display" data-save-title>Save this listing</h1>
+    <p class="sub" style="margin-left:0">Browse stays free. We ask for an account only when you want to keep a listing, request access, or get guided help.</p>
+  </header>
+
+  <section class="save-layout">
+    <div class="save-preview reveal reveal-left">
+      <div class="bookmark" aria-hidden="true"></div>
+      <div data-save-preview></div>
+      <div class="why-save">
+        <div><b>Why an account is needed here</b><span>So this listing stays attached to you, not to this browser tab.</span></div>
+        <div><b>What we collect</b><span>Name, phone or email, and a password. Nothing is sent to the lister when you only save.</span></div>
+        <div><b>What this is not</b><span>Saving is not Request Access, not payment, and not a commitment to rent.</span></div>
+      </div>
+    </div>
+
+    <form class="save-form reveal reveal-right" data-form>
+      <div class="form-body">
+        <div class="field">
+          <label for="name">Full name</label>
+          <input id="name" type="text" required placeholder="Adaeze Okonkwo" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="contact">Phone or email</label>
+          <input id="contact" type="text" required placeholder="0803 000 0000 or you@example.com" autocomplete="tel">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" required minlength="8" placeholder="At least 8 characters" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label>How should we remind you?</label>
+          <div class="chip-pick">
+            <button type="button" class="is-on">Email</button>
+            <button type="button">SMS</button>
+            <button type="button">WhatsApp</button>
+          </div>
+        </div>
+        <button class="btn-pill btn-wide" type="submit">Create account and save</button>
+        <p class="form-note">Your details stay with Rentivo on this step. A lister only sees contact information after you submit Request Access and availability is confirmed.</p>
+      </div>
+      <div class="success">
+        <div class="success-mark">✓</div>
+        <h2>Listing saved.</h2>
+        <p class="sub">You can come back to it anytime. Request Access is still free and still does not charge until availability is confirmed.</p>
+        <div class="hero-ctas" style="margin-bottom:0">
+          <a class="btn-pill" href="index.html#listings">Browse more</a>
+          <a class="btn-outline" href="email.html">Get weekly listings <span>→</span></a>
+        </div>
+      </div>
+    </form>
+  </section>
+</div>
+
+<footer class="site-footer" id="footer">
+  <div class="page footer-inner">
+    <div class="footer-grid">
+      <div class="footer-col footer-col--newsletter">
+        <a class="logo logo--on-dark" href="index.html">
+          <img class="logo-img" src="RENTIVO-lockup.svg" alt="Rentivo">
+        </a>
+        <h4>Weekly verified listings</h4>
+        <p>Newly checked Ibadan homes in your inbox. Unsubscribe in one click.</p>
+        <form class="footer-form" action="email.html" method="get">
+          <label class="sr-only" for="footer-email">Email</label>
+          <input id="footer-email" name="email" type="email" required placeholder="Your email" autocomplete="email">
+          <button type="submit">Subscribe</button>
+        </form>
+      </div>
+      <div class="footer-col">
+        <h4>Explore</h4>
+        <a href="index.html#listings">Browse listings</a>
+        <a href="index.html#choose">Why Rentivo</a>
+        <a href="save.html">Save a listing</a>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <a href="index.html#recover">Help centre</a>
+        <a href="email.html">Contact</a>
+      </div>
+      <div class="footer-col">
+        <h4>Ibadan</h4>
+        <nav class="footer-places" aria-label="Areas we cover">
+          <a href="index.html#listings">Bodija</a>
+          <a href="index.html#listings">Akobo</a>
+          <a href="index.html#listings">Jericho</a>
+          <a href="index.html#listings">Ring Road</a>
+        </nav>
+        <div class="footer-social">
+          <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor"/></svg></a>
+          <a href="#" aria-label="X"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></a>
+          <a href="#" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="none"><path d="M6 18l1-4a7 7 0 1 1 3 3l-4 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page footer-bottom">
+    <span>© 2026 Rentivo. Ibadan, Nigeria.</span>
+    <div class="footer-legal">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/rentivo.js"></script>
+</body>
+</html>

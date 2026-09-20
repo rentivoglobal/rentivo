@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rentivo — Browse verified properties in Ibadan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.28.1/tabler-icons.min.css">
+<style>
+  :root{
+    --navy:#000052; --navy-900:#00003D; --lilac:#BE89FF;
+    --lilac-050:#F8F3FF; --lilac-100:#F0E6FF;
+    --ink:#17172B; --muted:#636377; --line:#E6E3EE;
+    --surface:#FFFFFF; --canvas:#EFEFF4;
+    --success:#167A54;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;font-family:'Plus Jakarta Sans',-apple-system,sans-serif;
+    background:var(--canvas);color:var(--ink);-webkit-font-smoothing:antialiased;
+  }
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  i.ti{line-height:1;}
+
+  .page{max-width:1360px;margin:28px auto;padding:0 16px;}
+  .app-card{
+    background:#fff;border-radius:28px;padding:24px 28px 32px;
+    box-shadow:0 30px 70px rgba(23,23,43,.08);
+  }
+
+  /* top bar */
+  .topbar{
+    display:flex;align-items:center;gap:20px;padding-bottom:20px;
+    position:sticky;top:0;background:#fff;z-index:5;transition:box-shadow .25s ease;
+  }
+  .topbar.scrolled{box-shadow:0 8px 16px -8px rgba(23,23,43,.10);}
+  .logo{font-size:19px;font-weight:800;color:var(--navy);flex:none;letter-spacing:-0.01em;}
+  .logo span{color:var(--lilac);}
+  .search-pill{
+    flex:1;display:flex;align-items:center;background:var(--canvas);
+    border-radius:999px;padding:6px 6px 6px 18px;gap:6px;max-width:640px;
+    transition:box-shadow .2s ease;
+  }
+  .search-pill:focus-within{box-shadow:0 0 0 3px var(--lilac-100);}
+  .search-pill i{color:var(--muted);font-size:16px;}
+  .search-pill input{
+    border:none;background:none;flex:1;font-size:14px;font-family:inherit;
+    outline:none;color:var(--ink);
+  }
+  .search-pill input::placeholder{color:var(--muted);}
+  .search-seg{
+    padding:9px 16px;font-size:13px;color:var(--ink);border-left:1px solid #DEDEE8;
+    white-space:nowrap;
+  }
+  .search-go{
+    width:38px;height:38px;border-radius:50%;background:var(--navy);border:none;
+    display:flex;align-items:center;justify-content:center;flex:none;color:#fff;
+    transition:background .18s ease, transform .15s ease;
+  }
+  .search-go:hover{background:var(--navy-900);transform:scale(1.05);}
+  .topbar-right{display:flex;align-items:center;gap:14px;flex:none;}
+  .list-pill{
+    display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;
+    border:1.5px solid var(--navy);color:var(--navy);font-size:13.5px;font-weight:600;
+    transition:background .18s ease, color .18s ease;
+  }
+  .list-pill:hover{background:var(--navy);color:#fff;}
+  .avatar-pill{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--line);
+    border-radius:999px;padding:5px 8px 5px 5px;
+  }
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--lilac),#8F5BD6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;}
+
+  /* category row */
+  .cat-row{
+    display:flex;justify-content:center;gap:8px;padding:18px 0 20px;
+    border-bottom:1px solid var(--line);flex-wrap:wrap;
+  }
+  .cat{
+    display:flex;flex-direction:column;align-items:center;gap:7px;
+    padding:9px 16px;border-radius:14px;border:1.5px solid transparent;background:none;
+    color:var(--muted);font-size:12.5px;font-weight:600;
+    transition:color .18s ease, border-color .18s ease, background .18s ease, transform .15s ease;
+  }
+  .cat i{font-size:19px;}
+  .cat:hover{transform:translateY(-2px);}
+  .cat.active{color:var(--lilac);border-color:var(--lilac);background:var(--lilac-050);}
+
+  /* filter row */
+  .filter-row{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:18px 0;flex-wrap:wrap;
+  }
+  .chip-scroll{display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{
+    padding:8px 16px;border-radius:999px;font-size:13px;font-weight:500;
+    border:1px solid var(--line);color:var(--ink);background:#fff;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .chip:hover{border-color:var(--navy);}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .filter-actions{display:flex;align-items:center;gap:14px;flex:none;}
+  .sort-select{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink);font-weight:500;}
+  .sort-select select{border:none;background:none;font-family:inherit;font-weight:600;font-size:13px;color:var(--navy);}
+  .filter-btn{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--line);
+    border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;background:#fff;
+    transition:border-color .15s ease;
+  }
+  .filter-btn:hover{border-color:var(--navy);}
+
+  /* grid */
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding-top:22px;}
+  @media (max-width:1080px){.grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:560px){.grid{grid-template-columns:1fr;}.topbar{flex-wrap:wrap;}.search-pill{order:3;max-width:none;}}
+
+  .card{
+    opacity:0;transform:translateY(18px);
+    transition:opacity .5s ease, transform .5s ease, box-shadow .25s ease;
+  }
+  .card.in-view{opacity:1;transform:translateY(0);}
+  .card:nth-child(1){transition-delay:.02s;}
+  .card:nth-child(2){transition-delay:.08s;}
+  .card:nth-child(3){transition-delay:.14s;}
+  .card:nth-child(4){transition-delay:.20s;}
+  .card:nth-child(5){transition-delay:.26s;}
+  .card:nth-child(6){transition-delay:.32s;}
+  .card:nth-child(7){transition-delay:.38s;}
+  .card:nth-child(8){transition-delay:.44s;}
+  .card:hover{box-shadow:0 18px 34px -12px rgba(23,23,43,.18);}
+  .card:hover .card-img img{transform:scale(1.07);}
+
+  .card-img{
+    position:relative;border-radius:16px;overflow:hidden;height:190px;background:var(--lilac-050);
+  }
+  .card-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease;}
+  .ribbon{
+    position:absolute;top:10px;left:10px;z-index:2;background:var(--navy);color:#fff;
+    font-size:11px;font-weight:700;padding:5px 11px 5px 8px;border-radius:999px;
+    display:flex;align-items:center;gap:4px;
+  }
+  .ribbon i{font-size:13px;}
+  .ribbon.new{background:var(--lilac);color:var(--navy-900);}
+  .fav{
+    position:absolute;top:10px;right:10px;z-index:2;width:32px;height:32px;border-radius:50%;
+    background:rgba(255,255,255,.92);border:none;display:flex;align-items:center;justify-content:center;
+    color:var(--ink);transition:transform .15s ease;
+  }
+  .fav i{font-size:16px;}
+  .fav.active i{color:var(--lilac);}
+  .fav.pop{animation:pop .38s ease;}
+  @keyframes pop{0%{transform:scale(1);}45%{transform:scale(1.35);}100%{transform:scale(1);}}
+
+  .card-badges{display:flex;gap:6px;margin:12px 0 8px;}
+  .b{font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:6px;}
+  .b-type{background:var(--lilac-100);color:var(--navy);}
+  .b-status{background:#E4F3EC;color:var(--success);}
+  .card-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .card-title-row h4{margin:0;font-size:14.5px;font-weight:700;line-height:1.35;}
+  .rating{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;flex:none;}
+  .rating i{color:#F5A524;font-size:13px;}
+  .loc{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted);margin:4px 0 10px;}
+  .loc i{font-size:13px;}
+  .stats{display:flex;gap:14px;align-items:center;margin-bottom:10px;}
+  .stats span{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);}
+  .stats i{font-size:14px;color:var(--muted);}
+  .price-row{display:flex;align-items:baseline;gap:6px;}
+  .price-row .now{font-size:16px;font-weight:800;color:var(--navy);}
+  .price-row .per{font-size:12px;color:var(--muted);font-weight:500;}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="app-card">
+
+    <div class="topbar" id="topbar">
+      <div class="logo">RENT<span>ivo</span></div>
+      <div class="search-pill">
+        <i class="ti ti-search"></i>
+        <input type="text" placeholder="Search area, e.g. Bodija, Ring Road...">
+        <span class="search-seg">Any type</span>
+        <span class="search-seg">Any budget</span>
+        <button class="search-go" aria-label="Search"><i class="ti ti-arrow-right"></i></button>
+      </div>
+      <div class="topbar-right">
+        <a href="#" class="list-pill"><i class="ti ti-building-plus"></i>List your property</a>
+        <div class="avatar-pill">
+          <div class="avatar">AD</div>
+          <i class="ti ti-chevron-down" style="font-size:13px;color:var(--muted);"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="cat-row" id="catRow">
+      <button class="cat active"><i class="ti ti-door"></i>Self-Contain</button>
+      <button class="cat"><i class="ti ti-building-apartment"></i>Flat</button>
+      <button class="cat"><i class="ti ti-stairs"></i>Duplex</button>
+      <button class="cat"><i class="ti ti-home"></i>Bungalow</button>
+      <button class="cat"><i class="ti ti-building-store"></i>Shop</button>
+      <button class="cat"><i class="ti ti-building-skyscraper"></i>Office</button>
+      <button class="cat"><i class="ti ti-building-warehouse"></i>Warehouse</button>
+      <button class="cat"><i class="ti ti-map-2"></i>Land</button>
+    </div>
+
+    <div class="filter-row">
+      <div class="chip-scroll" id="chipRow">
+        <button class="chip on">All</button>
+        <button class="chip">Furnished</button>
+        <button class="chip">Under ₦1,000,000/yr</button>
+        <button class="chip">2+ bedrooms</button>
+        <button class="chip">Near UI campus</button>
+        <button class="chip">New this week</button>
+      </div>
+      <div class="filter-actions">
+        <button class="filter-btn"><i class="ti ti-adjustments-horizontal"></i>Filter</button>
+        <div class="sort-select">
+          Sort by:
+          <select><option>Newest</option><option>Price: low to high</option><option>Price: high to low</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid" id="grid">
+
+      <div class="card">
+        <div class="card-img">
+          <img src="https://loremflickr.com/800/600/apartment,room/all?lock=101" alt="Self-contain interior in Bodija" loading="lazy">
+          <span class="ribbon"><i class="ti ti-shield-check"></i>Verified</span>
+          <button class="fav" aria-label="Save"><i class="ti ti-heart"></i></button>
+        </div>
+        <div class="card-badges"><span class="b b-type">Self-Contain</span><span class="b b-status">Available</span></div>
+        <div class="card-title-row">
+          <h4>Tidy self-contain near Bodija market</h4>
+          <span class="rating"><i class="ti ti-star-filled"></i>4.8</span>
+        </div>
+        <p class="loc"><i class="ti ti-map-pin"></i>Bodija, Ibadan</p>
+        <div class="stats">
+          <span><i class="ti ti-bed"></i>1</span>
+          <span><i class="ti ti-bath"></i>1</span>
+        </div>
+        <div class="price-row"><span class="now">₦450,000</span><span class="per">/year</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-img">
+          <img src="https://loremflickr.com/800/600/apartment,livingroom/all?lock=102" alt="2-bedroom flat living room" loading="lazy">
+          <span class="ribbon"><i class="ti ti-shield-check"></i>Verified</span>
+          <button class="fav" aria-label="Save"><i class="ti ti-heart"></i></button>
+        </div>
+        <div class="card-badges"><span class="b b-type">Flat</span><span class="b b-status">Available</span></div>
+        <div class="card-title-row">
+          <h4>2-bedroom flat with generator space</h4>
+          <span class="rating"><i class="ti ti-star-filled"></i>4.6</span>
+        </div>
+        <p class="loc"><i class="ti ti-map-pin"></i>Ring Road, Ibadan</p>
+        <div class="stats">
+          <span><i class="ti ti-bed"></i>2</span>
+          <span><i class="ti ti-bath"></i>2</span>
+        </div>
+        <div class="price-row"><span class="now">₦1,200,000</span><span class="per">/year</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-img">
+          <img src="https://loremflickr.com/800/600/duplex,house/all?lock=103" alt="Duplex exterior in UI area" loading="lazy">
+          <span class="ribbon"><i class="ti ti-shield-check"></i>Verified</span>
+          <button class="fav" aria-label="Save"><i class="ti ti-heart"></i></button>
+        </div>
+        <div class="card-badges"><span class="b b-type">Duplex</span><span class="b b-status">Available</span></div>
+        <div class="card-title-row">
+          <h4>3-bedroom duplex, gated compound</h4>
+          <span class="rating"><i class="ti ti-star-filled"></i>4.9</span>
+        </div>
+        <p class="loc"><i class="ti ti-map-pin"></i>UI area, Ibadan</p>
+        <div class="stats">
+          <span><i class="ti ti-bed"></i>3</span>
+          <span><i class="ti ti-bath"></i>3</span>
+        </div>
+        <div class="price-row"><span class="now">₦2,100,000</span><span class="per">/year</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-img">
+          <img src="https://loremflickr.com/800/600/bungalow,house/all?lock=104" alt="Bungalow exterior in Sango" loading="lazy">
+          <span class="ribbon new"><i class="ti ti-sparkles"></i>New</span>
+          <button class="fav" aria-label="Save"><i class="ti ti-heart"></i></button>
+        </div>
+        <div class="card-badges"><span class="b b-type">Bungalow</span><span class="b b-status">Available</span></div>
+        <div class="card-title-row">
+          <h4>3-bedroom bungalow with backyard</h4>
+          <span class="rating"><i class="ti ti-star-filled"></i>4.5</span>
+        </div>
+        <p class="loc"><i class="ti ti-map-pin"></i>Sango, Ibadan</p>
+        <div class="stats">
+          <span><i class="ti ti-bed"></i>3</span>
+          <span><i class="ti ti-bath"></i>2</span>
+        </div>
+        <div class="price-row"><span class="now">₦1,650,000</span><span class="per">/year</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-img">
+          <img src="https://loremflickr.com/800/600/storefront,shop/all?lock=105" alt="Road-facing shop in Sango" loading="lazy">
+          <span class="ribbon"><i class="ti ti-shield-check"></i>Verified</span>
+          <button class="fav" aria-label="Save"><i class="ti ti-heart"></i></button>
+        </div>
+        <div class="card-badges"><span class="b b-type">Shop</span><span class="b b-status">Available</span></div>
+        <div class="card-title-row">
+          <h4>Retail shop, direct road frontage</h4>
+          <span class="rating"><i class="ti ti-star-filled"></i>4.7</span>
+        </div>
+        <p class="loc"><i class="ti ti-map-pin"></i>Sango, Ibadan</p>
+        <div class="stats">
+          <span><i class="ti ti-ruler-2"></i>45 sqm</span>
+        </div>
+        <div class="price-row"><span class="now">₦600,000</span><span class="per">/year</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-img">
+          <img src="https://loremflickr.com/800/600/office,workspace/all?lock=106" alt="Office suite in Ring Road" loading="lazy">
+          <span class="ribbon"><i class="ti ti-shield-check"></i>Verified</span>
+          <button class="fav" aria-label="Save"><i class="ti ti-heart"></i></button>
+        </div>
+        <div class="card-badges"><span class="b b-type">Office</span><span class="b b-status">Available</span></div>
+        <div class="card-title-row">
+          <h4>Small office suite with parking</h4>
+          <span class="rating"><i class="ti ti-star-filled"></i>4.4</span>
+        </div>
+        <p class="loc"><i class="ti ti-map-pin"></i>Ring Road, Ibadan</p>
+        <div class="stats">
+          <span><i class="ti ti-ruler-2"></i>60 sqm</span>
+        </div>
+        <div class="price-row"><span class="now">₦950,000</span><span class="per">/year</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-img">
+          <img src="https://loremflickr.com/800/600/warehouse,industrial/all?lock=107" alt="Warehouse in Iwo Road" loading="lazy">
+          <span class="ribbon"><i class="ti ti-shield-check"></i>Verified</span>
+          <button class="fav" aria-label="Save"><i class="ti ti-heart"></i></button>
+        </div>
+        <div class="card-badges"><span class="b b-type">Warehouse</span><span class="b b-status">Available</span></div>
+        <div class="card-title-row">
+          <h4>Warehouse with loading bay access</h4>
+          <span class="rating"><i class="ti ti-star-filled"></i>4.3</span>
+        </div>
+        <p class="loc"><i class="ti ti-map-pin"></i>Iwo Road, Ibadan</p>
+        <div class="stats">
+          <span><i class="ti ti-ruler-2"></i>320 sqm</span>
+        </div>
+        <div class="price-row"><span class="now">₦3,400,000</span><span class="per">/year</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-img">
+          <img src="https://loremflickr.com/800/600/land,plot/all?lock=108" alt="Fenced land plot in UI area" loading="lazy">
+          <span class="ribbon new"><i class="ti ti-sparkles"></i>New</span>
+          <button class="fav" aria-label="Save"><i class="ti ti-heart"></i></button>
+        </div>
+        <div class="card-badges"><span class="b b-type">Land</span><span class="b b-status">Available</span></div>
+        <div class="card-title-row">
+          <h4>Fenced residential plot, corner piece</h4>
+          <span class="rating"><i class="ti ti-star-filled"></i>4.2</span>
+        </div>
+        <p class="loc"><i class="ti ti-map-pin"></i>UI area, Ibadan</p>
+        <div class="stats">
+          <span><i class="ti ti-ruler-2"></i>648 sqm</span>
+        </div>
+        <div class="price-row"><span class="now">₦8,500,000</span><span class="per">/sale</span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // sticky header shadow on scroll
+  var topbar = document.getElementById('topbar');
+  window.addEventListener('scroll', function(){
+    topbar.classList.toggle('scrolled', window.scrollY > 8);
+  });
+
+  // category single-select
+  document.getElementById('catRow').addEventListener('click', function(e){
+    var btn = e.target.closest('.cat');
+    if(!btn) return;
+    document.querySelectorAll('.cat.active').forEach(function(c){c.classList.remove('active');});
+    btn.classList.add('active');
+  });
+
+  // filter chips: "All" clears others; picking another clears "All"
+  document.getElementById('chipRow').addEventListener('click', function(e){
+    var chip = e.target.closest('.chip');
+    if(!chip) return;
+    var all = document.querySelector('.chip:first-child');
+    if(chip === all){
+      document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});
+      chip.classList.add('on');
+    } else {
+      all.classList.remove('on');
+      chip.classList.toggle('on');
+      var anyOn = document.querySelectorAll('.chip.on').length > 0;
+      if(!anyOn) all.classList.add('on');
+    }
+  });
+
+  // save/heart toggle with pop animation
+  document.getElementById('grid').addEventListener('click', function(e){
+    var fav = e.target.closest('.fav');
+    if(!fav) return;
+    fav.classList.toggle('active');
+    var icon = fav.querySelector('i');
+    icon.className = fav.classList.contains('active') ? 'ti ti-heart-filled' : 'ti ti-heart';
+    fav.classList.remove('pop');
+    void fav.offsetWidth;
+    fav.classList.add('pop');
+  });
+
+  // staggered reveal on scroll into view
+  var cards = document.querySelectorAll('.card');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        entry.target.classList.add('in-view');
+        io.unobserve(entry.target);
+      }
+    });
+  }, {threshold:0.12});
+  cards.forEach(function(c){io.observe(c);});
+</script>
+
+</body>
+</html>

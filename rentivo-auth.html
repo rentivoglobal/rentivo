@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rentivo — Sign in / Sign up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.28.1/tabler-icons.min.css">
+<style>
+  :root{
+    --navy:#000052; --navy-900:#00003D; --lilac:#BE89FF;
+    --lilac-050:#F8F3FF; --lilac-100:#F0E6FF;
+    --ink:#17172B; --muted:#636377; --line:#E6E3EE;
+    --surface:#FFFFFF; --canvas:#F7F8FC; --danger:#B42318;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;font-family:'Plus Jakarta Sans',-apple-system,sans-serif;
+    background:var(--canvas);color:var(--ink);-webkit-font-smoothing:antialiased;
+  }
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  .shell{
+    max-width:1160px;margin:28px auto;min-height:calc(100vh - 56px);
+    display:grid;grid-template-columns:.9fr 1.1fr;
+    background:#fff;border-radius:28px;overflow:hidden;
+    box-shadow:0 30px 70px rgba(23,23,43,.08);
+  }
+  @media (max-width:920px){.shell{grid-template-columns:1fr;margin:0;border-radius:0;min-height:100vh;}}
+
+  /* illustration side */
+  .aside{
+    position:relative;overflow:hidden;
+    background:radial-gradient(120% 120% at 15% 15%, #17177A 0%, var(--navy) 55%, var(--navy-900) 100%);
+    color:#fff;padding:44px;display:flex;flex-direction:column;justify-content:space-between;
+  }
+  @media (max-width:920px){.aside{display:none;}}
+  .aside::before{
+    content:"";position:absolute;right:-120px;bottom:-120px;width:380px;height:380px;
+    background:radial-gradient(circle, rgba(190,137,255,.35) 0%, transparent 70%);
+  }
+  .aside::after{
+    content:"";position:absolute;left:-90px;top:-90px;width:260px;height:260px;
+    background:radial-gradient(circle, rgba(190,137,255,.18) 0%, transparent 70%);
+  }
+  .aside-logo{position:relative;z-index:1;font-size:19px;font-weight:800;}
+  .aside-logo span{color:var(--lilac);}
+
+  .art-slot{
+    position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-content:center;
+    margin:20px 0;
+  }
+  .art-blob{
+    width:100%;max-width:320px;aspect-ratio:1/1;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.14), rgba(255,255,255,.02) 60%);
+    display:flex;align-items:center;justify-content:center;position:relative;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .art-caption{
+    position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+    background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.35);
+    font-size:11px;color:#DCD6F5;padding:7px 12px;border-radius:8px;
+    max-width:280px;text-align:center;line-height:1.4;white-space:normal;
+  }
+  .art-icon{font-size:64px;color:rgba(255,255,255,.85);}
+
+  .aside-copy{position:relative;z-index:1;}
+  .aside-copy h2{font-size:26px;font-weight:800;line-height:1.25;margin:0 0 10px;max-width:16ch;transition:opacity .3s ease;}
+  .aside-copy p{font-size:14.5px;color:#C9C6E8;line-height:1.6;margin:0;max-width:34ch;transition:opacity .3s ease;}
+  .aside-trust{display:flex;gap:10px;margin-top:22px;position:relative;z-index:1;flex-wrap:wrap;}
+  .aside-trust span{
+    font-size:12px;font-weight:500;background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.16);padding:7px 12px;border-radius:999px;
+    display:flex;align-items:center;gap:6px;color:#EDEBFA;
+  }
+  .aside-trust i{color:var(--lilac);font-size:14px;}
+
+  /* form side */
+  .formside{padding:52px 56px;display:flex;flex-direction:column;justify-content:center;}
+  @media (max-width:920px){.formside{padding:36px 24px;}}
+  .mobile-logo{display:none;font-size:19px;font-weight:800;color:var(--navy);margin-bottom:28px;}
+  .mobile-logo span{color:var(--lilac);}
+  @media (max-width:920px){.mobile-logo{display:block;}}
+
+  .view{display:none;max-width:400px;width:100%;margin:0 auto;}
+  .view.active{display:block;animation:fadeUp .4s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+  .view h1{font-size:28px;font-weight:800;margin:0 0 8px;letter-spacing:-0.01em;}
+  .view p.sub{font-size:14.5px;color:var(--muted);margin:0 0 30px;line-height:1.55;}
+
+  .role-toggle{display:flex;background:var(--canvas);border-radius:12px;padding:4px;margin-bottom:22px;}
+  .role-toggle button{
+    flex:1;border:none;background:none;padding:10px;border-radius:9px;
+    font-size:13.5px;font-weight:600;color:var(--muted);transition:all .18s ease;
+  }
+  .role-toggle button.on{background:#fff;color:var(--navy);box-shadow:0 2px 6px rgba(23,23,43,.08);}
+
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+  .input-wrap{
+    display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);
+    border-radius:10px;padding:12px 14px;background:#fff;transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .input-wrap:focus-within{border-color:var(--navy);box-shadow:0 0 0 3px var(--lilac-100);}
+  .input-wrap i{color:var(--muted);font-size:16px;flex:none;}
+  .input-wrap input{
+    border:none;outline:none;flex:1;font-family:inherit;font-size:14.5px;color:var(--ink);background:none;min-width:0;
+  }
+  .toggle-eye{background:none;border:none;color:var(--muted);display:flex;flex:none;}
+  .toggle-eye i{font-size:16px;}
+  .field-hint{font-size:12px;color:var(--muted);margin-top:6px;}
+
+  .row-between{display:flex;align-items:center;justify-content:space-between;margin:6px 0 22px;font-size:13px;}
+  .checkbox-row{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--muted);}
+  .checkbox-row input{margin-top:2px;accent-color:var(--navy);width:15px;height:15px;flex:none;}
+  .link-btn{color:var(--navy);font-weight:600;}
+  .link-btn:hover{text-decoration:underline;text-underline-offset:3px;}
+
+  .btn-primary{
+    width:100%;padding:14px;border:none;border-radius:10px;background:var(--navy);
+    color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:background .18s ease, transform .12s ease;
+  }
+  .btn-primary:hover{background:var(--navy-900);}
+  .btn-primary:active{transform:scale(.98);}
+
+  .divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:var(--muted);font-size:12.5px;}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line);}
+
+  .btn-social{
+    width:100%;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;
+    display:flex;align-items:center;justify-content:center;gap:10px;font-size:14px;font-weight:600;color:var(--ink);
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .btn-social:hover{border-color:var(--navy);background:var(--canvas);}
+  .btn-social i{font-size:17px;}
+
+  .switch-line{text-align:center;margin-top:26px;font-size:13.5px;color:var(--muted);}
+
+  .success-box{
+    display:none;text-align:center;padding:8px 0 4px;
+  }
+  .success-box.show{display:block;animation:fadeUp .4s ease;}
+  .success-icon{
+    width:64px;height:64px;border-radius:50%;background:var(--lilac-100);color:var(--navy);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:28px;
+  }
+  .success-box h1{font-size:22px;}
+  .success-box p.sub{margin-bottom:24px;}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- illustration side -->
+  <div class="aside">
+    <div class="aside-logo">RENT<span>ivo</span></div>
+
+    <div class="art-slot">
+      <div class="art-blob" id="artBlob">
+        <i class="ti ti-key art-icon" id="artIcon"></i>
+        <span class="art-caption" id="artCaption">Illustration slot — see image prompt for "Sign up" below</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="aside-copy" id="asideCopy">
+        <h2>Join Rentivo. Find your next place with confidence.</h2>
+        <p>Browse verified homes, shops, and offices in Ibadan. Free to sign up, free to browse.</p>
+      </div>
+      <div class="aside-trust">
+        <span><i class="ti ti-shield-check"></i>Verified listings</span>
+        <span><i class="ti ti-lock"></i>Secure by design</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- form side -->
+  <div class="formside">
+    <div class="mobile-logo">RENT<span>ivo</span></div>
+
+    <!-- SIGN UP -->
+    <div class="view active" id="view-signup">
+      <h1>Create your account</h1>
+      <p class="sub">Free to join. Browse anytime — pay only once a property is confirmed.</p>
+
+      <div class="role-toggle">
+        <button class="on" data-role="renter">I'm a renter</button>
+        <button data-role="lister">I'm a landlord / agent</button>
+      </div>
+
+      <form>
+        <div class="field">
+          <label>Full name</label>
+          <div class="input-wrap"><i class="ti ti-user"></i><input type="text" placeholder="e.g. Adeola Bello"></div>
+        </div>
+        <div class="field">
+          <label>Phone number</label>
+          <div class="input-wrap"><i class="ti ti-phone"></i><input type="tel" placeholder="080X XXX XXXX"></div>
+        </div>
+        <div class="field">
+          <label>Email address</label>
+          <div class="input-wrap"><i class="ti ti-mail"></i><input type="email" placeholder="you@example.com"></div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap">
+            <i class="ti ti-lock"></i>
+            <input type="password" placeholder="Create a password" id="pw1">
+            <button type="button" class="toggle-eye" data-target="pw1"><i class="ti ti-eye"></i></button>
+          </div>
+          <p class="field-hint">Minimum 8 characters.</p>
+        </div>
+
+        <div class="checkbox-row" style="margin-bottom:22px;">
+          <input type="checkbox" id="terms">
+          <label for="terms">I agree to Rentivo's Terms of Service and Privacy Policy.</label>
+        </div>
+
+        <button type="button" class="btn-primary">Create account <i class="ti ti-arrow-right"></i></button>
+      </form>
+
+      <div class="divider">or continue with</div>
+      <button class="btn-social"><i class="ti ti-brand-google"></i>Continue with Google</button>
+
+      <p class="switch-line">Already have an account? <a class="link-btn" data-go="signin">Sign in</a></p>
+    </div>
+
+    <!-- SIGN IN -->
+    <div class="view" id="view-signin">
+      <h1>Welcome back</h1>
+      <p class="sub">Sign in to continue your verified property search.</p>
+
+      <form>
+        <div class="field">
+          <label>Email or phone number</label>
+          <div class="input-wrap"><i class="ti ti-mail"></i><input type="text" placeholder="you@example.com"></div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <div class="input-wrap">
+            <i class="ti ti-lock"></i>
+            <input type="password" placeholder="Enter your password" id="pw2">
+            <button type="button" class="toggle-eye" data-target="pw2"><i class="ti ti-eye"></i></button>
+          </div>
+        </div>
+
+        <div class="row-between">
+          <label class="checkbox-row" style="margin:0;"><input type="checkbox">Remember me</label>
+          <a class="link-btn" data-go="forgot">Forgot password?</a>
+        </div>
+
+        <button type="button" class="btn-primary">Sign in <i class="ti ti-arrow-right"></i></button>
+      </form>
+
+      <div class="divider">or continue with</div>
+      <button class="btn-social"><i class="ti ti-brand-google"></i>Continue with Google</button>
+
+      <p class="switch-line">New to Rentivo? <a class="link-btn" data-go="signup">Create an account</a></p>
+    </div>
+
+    <!-- FORGOT PASSWORD -->
+    <div class="view" id="view-forgot">
+      <div id="forgotForm">
+        <h1>Reset your password</h1>
+        <p class="sub">Enter the email tied to your account and we'll send a reset link.</p>
+
+        <form>
+          <div class="field">
+            <label>Email address</label>
+            <div class="input-wrap"><i class="ti ti-mail"></i><input type="email" placeholder="you@example.com"></div>
+          </div>
+          <button type="button" class="btn-primary" id="sendResetBtn">Send reset link <i class="ti ti-arrow-right"></i></button>
+        </form>
+
+        <p class="switch-line"><a class="link-btn" data-go="signin"><i class="ti ti-arrow-left" style="vertical-align:-2px;"></i> Back to sign in</a></p>
+      </div>
+
+      <div class="success-box" id="resetSuccess">
+        <div class="success-icon"><i class="ti ti-mail-check"></i></div>
+        <h1>Check your email</h1>
+        <p class="sub">We've sent a password reset link. It expires in 30 minutes.</p>
+        <button class="btn-primary" style="background:transparent;color:var(--navy);border:1.5px solid var(--navy);" id="backToSignin2">Back to sign in</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  var copy = {
+    signup: {
+      icon: 'ti-key',
+      caption: 'Illustration slot — see "Sign up" image prompt below',
+      title: "Join Rentivo. Find your next place with confidence.",
+      body: "Browse verified homes, shops, and offices in Ibadan. Free to sign up, free to browse."
+    },
+    signin: {
+      icon: 'ti-shield-check',
+      caption: 'Illustration slot — see "Sign in" image prompt below',
+      title: "Welcome back to Rentivo.",
+      body: "Your saved searches and requests are right where you left them."
+    },
+    forgot: {
+      icon: 'ti-lock-open',
+      caption: 'Illustration slot — see "Forgot password" image prompt below',
+      title: "No worries. Let's get you back in.",
+      body: "We'll help you reset your password in a couple of quick steps."
+    }
+  };
+
+  function goTo(name){
+    document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+    document.getElementById('view-' + name).classList.add('active');
+
+    var c = copy[name];
+    document.getElementById('artIcon').className = 'ti ' + c.icon + ' art-icon';
+    document.getElementById('artCaption').textContent = c.caption;
+    var asideCopy = document.getElementById('asideCopy');
+    asideCopy.style.opacity = 0;
+    setTimeout(function(){
+      asideCopy.querySelector('h2').textContent = c.title;
+      asideCopy.querySelector('p').textContent = c.body;
+      asideCopy.style.opacity = 1;
+    }, 180);
+
+    if(name === 'forgot'){
+      document.getElementById('forgotForm').style.display = 'block';
+      document.getElementById('resetSuccess').classList.remove('show');
+    }
+  }
+
+  document.querySelectorAll('[data-go]').forEach(function(el){
+    el.addEventListener('click', function(e){
+      e.preventDefault();
+      goTo(el.getAttribute('data-go'));
+    });
+  });
+
+  document.querySelectorAll('.role-toggle button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      btn.parentElement.querySelectorAll('button').forEach(function(b){b.classList.remove('on');});
+      btn.classList.add('on');
+    });
+  });
+
+  document.querySelectorAll('.toggle-eye').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var input = document.getElementById(btn.getAttribute('data-target'));
+      var icon = btn.querySelector('i');
+      if(input.type === 'password'){
+        input.type = 'text'; icon.className = 'ti ti-eye-off';
+      } else {
+        input.type = 'password'; icon.className = 'ti ti-eye';
+      }
+    });
+  });
+
+  document.getElementById('sendResetBtn').addEventListener('click', function(){
+    document.getElementById('forgotForm').style.display = 'none';
+    document.getElementById('resetSuccess').classList.add('show');
+  });
+  document.getElementById('backToSignin2').addEventListener('click', function(){
+    goTo('signin');
+  });
+</script>
+
+</body>
+</html>
