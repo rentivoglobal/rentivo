@@ -30,7 +30,8 @@ import {
   RotateCcw,
   CheckCircle2,
   FileText,
-  LogOut
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import { MarketplaceListing } from '../data/mockData';
 import { FilterOptions, PropertyType, CityLocation, User } from '../types';
@@ -50,6 +51,7 @@ interface SearchPageProps {
   onNavigateHome?: () => void;
   onNavigateToFavorites?: () => void;
   onNavigateToRequests?: () => void;
+  onNavigateToProfile?: () => void;
   currentUser?: User | null;
   onSignOut?: () => void;
   onOpenAuth?: (mode?: 'signin' | 'signup', role?: 'renter' | 'lister') => void;
@@ -68,6 +70,18 @@ function getPageNumbers(current: number, total: number): (number | string)[] {
   return [1, '...', current - 1, current, current + 1, '...', total];
 }
 
+function cityOptionLabel(city: CityLocation): string {
+  if (city.isPilot) return `${city.name} (Pilot)`;
+  if (!city.isActive) return `${city.name} (Phase 2)`;
+  return city.name;
+}
+
+function cityOptionSubtitle(city: CityLocation): string {
+  if (city.isPilot) return `${city.state} · listings live now`;
+  if (!city.isActive) return `${city.state} · coming soon`;
+  return city.state;
+}
+
 export const SearchPage: React.FC<SearchPageProps> = ({
   listings,
   favorites,
@@ -80,6 +94,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   onNavigateHome,
   onNavigateToFavorites,
   onNavigateToRequests,
+  onNavigateToProfile,
   currentUser,
   onSignOut,
   onOpenAuth
@@ -89,12 +104,14 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   const [poppedId, setPoppedId] = useState<string | null>(null);
   const [isPriceDropdownOpen, setIsPriceDropdownOpen] = useState(false);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [minPriceInput, setMinPriceInput] = useState<string>(filters.minPrice ? String(filters.minPrice) : '');
   const [maxPriceInput, setMaxPriceInput] = useState<string>(filters.maxPrice ? String(filters.maxPrice) : '');
 
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const priceDropdownRef = useRef<HTMLDivElement>(null);
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
   const userDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -104,6 +121,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
       }
       if (priceDropdownRef.current && !priceDropdownRef.current.contains(event.target as Node)) {
         setIsPriceDropdownOpen(false);
+      }
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(event.target as Node)) {
+        setIsCityDropdownOpen(false);
       }
       if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
         setUserDropdownOpen(false);
@@ -119,6 +139,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   const gridContainerRef = useRef<HTMLDivElement>(null);
 
   const availableCities = locationsService.getCities();
+  const selectedCity =
+    availableCities.find((c) => c.name === (filters.city || 'Ibadan')) || availableCities[0];
   const currentCategory = filters.category || 'all';
 
   // Dynamic Sub-types based on PRD Category (FR-3.2)
@@ -534,6 +556,30 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                         <span>Saved Properties</span>
                       </button>
                     )}
+                    {onNavigateToProfile && (
+                      <button
+                        type="button"
+                        onClick={() => { onNavigateToProfile(); setUserDropdownOpen(false); }}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '8px 10px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          background: 'none',
+                          color: '#000052',
+                          fontSize: '12.5px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <UserIcon size={13} color="#000052" />
+                        <span>Profile & Settings</span>
+                      </button>
+                    )}
                     <div style={{ height: '1px', backgroundColor: '#F1F5F9', margin: '4px 0' }} />
                     {onSignOut && (
                       <button
@@ -575,22 +621,63 @@ export const SearchPage: React.FC<SearchPageProps> = ({
         <div className="marketplace-search-container">
           <div className="unified-search-bar">
             {/* 1. Location Segment */}
-            <div className="usb-segment usb-city">
-              <MapPin size={16} color="#000052" style={{ flexShrink: 0 }} />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span className="usb-microlabel">Location</span>
-                <select
-                  value={filters.city || 'Ibadan'}
-                  onChange={(e) => onFilterChange({ city: e.target.value, area: 'All Ibadan areas' })}
-                  title="Select City"
-                >
-                  {availableCities.map((c: CityLocation) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name} {c.isPilot ? '(Pilot)' : !c.isActive ? '(Phase 2)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="usb-segment usb-city" ref={cityDropdownRef}>
+              <button
+                type="button"
+                className="usb-city-trigger"
+                onClick={() => {
+                  setIsCityDropdownOpen(!isCityDropdownOpen);
+                  setIsTypeDropdownOpen(false);
+                  setIsPriceDropdownOpen(false);
+                }}
+                aria-expanded={isCityDropdownOpen}
+                aria-haspopup="listbox"
+                title="Select city"
+              >
+                <MapPin size={16} color="#000052" style={{ flexShrink: 0 }} />
+                <div className="usb-city-copy">
+                  <span className="usb-microlabel">Location</span>
+                  <span className="usb-value">
+                    {selectedCity ? cityOptionLabel(selectedCity) : 'Ibadan (Pilot)'}
+                  </span>
+                </div>
+                <ChevronDown size={14} className="usb-city-chevron" />
+              </button>
+              {isCityDropdownOpen && (
+                <div className="custom-dropdown-panel usb-city-panel" role="listbox">
+                  <div className="custom-dropdown-list">
+                    {availableCities.map((city: CityLocation) => {
+                      const isActive = selectedCity?.id === city.id;
+                      return (
+                        <button
+                          key={city.id}
+                          type="button"
+                          className={`custom-dropdown-item ${isActive ? 'is-active' : ''} ${!city.isActive ? 'is-disabled' : ''}`}
+                          onClick={() => {
+                            onFilterChange({ city: city.name, area: 'All Ibadan areas' });
+                            setIsCityDropdownOpen(false);
+                          }}
+                          role="option"
+                          aria-selected={isActive}
+                        >
+                          <div className="custom-dropdown-item-icon">
+                            <MapPin size={15} color="var(--navy)" />
+                          </div>
+                          <div className="custom-dropdown-item-info">
+                            <div className="custom-dropdown-item-title">{cityOptionLabel(city)}</div>
+                            <div className="custom-dropdown-item-sub">{cityOptionSubtitle(city)}</div>
+                          </div>
+                          {isActive && (
+                            <div className="custom-dropdown-item-check">
+                              <Check size={16} strokeWidth={2.5} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Vertical Divider */}
@@ -628,7 +715,11 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               <button 
                 type="button"
                 className="usb-btn-trigger"
-                onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                onClick={() => {
+                  setIsTypeDropdownOpen(!isTypeDropdownOpen);
+                  setIsCityDropdownOpen(false);
+                  setIsPriceDropdownOpen(false);
+                }}
                 title="Filter by property type"
               >
                 <Building2 size={16} color="#64748B" style={{ flexShrink: 0 }} />
@@ -687,7 +778,11 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               <button 
                 type="button"
                 className="usb-btn-trigger"
-                onClick={() => setIsPriceDropdownOpen(!isPriceDropdownOpen)}
+                onClick={() => {
+                  setIsPriceDropdownOpen(!isPriceDropdownOpen);
+                  setIsCityDropdownOpen(false);
+                  setIsTypeDropdownOpen(false);
+                }}
                 title="Filter by rental budget"
               >
                 <DollarSign size={16} color="#64748B" style={{ flexShrink: 0 }} />
@@ -1087,7 +1182,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 >
                   {/* Photo Container with Verified Badge & Photo Counter */}
                   <div className="market-card-img">
-                    <OptimizedImage src={item.photos[0]} alt={item.title} width={500} height={350} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <OptimizedImage src={item.photos[0]} alt={item.title} width={500} height={280} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     
                     {item.verificationStatus === 'verified' && !item.isNew && (
                       <span className="ribbon" style={{ backgroundColor: '#16794A', color: '#FFFFFF' }}>

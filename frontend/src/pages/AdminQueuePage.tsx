@@ -145,14 +145,32 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
   // Promotion Stats State (FR-5.3 & FR-5.4 First 100 users waiver)
   const promoStats = useMemo(() => requestsService.getPromotionStats(), []);
 
-  // Multi-City Location Management Modal State (FR-7.6)
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(initialSection === 'locations');
+  // Multi-City Location Management State (FR-7.6)
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [locationsVersion, setLocationsVersion] = useState(0);
   const allCities = useMemo(() => locationsService.getCities(), [locationsVersion]);
   const [newCityName, setNewCityName] = useState('');
   const [newCityState, setNewCityState] = useState('');
   const [newAreaCity, setNewAreaCity] = useState('Ibadan');
   const [newAreaName, setNewAreaName] = useState('');
+
+  // Rejection modal state for listing pre-publish moderation
+  const [rejectModalListing, setRejectModalListing] = useState<Listing | null>(null);
+  const [rejectCategory, setRejectCategory] = useState<string>('Blurry or unverified photos');
+  const [rejectNotes, setRejectNotes] = useState<string>('');
+
+  const handleConfirmReject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectModalListing) return;
+    await listingsService.moderateListing(
+      rejectModalListing.id,
+      'reject',
+      `${rejectCategory}${rejectNotes.trim() ? ': ' + rejectNotes.trim() : ''}`
+    );
+    showToast(`Listing "${rejectModalListing.title}" rejected and feedback logged.`);
+    setRejectModalListing(null);
+    setRejectNotes('');
+  };
 
   // Contact Lister dialog for reports
   const [contactingReportItem, setContactingReportItem] = useState<ReportItem | null>(null);
@@ -545,7 +563,6 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                   type="button"
                   onClick={() => {
                     setActiveSection(tab.id as AdminSection);
-                    if (tab.id === 'locations') setIsLocationModalOpen(true);
                   }}
                   style={{
                     display: 'flex',
@@ -895,7 +912,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                   </span>
                 </div>
                 <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>
-                  First-100-users waiver pool (FR-5.3)
+                  First 100 Users Promotional Waiver Quota
                 </div>
               </div>
 
@@ -2039,25 +2056,47 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                         </span>
                       </td>
                       <td style={{ padding: '12px 18px', textAlign: 'right' }}>
-                        {l.verificationStatus === 'verified' ? (
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#047857', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <ShieldCheck size={14} /> Verified
-                          </span>
-                        ) : (
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          {l.verificationStatus === 'verified' ? (
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#047857', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <ShieldCheck size={14} /> Verified
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (l.isApproved === false || l.moderationStatus === 'pending_approval') {
+                                  void listingsService.moderateListing(l.id, 'approve');
+                                  showToast(`Published "${l.title}"`);
+                                } else {
+                                  onApproveVerification(l.id);
+                                }
+                              }}
+                              style={{
+                                backgroundColor: '#000052',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                padding: '5px 10px',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Approve
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => {
-                              if (l.isApproved === false || l.moderationStatus === 'pending_approval') {
-                                void listingsService.moderateListing(l.id, 'approve');
-                                showToast(`Published "${l.title}"`);
-                              } else {
-                                onApproveVerification(l.id);
-                              }
+                              setRejectModalListing(l);
+                              setRejectCategory('Blurry or unverified photos');
+                              setRejectNotes('');
                             }}
                             style={{
-                              backgroundColor: '#000052',
-                              color: '#FFFFFF',
-                              border: 'none',
+                              backgroundColor: '#FEF2F2',
+                              color: '#DC2626',
+                              border: '1px solid #FECACA',
                               padding: '5px 10px',
                               borderRadius: '6px',
                               fontSize: '11px',
@@ -2065,9 +2104,9 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                               cursor: 'pointer'
                             }}
                           >
-                            Approve
+                            Reject
                           </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -2397,7 +2436,299 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
           </div>
         )}
 
+        {/* =============================================================
+            TAB 8: MULTI-CITY LOCATIONS & NEIGHBORHOODS REGISTRY (FR-7.6)
+           ============================================================= */}
+        {activeSection === 'locations' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', color: '#000052' }}>
+                  Locations &amp; Neighborhoods Registry
+                </h1>
+                <p style={{ margin: 0, fontSize: '13.5px', color: '#636377' }}>
+                  Manage active pilot coverage (Ibadan) and Phase 2 expansion cities across Nigeria.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#000052', backgroundColor: '#EFF6FF', padding: '6px 14px', borderRadius: '999px', border: '1px solid #BFDBFE' }}>
+                  Pilot City: Ibadan, Oyo State
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Active Cities</div>
+                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052', marginTop: '4px' }}>{allCities.filter(c => c.isActive).length}</div>
+                <div style={{ fontSize: '12px', color: '#16794A', marginTop: '4px', fontWeight: 600 }}>Ibadan (Pilot Live)</div>
+              </div>
+              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Ibadan Neighborhoods</div>
+                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052', marginTop: '4px' }}>
+                  {allCities.find(c => c.name.toLowerCase() === 'ibadan')?.areas.length || 0}
+                </div>
+                <div style={{ fontSize: '12px', color: '#636377', marginTop: '4px' }}>Verified coverage zones</div>
+              </div>
+              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Phase 2 Pipeline</div>
+                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052', marginTop: '4px' }}>
+                  {allCities.filter(c => !c.isActive).length}
+                </div>
+                <div style={{ fontSize: '12px', color: '#D97706', marginTop: '4px', fontWeight: 600 }}>Staged for rollout</div>
+              </div>
+            </div>
+
+            {/* City Registry Table */}
+            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', overflow: 'hidden', marginBottom: '24px' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#000052' }}>Marketplace Coverage Directory</h3>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '11px', textTransform: 'uppercase' }}>
+                    <th style={{ textAlign: 'left', padding: '12px 18px' }}>City &amp; State</th>
+                    <th style={{ textAlign: 'left', padding: '12px 18px' }}>Operational Status</th>
+                    <th style={{ textAlign: 'left', padding: '12px 18px' }}>Registered Neighborhoods</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allCities.map(city => (
+                    <tr key={city.id} style={{ borderTop: '1px solid #E2E8F0' }}>
+                      <td style={{ padding: '14px 18px' }}>
+                        <div style={{ fontWeight: 800, color: '#000052', fontSize: '14px' }}>{city.name}</div>
+                        <div style={{ fontSize: '12px', color: '#64748B' }}>{city.state} State</div>
+                      </td>
+                      <td style={{ padding: '14px 18px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {city.isPilot && (
+                            <span style={{ fontSize: '11px', fontWeight: 800, backgroundColor: '#000052', color: '#FFFFFF', padding: '3px 8px', borderRadius: '999px' }}>
+                              Pilot City
+                            </span>
+                          )}
+                          <span style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            backgroundColor: city.isActive ? '#ECFDF5' : '#FEF3C7',
+                            color: city.isActive ? '#065F46' : '#92400E',
+                            padding: '3px 8px',
+                            borderRadius: '999px'
+                          }}>
+                            {city.isActive ? 'Active Operations' : 'Phase 2 Staged'}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 18px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {city.areas.map(area => (
+                            <span key={area} style={{ backgroundColor: '#F1F5F9', color: '#000052', fontSize: '11.5px', fontWeight: 600, padding: '3px 8px', borderRadius: '6px' }}>
+                              {area}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Quick Management Forms Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+              {/* Form 1: Add Neighborhood to Ibadan */}
+              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', padding: '20px' }}>
+                <h3 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#000052' }}>
+                  Add Neighborhood to City
+                </h3>
+                <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: '#636377' }}>
+                  Expand searchable areas for property listings and tenant search filters.
+                </p>
+                <form onSubmit={handleAddArea} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>Target City</label>
+                    <select
+                      value={newAreaCity}
+                      onChange={(e) => setNewAreaCity(e.target.value)}
+                      style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '0 10px', fontSize: '13px' }}
+                    >
+                      {allCities.map(c => (
+                        <option key={c.id} value={c.name}>{c.name} ({c.state})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>Neighborhood Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Oluyole Estate, Jericho, Samonda"
+                      value={newAreaName}
+                      onChange={(e) => setNewAreaName(e.target.value)}
+                      style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '0 12px', fontSize: '13px', boxSizing: 'border-box' }}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    style={{ backgroundColor: '#000052', color: '#FFFFFF', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <Plus size={15} /> Add Neighborhood
+                  </button>
+                </form>
+              </div>
+
+              {/* Form 2: Register Expansion City */}
+              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', padding: '20px' }}>
+                <h3 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#000052' }}>
+                  Register Expansion City (Phase 2)
+                </h3>
+                <p style={{ margin: '0 0 16px', fontSize: '12.5px', color: '#636377' }}>
+                  Stage new metropolitan regions for Rentivo's staged Nigeria expansion.
+                </p>
+                <form onSubmit={handleAddCity} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>City Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Abeokuta, Osogbo, Lagos"
+                      value={newCityName}
+                      onChange={(e) => setNewCityName(e.target.value)}
+                      style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '0 12px', fontSize: '13px', boxSizing: 'border-box' }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>State</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Ogun, Osun, Lagos"
+                      value={newCityState}
+                      onChange={(e) => setNewCityState(e.target.value)}
+                      style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '0 12px', fontSize: '13px', boxSizing: 'border-box' }}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    style={{ backgroundColor: '#4338CA', color: '#FFFFFF', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <Plus size={15} /> Register Expansion City
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
       </main>
+
+      {/* -------------------------------------------------------------
+          REJECTION FEEDBACK MODAL (Listing Pre-Publish Moderation)
+         ------------------------------------------------------------- */}
+      {rejectModalListing && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 120,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          boxSizing: 'border-box'
+        }}>
+          <div
+            onClick={() => setRejectModalListing(null)}
+            style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)' }}
+          />
+          <div style={{
+            position: 'relative',
+            zIndex: 2,
+            backgroundColor: '#FFFFFF',
+            borderRadius: '16px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 82, 0.25)',
+            width: '100%',
+            maxWidth: '520px',
+            padding: '24px',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: 800, color: '#991B1B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertTriangle size={18} color="#DC2626" /> Reject Property Listing
+                </h3>
+                <p style={{ margin: 0, fontSize: '12.5px', color: '#636377' }}>
+                  Provide specific compliance feedback. The lister will receive this feedback to revise their listing.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectModalListing(null)}
+                style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', padding: '12px 14px', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '16px' }}>
+              <div style={{ fontWeight: 800, fontSize: '13px', color: '#000052' }}>{rejectModalListing.title}</div>
+              <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '2px' }}>
+                {rejectModalListing.area}, Ibadan · {formatNaira(rejectModalListing.price)} · Lister: {rejectModalListing.lister?.fullName || 'Lister'}
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmReject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '6px' }}>
+                  Rejection Reason Category
+                </label>
+                <select
+                  value={rejectCategory}
+                  onChange={(e) => setRejectCategory(e.target.value)}
+                  style={{ width: '100%', height: '38px', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '0 10px', fontSize: '13px', outline: 'none' }}
+                >
+                  <option value="Blurry or unverified photos">Blurry or unverified photos</option>
+                  <option value="Unrealistic or non-market price">Unrealistic or non-market price</option>
+                  <option value="Unverified tenancy mandate">Unverified tenancy mandate</option>
+                  <option value="Incomplete Ibadan address or missing landmarks">Incomplete Ibadan address or missing landmarks</option>
+                  <option value="Duplicate property listing">Duplicate property listing</option>
+                  <option value="Other content guideline violation">Other content guideline violation</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '6px' }}>
+                  Detailed Correction Instructions
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Please provide clear daytime photos of the living room and kitchen, or specify the exact street near Bodija market."
+                  value={rejectNotes}
+                  onChange={(e) => setRejectNotes(e.target.value)}
+                  style={{ width: '100%', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '10px 12px', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setRejectModalListing(null)}
+                  style={{ backgroundColor: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '9px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', padding: '9px 18px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+                >
+                  Confirm Rejection &amp; Notify Lister
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* -------------------------------------------------------------
           CENTERED POPUP MODAL WITH SCROLLING PROGRESS LINE
@@ -3221,7 +3552,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                     Multi-City Locations &amp; Area Registry
                   </h3>
                   <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                    Manage pilot coverage (Ibadan) and Phase 2 expansion cities (FR-7.6)
+                    Manage pilot coverage (Ibadan) and Phase 2 expansion cities
                   </div>
                 </div>
               </div>

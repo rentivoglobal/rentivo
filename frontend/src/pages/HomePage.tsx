@@ -3,7 +3,6 @@ import {
   Search,
   ArrowRight,
   ShieldCheck,
-  CheckCircle2,
   MapPin,
   Bed,
   Bath,
@@ -16,11 +15,9 @@ import {
   Check,
   Sparkles,
   Coins,
-  MessageCircle,
-  Phone,
-  Mail
+  Phone
 } from 'lucide-react';
-import { Listing, NavigationTab } from '../types';
+import { Listing } from '../types';
 import { formatNaira } from '../utils/formatters';
 
 interface HomePageProps {
@@ -28,7 +25,6 @@ interface HomePageProps {
   onNavigateToMarketplace: (areaFilter?: string) => void;
   onSelectListing: (listing: Listing) => void;
   onOpenAuth: () => void;
-  onNavigateToTab?: (tab: NavigationTab) => void;
 }
 
 const LOCATION_OPTIONS = [
@@ -59,8 +55,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   listings = [],
   onNavigateToMarketplace,
   onSelectListing,
-  onOpenAuth,
-  onNavigateToTab
+  onOpenAuth
 }) => {
   const showcase = listings.filter((l) => l.isApproved !== false).slice(0, 6);
   const [activePinId, setActivePinId] = useState<string>('');
@@ -69,7 +64,6 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [selectedBudget, setSelectedBudget] = useState<string>('₦400K – ₦1.5M');
   const [openDropdown, setOpenDropdown] = useState<'location' | 'goal' | 'budget' | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [subscribed, setSubscribed] = useState(false);
 
   const searchFormRef = useRef<HTMLFormElement>(null);
   const whyTrackRef = useRef<HTMLDivElement>(null);
@@ -559,12 +553,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                 <div className="body">
                   <div className="home-card-header">
                     <span className="home-card-type">{listing.type}</span>
-                    {listing.lister && (
-                      <div className="home-card-lister" title={`Lister: ${listing.lister.fullName} (${listing.lister.agencyName || 'Verified Lister'})`}>
-                        <img src={listing.lister.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80'} alt="" />
-                        <span>{listing.lister.fullName}</span>
-                      </div>
-                    )}
                   </div>
                   <h3 title={listing.title}>{listing.title}</h3>
                   <div className="meta">
@@ -634,8 +622,8 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="why-track" ref={whyTrackRef}>
             <article className="why-card why-card--muted">
               <div className="why-card-top">
-                <div className="trust-mark" aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ShieldCheck size={26} color="#000052" />
+                <div className="trust-mark" aria-hidden="true">
+                  <ShieldCheck size={18} color="#fff" strokeWidth={2.2} />
                 </div>
                 <span className="chip">Verified</span>
               </div>
@@ -649,7 +637,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             </article>
 
             <article className="why-card why-card--muted">
-              <div className="why-card-top"><span className="chip">After confirm</span></div>
+              <div className="why-card-top">
+                <div className="trust-mark" aria-hidden="true">
+                  <Coins size={18} color="#fff" strokeWidth={2.2} />
+                </div>
+                <span className="chip">After confirm</span>
+              </div>
               <h3>Flat access<br />fee</h3>
               <p>One clear price, requested only after availability is confirmed. No surprise charges.</p>
               <div className="why-card-photo" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=500&q=80')" }}>
@@ -660,7 +653,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             </article>
 
             <article className="why-card why-card--muted">
-              <div className="why-card-top"><span className="chip">Direct</span></div>
+              <div className="why-card-top">
+                <div className="trust-mark" aria-hidden="true">
+                  <Phone size={18} color="#fff" strokeWidth={2.2} />
+                </div>
+                <span className="chip">Direct</span>
+              </div>
               <h3>Real lister<br />access</h3>
               <p>Reach a named lister or agency — never a silent handoff to an unauthorized agent.</p>
               <div className="why-card-photo" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=500&q=80')" }}>
@@ -671,7 +669,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             </article>
 
             <article className="why-card why-card--muted">
-              <div className="why-card-top"><span className="chip">No account</span></div>
+              <div className="why-card-top">
+                <div className="trust-mark" aria-hidden="true">
+                  <Search size={18} color="#fff" strokeWidth={2.2} />
+                </div>
+                <span className="chip">No account</span>
+              </div>
               <h3>Browse<br />freely</h3>
               <p>Explore every listing before you ever create an account or share a phone number.</p>
               <div className="why-card-photo" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=500&q=80')" }}>
@@ -702,62 +705,6 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
       </section>
-
-      {/* Footer from index.html */}
-      <footer className="site-footer" id="footer">
-        <div className="page footer-inner">
-          <div className="footer-grid">
-            <div className="footer-col footer-col--newsletter">
-              <a className="logo logo--on-dark" href="/">
-                <img className="logo-img" src="/RENTIVO-lockup.svg" alt="Rentivo" />
-              </a>
-              <h4>Weekly verified listings</h4>
-              <p>Newly checked Ibadan homes in your inbox. Unsubscribe in one click.</p>
-              <form className="footer-form" onSubmit={(e) => { e.preventDefault(); setSubscribed(true); setNotice('Subscribed to weekly listings.'); }}>
-                <label className="sr-only" htmlFor="footer-email">Email</label>
-                <input id="footer-email" name="email" type="email" required placeholder="Your email" autoComplete="email" />
-                <button type="submit">Subscribe</button>
-              </form>
-            </div>
-            <div className="footer-col">
-              <h4>Explore</h4>
-              <a href="/search" onClick={(e) => { e.preventDefault(); onNavigateToMarketplace(); }}>Browse listings</a>
-              <a href="/how-it-works" onClick={(e) => { e.preventDefault(); onNavigateToTab?.('how_it_works'); }}>Why Rentivo (How It Works)</a>
-              <a href="/account/favorites" onClick={(e) => { e.preventDefault(); onNavigateToTab?.('favorites'); }}>Saved properties</a>
-              <a href="/login" onClick={(e) => { e.preventDefault(); onNavigateToTab?.('auth'); }}>Sign In / Register</a>
-            </div>
-            <div className="footer-col">
-              <h4>Support</h4>
-              <a href="/how-it-works" onClick={(e) => { e.preventDefault(); onNavigateToTab?.('how_it_works'); }}>Fee transparency</a>
-              <a href="mailto:support@rentivo.ng">Contact Ibadan Ops</a>
-              <a href="/login" onClick={(e) => { e.preventDefault(); onNavigateToTab?.('auth'); }} style={{ color: '#94A3B8', fontSize: '12px' }}>Staff sign in</a>
-            </div>
-            <div className="footer-col">
-              <h4>Ibadan</h4>
-              <nav className="footer-places" aria-label="Areas we cover">
-                <a href="/search?area=Bodija" onClick={(e) => { e.preventDefault(); onNavigateToMarketplace('Bodija'); }}>Bodija</a>
-                <a href="/search?area=Akobo" onClick={(e) => { e.preventDefault(); onNavigateToMarketplace('Akobo'); }}>Akobo</a>
-                <a href="/search?area=Jericho" onClick={(e) => { e.preventDefault(); onNavigateToMarketplace('Jericho'); }}>Jericho</a>
-                <a href="/search?area=Ring%20Road" onClick={(e) => { e.preventDefault(); onNavigateToMarketplace('Ring Road'); }}>Ring Road</a>
-              </nav>
-              <div className="footer-social" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <a href="https://wa.me/2348007368486" aria-label="WhatsApp" title="WhatsApp Support" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><MessageCircle size={18} /></a>
-                <a href="tel:+2348007368486" aria-label="Phone" title="Call Support" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Phone size={18} /></a>
-                <a href="mailto:support@rentivo.ng" aria-label="Email" title="Email Rentivo" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Mail size={18} /></a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="page footer-bottom">
-          <span>© 2026 Rentivo. Ibadan, Nigeria.</span>
-          <div className="footer-legal">
-            <a href="/access-fee-terms" onClick={(e) => { e.preventDefault(); onNavigateToTab?.('access_fee_terms'); }}>Access Fee Policy</a>
-            <a href="/privacy" onClick={(e) => { e.preventDefault(); onNavigateToTab?.('privacy'); }}>Privacy</a>
-            <a href="/terms" onClick={(e) => { e.preventDefault(); onNavigateToTab?.('terms'); }}>Terms</a>
-          </div>
-        </div>
-      </footer>
       {notice && (
         <div className="toast-container">
           <div className="toast">

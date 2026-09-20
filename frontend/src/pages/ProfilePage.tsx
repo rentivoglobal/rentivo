@@ -289,8 +289,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </form>
         </div>
 
-        {/* Lister Portal Switcher for Property Owners */}
-        {!isLister && (
+        {/* Lister Portal Transition / Discovery Card */}
+        {!isLister ? (
           <div style={{
             backgroundColor: '#F0E6FF',
             border: '1.5px solid #E9D5FF',
@@ -305,10 +305,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 800, color: '#000052', marginBottom: '4px' }}>
                 <Building size={18} color="#7E22CE" />
-                <span>Do you own property in Ibadan?</span>
+                <span>Own or Manage Property in Ibadan?</span>
               </div>
               <p style={{ fontSize: '13px', color: '#6B21A8', margin: 0, maxWidth: '480px', lineHeight: 1.5 }}>
-                Post your verified apartments, houses, or shops for free. Zero listing fees, verified tenant leads, and direct communication.
+                Post your verified apartments, houses, or commercial units for free. Zero listing fees, pre-screened seekers, and structured in-person inspection bookings.
               </p>
             </div>
             <button
@@ -328,8 +328,61 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 gap: '6px'
               }}
             >
-              <span>Switch to Lister Portal</span>
-              <ExternalLink size={13} />
+              <span>Go to Lister Portal</span>
+              <Building size={14} />
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            backgroundColor: '#F8FAFC',
+            border: '1.5px solid #E2E8F0',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '10px',
+                backgroundColor: '#EFF6FF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Building size={20} color="#000052" />
+              </div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 800, color: '#000052' }}>
+                  Verified Lister Account
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748B' }}>
+                  Manage your active listings, renter inquiries, and scheduled inspections.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigateToTab('lister')}
+              style={{
+                backgroundColor: '#000052',
+                color: '#FFFFFF',
+                border: 'none',
+                padding: '9px 18px',
+                borderRadius: '9999px',
+                fontSize: '12.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>Open Lister Dashboard</span>
             </button>
           </div>
         )}

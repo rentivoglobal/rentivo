@@ -380,7 +380,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({
               transition: 'all 0.15s ease'
             }}
           >
-            <span>Switch to Renter View</span>
+            <span>Browse Marketplace</span>
             <ArrowRight size={11} />
           </button>
         </div>

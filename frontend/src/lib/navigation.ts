@@ -123,6 +123,7 @@ export const STANDALONE_TABS: NavigationTab[] = [
 ];
 
 export const FOOTER_TABS: NavigationTab[] = [
+  'home',
   'search',
   'detail',
   'checkout',

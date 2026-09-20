@@ -21,6 +21,7 @@ import { Listing, AccessRequest } from '../types';
 import { requestsService } from '../services/requestsService';
 import { formatNaira } from '../utils/formatters';
 import { EmailNotificationModal } from './EmailNotificationModal';
+import { isDemoSimulator } from '../lib/config';
 
 interface RequestAccessModalProps {
   listing: Listing | null;
@@ -339,69 +340,38 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   Our automated gateway has dispatched a verification message to <b>{listing.lister.fullName}</b> to guarantee the property at <b>{listing.area}</b> is vacant before you pay.
                 </p>
 
-                {/* Developer / Client Interactive Simulator Box */}
-                <div style={{ 
-                  backgroundColor: '#F8FAFC', 
-                  padding: '16px', 
-                  borderRadius: '14px', 
-                  border: '1.5px dashed #CBD5E1',
+                {/* Authentic Live Status & SLA Reassurance */}
+                <div style={{
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: '14px',
+                  border: '1px solid #E2E8F0',
+                  padding: '18px 20px',
                   textAlign: 'left'
                 }}>
-                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#000052', letterSpacing: '0.05em', marginBottom: '4px', textTransform: 'uppercase' }}>
-                    Live Gateway Simulator (Reviewer Controls)
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#2563EB', animation: 'pulse 1.5s infinite' }} />
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Automated Vacancy Inquiry Dispatched
+                    </span>
                   </div>
-                  <p style={{ fontSize: '12px', color: '#64748B', marginBottom: '14px' }}>
-                    In production, the landlord responds via SMS/WhatsApp within 2–5 minutes. Test both outcomes below:
-                  </p>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                      type="button"
-                      className="btn btn-sm"
-                      onClick={() => handleSimulateListerReply('YES')}
-                      disabled={loading}
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#16794A',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '9px 12px',
-                        fontSize: '12.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <CheckCircle2 size={14} />
-                      <span>Landlord: Available (YES)</span>
-                    </button>
-                    <button 
-                      type="button"
-                      className="btn btn-sm"
-                      onClick={() => handleSimulateListerReply('NO')}
-                      disabled={loading}
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#FFFFFF',
-                        color: '#B42318',
-                        border: '1px solid #FCA5A5',
-                        borderRadius: '8px',
-                        padding: '9px 12px',
-                        fontSize: '12.5px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <AlertTriangle size={14} />
-                      <span>Landlord: Taken (NO)</span>
-                    </button>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px', color: '#475569' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <CheckCircle2 size={15} color="#16794A" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <span>Inquiry sent to <b>{listing.lister.fullName}</b> via SMS &amp; secure email.</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <Clock size={15} color="#2563EB" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <span>Direct 48-hour response window active. Listers usually confirm in 15–30 mins.</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <ShieldCheck size={15} color="#7E22CE" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <span>Zero charge until confirmed. 100% money-back refund guarantee.</span>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid #E2E8F0', marginTop: '14px', paddingTop: '10px', fontSize: '11.5px', color: '#64748B' }}>
+                    Questions? Ibadan Support: <a href="tel:+2348007368486" style={{ color: '#000052', fontWeight: 700, textDecoration: 'none' }}>+234 800 736 8486</a>
                   </div>
                 </div>
               </div>
@@ -820,6 +790,65 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
         request={createdRequest}
         listing={listing}
       />
+
+      {/* Discreet Development / QA Test Actions Dock (Only visible when awaiting reply and simulator enabled) */}
+      {isDemoSimulator && step === 'checking' && (
+        <aside
+          aria-label="Development testing panel"
+          style={{
+            position: 'fixed',
+            bottom: '16px',
+            right: '16px',
+            zIndex: 1100,
+            backgroundColor: '#0F172A',
+            color: '#FFFFFF',
+            borderRadius: '12px',
+            padding: '10px 14px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            border: '1px solid #334155',
+            fontSize: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}
+        >
+          <span style={{ fontWeight: 700, color: '#94A3B8' }}>Local Test Response:</span>
+          <button
+            type="button"
+            onClick={() => handleSimulateListerReply('YES')}
+            disabled={loading}
+            style={{
+              backgroundColor: '#16794A',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '5px 10px',
+              fontWeight: 700,
+              fontSize: '11px',
+              cursor: 'pointer'
+            }}
+          >
+            Simulate Available
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSimulateListerReply('NO')}
+            disabled={loading}
+            style={{
+              backgroundColor: '#DC2626',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '5px 10px',
+              fontWeight: 700,
+              fontSize: '11px',
+              cursor: 'pointer'
+            }}
+          >
+            Simulate Taken
+          </button>
+        </aside>
+      )}
     </>
   );
 };

@@ -37,7 +37,10 @@ import {
   LayoutGrid,
   List,
   Copy,
-  AlertTriangle
+  AlertTriangle,
+  User,
+  LogOut,
+  Compass
 } from 'lucide-react';
 import { Listing } from '../types';
 import { formatNaira } from '../utils/formatters';
@@ -56,6 +59,8 @@ interface ListerDashboardPageProps {
   onNavigateToMarketplace?: () => void;
   onOpenVerification?: () => void;
   onOpenRequests?: () => void;
+  onNavigateToProfile?: () => void;
+  onSignOut?: () => void;
   forcedTab?: 'listings' | 'inquiries' | 'stats';
 }
 
@@ -87,12 +92,26 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
   onNavigateToMarketplace,
   onOpenVerification,
   onOpenRequests,
+  onNavigateToProfile,
+  onSignOut,
   forcedTab
 }) => {
   const { user } = useAuth();
   const listerName = user?.name || 'Rentivo Lister';
   const listerInitials = listerName.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
   const [activeTab, setActiveTab] = useState<'listings' | 'inquiries' | 'stats'>(forcedTab || 'listings');
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Local listings state synced with listingsService
   const [dashboardListings, setDashboardListings] = useState<Listing[]>([]);
@@ -488,29 +507,27 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
           {/* Left: Brand + Navigation Tabs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: onNavigateToMarketplace ? 'pointer' : 'default' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: onNavigateToMarketplace ? 'pointer' : 'default' }}
               onClick={onNavigateToMarketplace}
               title={onNavigateToMarketplace ? "Return to Rentivo Marketplace" : undefined}
             >
-              <div style={{
-                backgroundColor: '#000052',
-                color: '#FFFFFF',
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: '15px',
-                letterSpacing: '-0.02em'
+              <img 
+                src="/RENTIVO-lockup.svg" 
+                alt="Rentivo" 
+                style={{ height: '28px', width: 'auto', display: 'block' }} 
+              />
+              <span style={{
+                backgroundColor: '#F8F3FF',
+                color: '#7E22CE',
+                border: '1px solid #E9D5FF',
+                borderRadius: '9999px',
+                padding: '2px 10px',
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '0.02em'
               }}>
-                R
-              </div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '15px', color: '#000052', lineHeight: 1.1 }}>RENTIVO</div>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: '#64748B', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Landlord Panel</div>
-              </div>
+                Lister Portal
+              </span>
             </div>
 
             {/* Navigation links (Clean 3-Tab Architecture) */}
@@ -608,74 +625,229 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
           </div>
 
           {/* Right: Landlord Profile info & quick actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                backgroundColor: '#000052',
-                color: '#FFFFFF',
-                fontWeight: 700,
-                fontSize: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                {listerInitials}
-              </div>
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#000052' }}>{listerName}</div>
-                <div style={{ fontSize: '11px', color: '#16794A', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <ShieldCheck size={12} color="#16794A" />
-                  <span>Verified Landlord</span>
-                </div>
-              </div>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {onOpenVerification && (
+              <button
+                type="button"
+                onClick={onOpenVerification}
+                style={{
+                  backgroundColor: '#ECFDF5',
+                  border: '1px solid #A7F3D0',
+                  borderRadius: '9999px',
+                  padding: '5px 12px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: '#065F46',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Schedule in-person property inspection"
+              >
+                <ShieldCheck size={13} color="#059669" />
+                <span>Book Inspection</span>
+              </button>
+            )}
 
             {onNavigateToMarketplace && (
               <button
                 type="button"
                 onClick={onNavigateToMarketplace}
                 style={{
-                  backgroundColor: '#000052',
-                  border: 'none',
-                  borderRadius: '6px',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '8px',
                   padding: '6px 12px',
                   fontSize: '12px',
-                  fontWeight: 700,
-                  color: '#FFFFFF',
+                  fontWeight: 600,
+                  color: '#334155',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  transition: 'background-color 0.15s ease'
+                  transition: 'all 0.15s ease'
                 }}
-                title="Browse public marketplace"
+                title="Browse public marketplace as a seeker"
               >
-                <span>Browse Marketplace</span>
-                <ExternalLink size={12} />
+                <Compass size={13} color="#475569" />
+                <span>Browse as Seeker</span>
               </button>
             )}
 
-            {onSwitchRole && (
+            {/* Authenticated Lister Profile Dropdown Menu */}
+            <div style={{ position: 'relative' }} ref={userDropdownRef}>
               <button
                 type="button"
-                onClick={onSwitchRole}
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 style={{
-                  backgroundColor: '#FFFFFF',
+                  backgroundColor: userDropdownOpen ? '#F1F5F9' : '#FFFFFF',
                   border: '1px solid #E2E8F0',
-                  borderRadius: '6px',
-                  padding: '6px 12px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: '#475569',
-                  cursor: 'pointer'
+                  borderRadius: '9999px',
+                  padding: '4px 10px 4px 5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s ease'
                 }}
               >
-                Switch Role
+                <div style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  backgroundColor: '#000052',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden'
+                }}>
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={listerName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    listerInitials
+                  )}
+                </div>
+                <div style={{ textAlign: 'left', lineHeight: 1.15 }}>
+                  <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#000052', maxWidth: '110px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {listerName}
+                  </div>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: '#16794A', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <ShieldCheck size={10} color="#16794A" />
+                    <span>Verified</span>
+                  </div>
+                </div>
+                <ChevronDown size={12} color="#64748B" />
               </button>
-            )}
+
+              {userDropdownOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #E6E3EE',
+                    borderRadius: '14px',
+                    boxShadow: '0 12px 32px rgba(0,0,82,0.12)',
+                    padding: '8px',
+                    minWidth: '220px',
+                    zIndex: 200,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '2px'
+                  }}
+                >
+                  <div style={{ padding: '8px 12px 10px', borderBottom: '1px solid #F1F5F9' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#000052' }}>{listerName}</div>
+                    <div style={{ fontSize: '11px', color: '#636377' }}>{user?.email || 'landlord@rentivo.ng'}</div>
+                  </div>
+
+                  {onNavigateToProfile && (
+                    <button
+                      type="button"
+                      onClick={() => { setUserDropdownOpen(false); onNavigateToProfile(); }}
+                      style={{
+                        textAlign: 'left',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'none',
+                        color: '#000052',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <User size={14} color="#000052" />
+                      <span>Account Profile &amp; Settings</span>
+                    </button>
+                  )}
+
+                  {onOpenVerification && (
+                    <button
+                      type="button"
+                      onClick={() => { setUserDropdownOpen(false); onOpenVerification(); }}
+                      style={{
+                        textAlign: 'left',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'none',
+                        color: '#000052',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <ShieldCheck size={14} color="#059669" />
+                      <span>Inspection Hub</span>
+                    </button>
+                  )}
+
+                  {onNavigateToMarketplace && (
+                    <button
+                      type="button"
+                      onClick={() => { setUserDropdownOpen(false); onNavigateToMarketplace(); }}
+                      style={{
+                        textAlign: 'left',
+                        padding: '9px 12px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'none',
+                        color: '#000052',
+                        fontSize: '12.5px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <Compass size={14} color="#000052" />
+                      <span>Browse as Seeker</span>
+                    </button>
+                  )}
+
+                  {onSignOut && (
+                    <div style={{ borderTop: '1px solid #F1F5F9', marginTop: '4px', paddingTop: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => { setUserDropdownOpen(false); onSignOut(); }}
+                        style={{
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: 'none',
+                          color: '#DC2626',
+                          fontSize: '12.5px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <LogOut size={14} color="#DC2626" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>

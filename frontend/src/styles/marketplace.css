@@ -153,6 +153,7 @@
   border-bottom: 1px solid #E6E3EE;
   padding: 24px 24px 22px;
   box-sizing: border-box;
+  overflow: visible;
 }
 
 .marketplace-search-container {
@@ -176,6 +177,7 @@
   min-height: 54px;
   transition: all 0.2s ease;
   position: relative;
+  overflow: visible;
 }
 
 .unified-search-bar:focus-within,
@@ -198,21 +200,63 @@
 }
 
 .usb-city {
-  gap: 10px;
-  padding-right: 18px;
+  gap: 0;
+  padding-right: 10px;
   flex-shrink: 0;
+  overflow: visible;
 }
 
-.usb-city select {
+.usb-city-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   background: none;
   border: none;
-  font-size: 13.5px;
-  font-weight: 800;
-  color: #000052;
+  padding: 6px 8px;
   cursor: pointer;
-  outline: none;
   font-family: inherit;
-  padding: 0;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.usb-city-trigger:hover,
+.usb-city-trigger[aria-expanded="true"] {
+  background: #F8F3FF;
+}
+
+.usb-city-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.usb-city-copy .usb-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 148px;
+}
+
+.usb-city-chevron {
+  flex-shrink: 0;
+  color: #000052;
+  opacity: .65;
+  transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1), opacity .2s ease;
+}
+
+.usb-city-trigger[aria-expanded="true"] .usb-city-chevron {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.usb-city-panel {
+  left: 0;
+  top: calc(100% + 12px);
+  min-width: 280px;
+  z-index: 250;
+}
+
+.usb-city-panel .custom-dropdown-item.is-disabled {
+  opacity: 0.72;
 }
 
 .usb-input-wrapper {
@@ -328,7 +372,15 @@
     min-height: 48px;
   }
   .usb-city {
-    padding-right: 8px;
+    padding-right: 4px;
+  }
+  .usb-city-panel {
+    left: 0;
+    min-width: min(280px, calc(100vw - 28px));
+    max-width: calc(100vw - 28px);
+  }
+  .usb-city-copy .usb-value {
+    max-width: 108px;
   }
   .usb-input-wrapper {
     padding: 0 10px;
@@ -567,7 +619,7 @@
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  height: 190px;
+  height: 140px;
   background: var(--lilac-050, #F8F3FF);
 }
 

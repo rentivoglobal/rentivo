@@ -172,7 +172,6 @@ export const App: React.FC = () => {
                 }}
                 onSelectListing={handleSelectListing}
                 onOpenAuth={() => handleOpenAuth('signup', 'renter')}
-                onNavigateToTab={handleNavigate}
               />
             }
           />
@@ -190,6 +189,7 @@ export const App: React.FC = () => {
                 onNavigateHome={() => navigate('/')}
                 onNavigateToFavorites={() => handleNavigate('favorites')}
                 onNavigateToRequests={() => handleNavigate('requests')}
+                onNavigateToProfile={() => handleNavigate('profile')}
                 currentUser={user}
                 onSignOut={() => { void signOut(); navigate('/'); }}
                 onOpenAuth={handleOpenAuth}
@@ -423,21 +423,23 @@ const ListerRoute: React.FC<{
   listings: Listing[];
   onReload: () => Promise<void>;
   showToast: (msg: string) => void;
-  tab?: 'listings' | 'inquiries';
+  tab?: 'listings' | 'inquiries' | 'stats';
 }> = ({ listings, onReload, showToast, tab }) => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   return (
     <ListerDashboardPage
       listings={listings}
       forcedTab={tab}
       onListingCreated={() => { void onReload(); showToast('Listing saved.'); }}
       onSelectListingToView={(listing) => navigate(`/listings/${listing.id}`)}
-      onSwitchRole={() => navigate('/login?role=lister')}
       onOpenCreateListing={() => navigate('/lister/listings/new')}
       onOpenEditListing={(listing) => navigate(`/lister/listings/${listing.id}/edit`)}
       onNavigateToMarketplace={() => navigate('/search')}
       onOpenVerification={() => navigate('/lister/verification')}
       onOpenRequests={() => navigate('/lister/requests')}
+      onNavigateToProfile={() => navigate('/account/profile')}
+      onSignOut={() => { void signOut(); navigate('/'); }}
     />
   );
 };
