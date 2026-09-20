@@ -20,6 +20,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { AccountPage } from './pages/AccountPage';
 import { ListerVerificationPage } from './pages/ListerVerificationPage';
+import { ListPropertyLandingPage } from './pages/ListPropertyLandingPage';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -195,7 +196,7 @@ export const App: React.FC = () => {
                 onOpenAuth={handleOpenAuth}
                 onPostListing={() => {
                   if (user?.role === 'landlord' || user?.role === 'agent') navigate('/lister/listings/new');
-                  else handleOpenAuth('signup', 'lister');
+                  else navigate('/list-property');
                 }}
               />
             }
@@ -204,6 +205,22 @@ export const App: React.FC = () => {
           <Route path="/listings/:id/request" element={<ProtectedRoute><CheckoutRoute /></ProtectedRoute>} />
           <Route path="/requests/:id" element={<ProtectedRoute><CheckoutRoute /></ProtectedRoute>} />
           <Route path="/how-it-works" element={<HowItWorksPage onBrowseProperties={() => navigate('/search')} onPostListing={() => handleOpenAuth('signup', 'lister')} />} />
+          <Route 
+            path="/list-property" 
+            element={
+              <ListPropertyLandingPage
+                currentUser={user}
+                onStartListing={() => {
+                  if (user?.role === 'landlord' || user?.role === 'agent') navigate('/lister/listings/new');
+                  else handleOpenAuth('signup', 'lister');
+                }}
+                onSignIn={() => handleOpenAuth('signin', 'lister')}
+                onBrowseMarketplace={() => navigate('/search')}
+              />
+            } 
+          />
+          <Route path="/post-property" element={<Navigate to="/list-property" replace />} />
+          <Route path="/for-owners" element={<Navigate to="/list-property" replace />} />
           <Route path="/terms" element={<TermsPage onBack={() => navigate(-1)} onNavigateToTab={handleNavigate} />} />
           <Route path="/privacy" element={<PrivacyPage onBack={() => navigate(-1)} onNavigateToTab={handleNavigate} />} />
           <Route path="/access-fee-terms" element={<AccessFeeTermsPage onBack={() => navigate(-1)} onBrowseListings={() => navigate('/search')} onNavigateToTab={handleNavigate} />} />

@@ -132,6 +132,7 @@ export type NavigationTab =
   | 'requests'
   | 'favorites'
   | 'how_it_works'
+  | 'list_property'
   | 'terms'
   | 'privacy'
   | 'access_fee_terms'

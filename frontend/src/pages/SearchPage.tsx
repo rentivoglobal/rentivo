@@ -414,6 +414,32 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               <span>My Requests</span>
             </button>
 
+            {/* Persistent List your property Doorway */}
+            {onPostListing && (
+              <button
+                type="button"
+                onClick={onPostListing}
+                style={{
+                  backgroundColor: '#FAF5FF',
+                  border: '1.5px solid #E9D5FF',
+                  padding: '7px 16px',
+                  borderRadius: '9999px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: '#5B14B8',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Put your property on Rentivo for free"
+              >
+                <Building size={14} color="#7E22CE" />
+                <span>{currentUser?.role === 'landlord' || currentUser?.role === 'agent' ? 'My Properties' : 'List your property'}</span>
+              </button>
+            )}
+
             {/* Auth Buttons or User Avatar */}
             {!currentUser ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '6px' }}>

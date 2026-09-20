@@ -111,6 +111,24 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               Browse Properties
             </button>
+            <button
+              type="button"
+              onClick={() => handleNav('list_property')}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                fontSize: '13.5px',
+                fontWeight: currentTab === 'list_property' ? 800 : 600,
+                color: currentTab === 'list_property' ? '#000052' : '#636377',
+                backgroundColor: currentTab === 'list_property' ? '#F1F5F9' : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              For Property Owners
+            </button>
           </nav>
         </div>
 
@@ -181,7 +199,34 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Lister Portal link for authenticated lister */}
+          {/* Persistent "List your property" Doorway for Guests & Seekers */}
+          {!isLister && !isAdmin && (
+            <button
+              type="button"
+              onClick={() => handleNav('list_property')}
+              style={{
+                background: currentTab === 'list_property' ? '#F8F3FF' : '#FFFFFF',
+                border: '1.5px solid',
+                borderColor: currentTab === 'list_property' ? '#7E22CE' : '#E2E8F0',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#000052',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+              title="Put your property on Rentivo for free"
+            >
+              <Building size={14} color="#7E22CE" />
+              <span>List your property</span>
+            </button>
+          )}
+
+          {/* My Properties link for authenticated property owner */}
           {isLister && (
             <button
               type="button"
@@ -203,7 +248,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }}
             >
               <Building size={14} color="#000052" />
-              <span>Lister Portal</span>
+              <span>My Properties</span>
             </button>
           )}
 
@@ -385,6 +430,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <Heart size={14} color="#000052" />
                         <span>Saved Properties</span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleNav('list_property')}
+                        style={{
+                          textAlign: 'left',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: currentTab === 'list_property' ? '#F8F3FF' : 'none',
+                          color: '#5B14B8',
+                          fontSize: '12.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <Building size={14} color="#7E22CE" />
+                        <span>List your property</span>
+                      </button>
                     </>
                   )}
 
@@ -410,7 +477,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         }}
                       >
                         <Building size={14} color="#000052" />
-                        <span>Lister Dashboard</span>
+                        <span>My Properties</span>
                       </button>
 
                       <button
@@ -587,7 +654,31 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Lister Portal link on mobile */}
+          {/* List your property doorway on mobile for guests & renters */}
+          {!isLister && !isAdmin && (
+            <button
+              type="button"
+              onClick={() => handleNav('list_property')}
+              style={{
+                textAlign: 'left',
+                padding: '10px 12px',
+                background: currentTab === 'list_property' ? '#F8F3FF' : '#FAF5FF',
+                border: '1.5px solid #E9D5FF',
+                borderRadius: '8px',
+                fontWeight: 800,
+                color: '#5B14B8',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <Building size={16} color="#7E22CE" />
+              <span>List your property for free</span>
+            </button>
+          )}
+
+          {/* My Properties link on mobile */}
           {isLister && (
             <button
               type="button"
@@ -595,7 +686,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               style={{ textAlign: 'left', padding: '10px', background: currentTab === 'lister' || currentTab === 'listing_editor' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <Building size={15} color="#000052" />
-              <span>Lister Portal</span>
+              <span>My Properties</span>
             </button>
           )}
 

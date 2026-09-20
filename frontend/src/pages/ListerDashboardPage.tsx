@@ -117,7 +117,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
   const [dashboardListings, setDashboardListings] = useState<Listing[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'pending' | 'occupied'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'in_review' | 'needs_changes' | 'occupied' | 'draft'>('all');
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -198,15 +198,17 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Status counts
+  // Status counts (Plain Nigerian seller status lifecycle)
   const statusCounts = useMemo(() => {
-    const live = dashboardListings.filter(l => l.isAvailable && l.verificationStatus !== 'rejected').length;
-    const pending = dashboardListings.filter(l => l.verificationStatus === 'pending').length;
+    const live = dashboardListings.filter(l => l.isAvailable && (l.verificationStatus === 'verified' || l.moderationStatus === 'active')).length;
+    const inReview = dashboardListings.filter(l => l.verificationStatus === 'pending' || (l.moderationStatus === 'pending_approval' && l.photos && l.photos.length >= 3)).length;
+    const needsChanges = dashboardListings.filter(l => l.verificationStatus === 'rejected' || l.moderationStatus === 'rejected').length;
     const occupied = dashboardListings.filter(l => !l.isAvailable).length;
-    return { all: dashboardListings.length, live, pending, occupied };
+    const draft = dashboardListings.filter(l => l.verificationStatus === 'unverified' || (!l.photos || l.photos.length < 3)).length;
+    return { all: dashboardListings.length, live, inReview, needsChanges, occupied, draft };
   }, [dashboardListings]);
 
-  // Filter listings based on Spotahome "Quick find" search query and status filter
+  // Filter listings based on "Quick find" search query and status filter
   const filteredListings = useMemo(() => {
     return dashboardListings.filter(l => {
       const q = searchQuery.toLowerCase().trim();
@@ -220,13 +222,19 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
       if (!matchesSearch) return false;
 
       if (statusFilter === 'live') {
-        return l.isAvailable && l.verificationStatus !== 'rejected';
+        return l.isAvailable && (l.verificationStatus === 'verified' || l.moderationStatus === 'active');
       }
-      if (statusFilter === 'pending') {
-        return l.verificationStatus === 'pending';
+      if (statusFilter === 'in_review') {
+        return l.verificationStatus === 'pending' || (l.moderationStatus === 'pending_approval' && l.photos && l.photos.length >= 3);
+      }
+      if (statusFilter === 'needs_changes') {
+        return l.verificationStatus === 'rejected' || l.moderationStatus === 'rejected';
       }
       if (statusFilter === 'occupied') {
         return !l.isAvailable;
+      }
+      if (statusFilter === 'draft') {
+        return l.verificationStatus === 'unverified' || (!l.photos || l.photos.length < 3);
       }
       return true;
     });
@@ -414,12 +422,14 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
 
   const urgentInquiry = inquiries.find(inq => inq.status === 'needs_response');
 
-  // Status Filter Options for custom dropdown
+  // Status Filter Options for custom dropdown (Plain Nigerian terms)
   const statusOptions = [
-    { value: 'all', label: 'All Statuses', dotColor: '#64748B', count: statusCounts.all },
-    { value: 'live', label: 'Live & Available', dotColor: '#16794A', count: statusCounts.live },
-    { value: 'pending', label: 'Inspection Pending', dotColor: '#B45309', count: statusCounts.pending },
-    { value: 'occupied', label: 'Rented / Occupied', dotColor: '#DC2626', count: statusCounts.occupied }
+    { value: 'all', label: 'All Properties', dotColor: '#64748B', count: statusCounts.all },
+    { value: 'live', label: 'Live on Rentivo', dotColor: '#16794A', count: statusCounts.live },
+    { value: 'in_review', label: 'In Review', dotColor: '#B45309', count: statusCounts.inReview },
+    { value: 'needs_changes', label: 'Needs Changes', dotColor: '#DC2626', count: statusCounts.needsChanges },
+    { value: 'occupied', label: 'Occupied / Paused', dotColor: '#64748B', count: statusCounts.occupied },
+    { value: 'draft', label: 'Saved Drafts', dotColor: '#6366F1', count: statusCounts.draft }
   ];
 
   const currentStatusOption = statusOptions.find(o => o.value === statusFilter) || statusOptions[0];
@@ -526,7 +536,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                 fontWeight: 700,
                 letterSpacing: '0.02em'
               }}>
-                Lister Portal
+                My Properties
               </span>
             </div>
 
@@ -551,7 +561,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                 }}
               >
                 <Building2 size={15} color={activeTab === 'listings' ? '#000052' : '#64748B'} />
-                <span>Listings</span>
+                <span>My Properties</span>
                 <span style={{
                   backgroundColor: activeTab === 'listings' ? '#000052' : '#E2E8F0',
                   color: activeTab === 'listings' ? '#FFFFFF' : '#64748B',
@@ -921,10 +931,12 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
               flexWrap: 'wrap'
             }}>
               {[
-                { id: 'all', label: 'All Portfolio', count: dashboardListings.length },
-                { id: 'live', label: 'Live & Available', count: statusCounts.live, dotColor: '#10B981' },
-                { id: 'occupied', label: 'Occupied / Rented', count: statusCounts.occupied, dotColor: '#94A3B8' },
-                { id: 'pending', label: 'Pending Inspection', count: statusCounts.pending, dotColor: '#F59E0B' }
+                { id: 'all', label: 'All Properties', count: statusCounts.all },
+                { id: 'live', label: 'Live on Rentivo', count: statusCounts.live, dotColor: '#10B981' },
+                { id: 'in_review', label: 'In Review', count: statusCounts.inReview, dotColor: '#F59E0B' },
+                { id: 'needs_changes', label: 'Needs Changes', count: statusCounts.needsChanges, dotColor: '#EF4444' },
+                { id: 'occupied', label: 'Occupied / Paused', count: statusCounts.occupied, dotColor: '#94A3B8' },
+                { id: 'draft', label: 'Saved Drafts', count: statusCounts.draft, dotColor: '#6366F1' }
               ].map(chip => {
                 const isActive = statusFilter === chip.id;
                 return (
@@ -1013,7 +1025,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                     margin: 0,
                     letterSpacing: '-0.02em'
                   }}>
-                    {dashboardListings.length} Listings
+                    {dashboardListings.length} Properties
                   </h1>
                   <span style={{
                     fontSize: '11px',
@@ -1028,11 +1040,11 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                     gap: '4px'
                   }}>
                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-                    <span>Ibadan Portfolio</span>
+                    <span>Ibadan Properties</span>
                   </span>
                 </div>
                 <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748B' }}>
-                  Manage availability, pricing, photos, and live verification status for your properties.
+                  Manage availability, rent, pictures, and review status for your properties in Ibadan.
                 </p>
               </div>
 
@@ -1379,7 +1391,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#000052'; }}
                 >
                   <PlusCircle size={15} color="#FFFFFF" />
-                  <span>+ Add a listing</span>
+                  <span>+ List a property</span>
                 </button>
               </div>
             </div>
@@ -1537,13 +1549,15 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                             <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                               <Building2 size={38} color="#94A3B8" />
                               <div style={{ fontSize: '16px', fontWeight: 800, color: '#000052' }}>
-                                No listings match your search or filter
+                                {dashboardListings.length === 0 ? 'You have not listed a property yet' : 'No properties match your search or filter'}
                               </div>
                               <div style={{ fontSize: '13px', color: '#64748B', maxWidth: '380px' }}>
-                                {searchQuery ? `No listings matching "${searchQuery}".` : 'No listings currently under this status filter.'}
+                                {dashboardListings.length === 0
+                                  ? 'Start with the property you want to rent out in Ibadan. You can save your work and finish later.'
+                                  : searchQuery ? `No properties matching "${searchQuery}".` : 'No properties currently under this status filter.'}
                               </div>
                               <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                                {(searchQuery || statusFilter !== 'all') && (
+                                {dashboardListings.length > 0 && (searchQuery || statusFilter !== 'all') && (
                                   <button
                                     type="button"
                                     onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}
@@ -1558,7 +1572,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                                       cursor: 'pointer'
                                     }}
                                   >
-                                    Reset Filters
+                                    Show all properties
                                   </button>
                                 )}
                                 <button
@@ -1575,7 +1589,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                                     cursor: 'pointer'
                                   }}
                                 >
-                                  + Add a listing
+                                  List a property
                                 </button>
                               </div>
                             </div>
@@ -1724,11 +1738,11 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                                     borderRadius: '50%',
                                     backgroundColor: item.isAvailable ? '#10B981' : '#94A3B8'
                                   }} />
-                                  <span>{item.isAvailable ? 'Available' : 'Occupied'}</span>
+                                  <span>{item.isAvailable ? 'Available' : 'Occupied / Paused'}</span>
                                 </button>
                               </td>
 
-                              {/* 5. Verification Status */}
+                              {/* 5. Verification / Review Status */}
                               <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>
                                 {isVerified ? (
                                   <div style={{
@@ -1744,9 +1758,9 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                                     fontWeight: 700
                                   }}>
                                     <ShieldCheck size={13} color="#16794A" />
-                                    <span>Emerald Verified</span>
+                                    <span>Live on Rentivo</span>
                                   </div>
-                                ) : item.verificationStatus === 'pending' ? (
+                                ) : item.verificationStatus === 'pending' || item.moderationStatus === 'pending_approval' ? (
                                   <div style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -1760,13 +1774,29 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                                     fontWeight: 700
                                   }}>
                                     <Clock size={13} color="#B45309" />
-                                    <span>Visit Pending</span>
+                                    <span>In Review</span>
+                                  </div>
+                                ) : item.verificationStatus === 'rejected' || item.moderationStatus === 'rejected' ? (
+                                  <div style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    backgroundColor: '#FEF2F2',
+                                    color: '#991B1B',
+                                    border: '1px solid #FECACA',
+                                    borderRadius: '6px',
+                                    padding: '3px 8px',
+                                    fontSize: '11.5px',
+                                    fontWeight: 700
+                                  }}>
+                                    <AlertTriangle size={13} color="#DC2626" />
+                                    <span>Needs Changes</span>
                                   </div>
                                 ) : (
                                   <button
                                     type="button"
                                     onClick={(e) => handleRequestInspection(item, e)}
-                                    title="Dispatch field inspector to earn Emerald Badge"
+                                    title="Send for Rentivo review"
                                     style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
@@ -1783,7 +1813,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                                     }}
                                   >
                                     <ShieldCheck size={12} color="#1D4ED8" />
-                                    <span>Request Visit</span>
+                                    <span>Send for Review</span>
                                   </button>
                                 )}
                               </td>
@@ -2007,15 +2037,32 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                 {filteredListings.length === 0 ? (
                   <div style={{ backgroundColor: '#FFFFFF', borderRadius: '10px', border: '1px solid #E2E8F0', padding: '60px 24px', textAlign: 'center' }}>
                     <Building2 size={38} color="#94A3B8" style={{ margin: '0 auto 12px' }} />
-                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#000052' }}>No listings match your search or filter</div>
-                    <div style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>Try resetting your search query or status filter.</div>
-                    <button
-                      type="button"
-                      onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}
-                      style={{ marginTop: '14px', backgroundColor: '#000052', color: '#FFFFFF', padding: '8px 16px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
-                    >
-                      Reset Filters
-                    </button>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: '#000052' }}>
+                      {dashboardListings.length === 0 ? 'You have not listed a property yet' : 'No properties match your search or filter'}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#64748B', maxWidth: '400px', margin: '4px auto 0' }}>
+                      {dashboardListings.length === 0
+                        ? 'Start with the property you want to rent out in Ibadan. You can save your work and finish later.'
+                        : 'Try clearing your search term or selecting "All Properties".'}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '14px' }}>
+                      {dashboardListings.length > 0 && (searchQuery || statusFilter !== 'all') && (
+                        <button
+                          type="button"
+                          onClick={() => { setSearchQuery(''); setStatusFilter('all'); }}
+                          style={{ backgroundColor: '#FFFFFF', color: '#000052', border: '1.5px solid #CBD5E1', padding: '8px 16px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Show all properties
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleTriggerCreate}
+                        style={{ backgroundColor: '#000052', color: '#FFFFFF', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        List a property
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div style={{
@@ -2026,7 +2073,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                   }}>
                     {paginatedListings.map(item => {
                       const isSelected = selectedIds.includes(item.id);
-                      const isVerified = item.verificationStatus === 'verified';
+                      const isVerified = item.verificationStatus === 'verified' || item.moderationStatus === 'active';
                       const inquiryCount = item.accessRequestsCount !== undefined ? item.accessRequestsCount : (inquiries.filter(i => i.listingId === item.id).length || 1);
 
                       return (
@@ -2061,13 +2108,25 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                             </div>
                             {/* Status Pills overlay */}
                             <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '6px' }}>
-                              {isVerified && (
+                              {isVerified ? (
                                 <span style={{ backgroundColor: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                  <ShieldCheck size={11} color="#16794A" /> Verified
+                                  <ShieldCheck size={11} color="#16794A" /> Live on Rentivo
+                                </span>
+                              ) : item.verificationStatus === 'pending' || item.moderationStatus === 'pending_approval' ? (
+                                <span style={{ backgroundColor: '#FEF3C7', color: '#92400E', border: '1px solid #FDE68A', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                  <Clock size={11} color="#B45309" /> In Review
+                                </span>
+                              ) : item.verificationStatus === 'rejected' || item.moderationStatus === 'rejected' ? (
+                                <span style={{ backgroundColor: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                  <AlertTriangle size={11} color="#DC2626" /> Needs Changes
+                                </span>
+                              ) : (
+                                <span style={{ backgroundColor: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700 }}>
+                                  Draft
                                 </span>
                               )}
                               <span style={{ backgroundColor: item.isAvailable ? '#000052' : '#64748B', color: '#FFFFFF', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 700 }}>
-                                {item.isAvailable ? 'Available' : 'Occupied'}
+                                {item.isAvailable ? 'Available' : 'Occupied / Paused'}
                               </span>
                             </div>
                           </div>

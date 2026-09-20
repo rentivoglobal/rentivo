@@ -8,6 +8,7 @@ export const HASH_TO_PATH: Record<string, string> = {
   requests: '/account/requests',
   favorites: '/account/favorites',
   how_it_works: '/how-it-works',
+  list_property: '/list-property',
   terms: '/terms',
   privacy: '/privacy',
   access_fee_terms: '/access-fee-terms',
@@ -48,6 +49,8 @@ export function pathForTab(
       return '/account/favorites';
     case 'how_it_works':
       return '/how-it-works';
+    case 'list_property':
+      return '/list-property';
     case 'terms':
       return '/terms';
     case 'privacy':
@@ -96,6 +99,7 @@ export function tabFromPathname(pathname: string): NavigationTab {
   if (pathname.startsWith('/account/profile')) return 'profile';
   if (pathname.startsWith('/account')) return 'profile';
   if (pathname.startsWith('/how-it-works')) return 'how_it_works';
+  if (pathname.startsWith('/list-property') || pathname.startsWith('/post-property') || pathname.startsWith('/for-owners')) return 'list_property';
   if (pathname.startsWith('/terms')) return 'terms';
   if (pathname.startsWith('/privacy')) return 'privacy';
   if (pathname.startsWith('/access-fee-terms')) return 'access_fee_terms';
@@ -130,6 +134,7 @@ export const FOOTER_TABS: NavigationTab[] = [
   'requests',
   'favorites',
   'how_it_works',
+  'list_property',
   'terms',
   'privacy',
   'access_fee_terms',

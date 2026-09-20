@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   ArrowRight,
@@ -9,6 +10,8 @@ import {
   Maximize2,
   Home,
   Building2,
+  Building,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -57,6 +60,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onSelectListing,
   onOpenAuth
 }) => {
+  const navigate = useNavigate();
   const showcase = listings.filter((l) => l.isApproved !== false).slice(0, 6);
   const [activePinId, setActivePinId] = useState<string>('');
   const [selectedArea, setSelectedArea] = useState<string>('All Ibadan areas');
@@ -333,6 +337,42 @@ export const HomePage: React.FC<HomePageProps> = ({
               <span>Search</span>
             </button>
           </form>
+
+          {/* Property Owner Direct Doorway (P0 Audit Recommendation) */}
+          <div style={{
+            marginTop: '14px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'rgba(0, 0, 82, 0.45)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(190, 137, 255, 0.35)',
+            borderRadius: '9999px',
+            padding: '6px 16px',
+            fontSize: '12.5px',
+            color: '#FFFFFF'
+          }}>
+            <Building size={14} color="#BE89FF" />
+            <span style={{ fontWeight: 600 }}>Own property in Ibadan?</span>
+            <button
+              type="button"
+              onClick={() => navigate('/list-property')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#BE89FF',
+                fontWeight: 800,
+                cursor: 'pointer',
+                padding: 0,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <span>List your property for free</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
         </div>
 
         {/* Hero Scene with Live Featured Card & Connectors */}
@@ -686,6 +726,115 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </section>
       </div>
+
+      {/* Dedicated Property Owners Section (P0 & P2 Audit Requirement) */}
+      <section style={{ backgroundColor: '#F8F3FF', borderTop: '1px solid #E9D5FF', borderBottom: '1px solid #E9D5FF', padding: '64px 20px' }}>
+        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '32px'
+          }}>
+            <div style={{ maxWidth: '540px' }}>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: '#EDE5FC',
+                color: '#5B14B8',
+                borderRadius: '9999px',
+                padding: '4px 12px',
+                fontSize: '12px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                marginBottom: '12px'
+              }}>
+                <Building size={13} color="#5B14B8" />
+                <span>For property owners in Ibadan</span>
+              </span>
+              <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 800, color: '#000052', margin: '0 0 12px', lineHeight: 1.2 }}>
+                Put your property on Rentivo
+              </h2>
+              <p style={{ fontSize: '15px', color: '#475569', lineHeight: 1.6, margin: '0 0 20px' }}>
+                Show your home or shop to genuine seekers in Ibadan. 100% free listing, zero agent cuts from your rent, and direct inquiries to your phone.
+              </p>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={16} color="#16794A" /> 100% Free listing
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={16} color="#16794A" /> Zero agent commissions
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={16} color="#16794A" /> In-person verification
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/list-property')}
+                style={{
+                  backgroundColor: '#000052',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '12px 28px',
+                  borderRadius: '9999px',
+                  fontSize: '14px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 16px rgba(0, 0, 82, 0.15)'
+                }}
+              >
+                <span>List your property now</span>
+                <ArrowRight size={15} />
+              </button>
+            </div>
+
+            {/* 3 Step Visual Card */}
+            <div style={{
+              flex: 1,
+              minWidth: '280px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
+              border: '1.5px solid #E2E8F0',
+              padding: '24px',
+              boxShadow: '0 8px 24px rgba(0,0,82,0.06)'
+            }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#000052', margin: '0 0 16px' }}>
+                How it works for owners
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#EDE5FC', color: '#5B14B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px', flexShrink: 0 }}>1</div>
+                  <div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#000052' }}>Tell us about the property</div>
+                    <div style={{ fontSize: '12.5px', color: '#64748B' }}>Area in Ibadan, number of bedrooms, and yearly rent.</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#EDE5FC', color: '#5B14B8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px', flexShrink: 0 }}>2</div>
+                  <div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#000052' }}>Add clear pictures</div>
+                    <div style={{ fontSize: '12.5px', color: '#64748B' }}>Snap compound, rooms, and kitchen with your phone.</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#ECFDF5', color: '#065F46', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px', flexShrink: 0 }}>3</div>
+                  <div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#000052' }}>Send for free review</div>
+                    <div style={{ fontSize: '12.5px', color: '#64748B' }}>We verify your property and seekers contact you directly.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Recover / Support Section */}
       <section className="recover" id="recover">

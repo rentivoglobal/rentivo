@@ -343,27 +343,27 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
 
   // Form Submission
   const handleSubmit = async (publishImmediately: boolean = true) => {
-    if (!title.trim()) {
-      setValidationError('Please provide a descriptive title for your listing.');
-      scrollToSection('section-basic');
-      return;
-    }
-    if (!price || Number(price) <= 0) {
-      setValidationError('Please provide a valid rental price in Naira.');
-      scrollToSection('section-pricing');
-      return;
-    }
-
-    if (photos.length < 3) {
-      setValidationError('Rentivo requires at least 3 photos (minimum 3, recommended 5+) to publish and earn verified badge.');
-      scrollToSection('section-photos');
-      return;
-    }
-
-    if (listerRole === 'agent' && (!underlyingLandlordName.trim() || !underlyingLandlordPhone.trim())) {
-      setValidationError('Managing Agents must provide the underlying Landlord/Property Owner name and contact phone number to verify tenancy mandate.');
-      scrollToSection('section-mandate');
-      return;
+    if (publishImmediately) {
+      if (!title.trim()) {
+        setValidationError('Enter a title for your property to continue (e.g. Clean 2-Bedroom Flat in Bodija).');
+        scrollToSection('section-basic');
+        return;
+      }
+      if (!price || Number(price) <= 0) {
+        setValidationError('Enter the price in naira using numbers only. Example: 250000.');
+        scrollToSection('section-pricing');
+        return;
+      }
+      if (photos.length < 3) {
+        setValidationError('Add at least 3 clear pictures before you send this property for review (outside, rooms, and kitchen).');
+        scrollToSection('section-photos');
+        return;
+      }
+      if (listerRole === 'agent' && (!underlyingLandlordName.trim() || !underlyingLandlordPhone.trim())) {
+        setValidationError('Enter the property owner\'s name and Nigerian phone number to confirm your permission to list.');
+        scrollToSection('section-mandate');
+        return;
+      }
     }
 
     setValidationError(null);
@@ -525,7 +525,7 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#F1F5F9')}
             >
               <ArrowLeft size={16} />
-              <span>Back to Listings</span>
+              <span>Back to My Properties</span>
             </button>
 
             <div style={{ borderLeft: '1px solid #E2E8F0', paddingLeft: '16px', minWidth: 0 }}>
@@ -540,7 +540,7 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
                   letterSpacing: '0.04em',
                   textTransform: 'uppercase'
                 }}>
-                  {isEditMode ? 'Edit Mode' : 'New Listing Mode'}
+                  {isEditMode ? 'Edit Mode' : 'New Listing'}
                 </span>
                 {isEditMode && initialListing && (
                   <span style={{
@@ -576,7 +576,7 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
                 overflow: 'hidden',
                 textOverflow: 'ellipsis'
               }}>
-                {isEditMode ? `Editing: ${title || initialListing?.title || 'Property Listing'}` : 'Add a New Ibadan Property'}
+                {isEditMode ? `Editing: ${title || initialListing?.title || 'Property'}` : 'Put Your Property on Rentivo'}
               </h1>
             </div>
           </div>
@@ -625,7 +625,7 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
                 if (!isSaving) e.currentTarget.style.backgroundColor = '#FFFFFF';
               }}
             >
-              Save Draft
+              Save and exit
             </button>
 
             <button
@@ -655,10 +655,10 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
               }}
             >
               {isSaving ? (
-                <span>Saving...</span>
+                <span>Sending...</span>
               ) : (
                 <>
-                  <span>{isEditMode ? 'Update Listing' : 'Save & Publish Listing'}</span>
+                  <span>{isEditMode ? 'Save Changes' : 'Send for Review'}</span>
                   <ArrowRight size={15} />
                 </>
               )}
@@ -682,6 +682,47 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
 
         {/* LEFT COLUMN: MULTI-STEP PROPERTY FORM */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          {/* 5-Step Wizard Progress Guide (Audit P1 Recommendation) */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            border: '1.5px solid #E2E8F0',
+            borderRadius: '14px',
+            padding: '16px 20px',
+            boxShadow: '0 2px 8px rgba(0,0,82,0.03)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#000052' }}>
+                  5-Step Property Listing
+                </span>
+                <span style={{ fontSize: '11px', color: '#5B14B8', fontWeight: 800, backgroundColor: '#EDE5FC', padding: '2px 8px', borderRadius: '999px' }}>
+                  Mobile-First Flow
+                </span>
+              </div>
+              <span style={{ fontSize: '12px', color: '#64748B' }}>
+                You can save your work and come back anytime.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', backgroundColor: '#F1F5F9', color: '#000052' }}>
+                1. Location
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', backgroundColor: '#F1F5F9', color: '#000052' }}>
+                2. Property details
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', backgroundColor: '#F1F5F9', color: '#000052' }}>
+                3. Pictures
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', backgroundColor: '#F1F5F9', color: '#000052' }}>
+                4. Price &amp; contact
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', backgroundColor: '#F1F5F9', color: '#000052' }}>
+                5. Check &amp; send
+              </span>
+            </div>
+          </div>
 
           {/* Validation Error Alert */}
           {validationError && (

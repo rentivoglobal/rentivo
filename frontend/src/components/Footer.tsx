@@ -59,6 +59,33 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
+          {/* Property Owners Column */}
+          <div className="footer-col">
+            <h4>Property Owners</h4>
+            <ul>
+              <li>
+                <a href="/list-property" onClick={(e) => { e.preventDefault(); onNavigate?.('list_property'); }}>
+                  List Your Property (Free)
+                </a>
+              </li>
+              <li>
+                <a href="/lister/verification" onClick={(e) => { e.preventDefault(); onNavigate?.('lister'); }}>
+                  Free Property Verification
+                </a>
+              </li>
+              <li>
+                <a href="/lister" onClick={(e) => { e.preventDefault(); onNavigate?.('lister'); }}>
+                  My Properties Hub
+                </a>
+              </li>
+              <li>
+                <a href="/list-property" onClick={(e) => { e.preventDefault(); onNavigate?.('list_property'); }}>
+                  Owner FAQs &amp; Direct Tenants
+                </a>
+              </li>
+            </ul>
+          </div>
+
           {/* Locations in Ibadan */}
           <div className="footer-col">
             <h4>Ibadan Areas</h4>
