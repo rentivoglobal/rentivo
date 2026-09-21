@@ -582,7 +582,7 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
           </div>
 
           {/* Right: Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
             <button
               type="button"
               onClick={onCancel}
@@ -668,16 +668,12 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
       </header>
 
       {/* -------------------------------------------------------------
-          MAIN 2-COLUMN VIEWPORT
+          MAIN 2-COLUMN VIEWPORT (Responsive 1-col on tablet/mobile)
          ------------------------------------------------------------- */}
-      <main style={{
+      <main className="listing-editor-main-grid" style={{
         maxWidth: '1320px',
         margin: '28px auto 0',
-        padding: '0 24px',
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) 380px',
-        gap: '32px',
-        alignItems: 'start'
+        padding: '0 24px'
       }}>
 
         {/* LEFT COLUMN: MULTI-STEP PROPERTY FORM */}
@@ -3394,6 +3390,59 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
         </aside>
 
       </main>
+
+      {/* Sticky Bottom Action Bar on Mobile Screens (< 768px) */}
+      <div className="show-on-mobile sticky-mobile-bottom-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={() => handleSubmit(false)}
+            style={{
+              flex: 1,
+              backgroundColor: '#FFFFFF',
+              border: '1.5px solid #000052',
+              borderRadius: '8px',
+              padding: '12px 14px',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#000052',
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              minHeight: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            Save and exit
+          </button>
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={() => handleSubmit(true)}
+            style={{
+              flex: 1.3,
+              backgroundColor: '#000052',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              fontSize: '13.5px',
+              fontWeight: 800,
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              minHeight: '44px',
+              boxShadow: '0 4px 12px rgba(0, 0, 82, 0.2)'
+            }}
+          >
+            <span>{isEditMode ? 'Save Changes' : 'Send for Review'}</span>
+            <ArrowRight size={15} />
+          </button>
+        </div>
+      </div>
 
     </div>
   );

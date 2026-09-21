@@ -577,6 +577,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                     cursor: 'pointer',
                     position: 'relative',
                     whiteSpace: 'nowrap',
+                    flexShrink: 0,
                     transition: 'color 0.18s ease'
                   }}
                   onMouseEnter={(e) => {

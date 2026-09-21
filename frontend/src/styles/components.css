@@ -513,6 +513,20 @@
   transform: translateY(0) scale(1);
 }
 
+@media (max-width: 640px) {
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal-card {
+    max-width: 100vw;
+    width: 100vw;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+  }
+}
+
 .modal-header {
   padding: var(--space-5) var(--space-6);
   border-bottom: 1px solid var(--color-border);
@@ -643,6 +657,20 @@
 
 @media (max-width: 1024px) {
   .lister-two-column-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+.listing-editor-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .listing-editor-main-grid {
     grid-template-columns: 1fr;
     gap: 24px;
   }

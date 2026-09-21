@@ -256,7 +256,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             </div>
           </div>
 
-          <div style={{ fontSize: '13px', color: '#64748B' }}>
+          <div className="hide-on-mobile" style={{ fontSize: '13px', color: '#64748B' }}>
             Direct Landlord Access Pass · <span style={{ fontWeight: 700, color: '#000052' }}>Ibadan</span>
           </div>
         </div>
@@ -264,7 +264,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
       {/* Progress Stepper Bar */}
       <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E2E8F0', padding: '12px 0' }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '12.5px', flexWrap: 'wrap' }}>
+        {/* Desktop 5-Step Stepper */}
+        <div className="container hide-on-mobile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '12.5px', flexWrap: 'wrap' }}>
           <span style={{ color: '#16794A', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
             <CheckCircle2 size={14} /> 1. Review Property
           </span>
@@ -284,6 +285,33 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           <span style={{ color: step === 'unlocked' ? '#16794A' : '#94A3B8', fontWeight: step === 'unlocked' ? 800 : 600 }}>
             5. Direct Access Unlocked
           </span>
+        </div>
+
+        {/* Mobile Compact Progress Bar */}
+        <div className="container show-on-mobile" style={{ padding: '4px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px' }}>
+            <span style={{ fontWeight: 800, color: '#000052' }}>
+              {step === 'form' && 'Step 2 of 5: Renter Information'}
+              {step === 'checking' && 'Step 3 of 5: Vacancy Check'}
+              {(step === 'confirmed' || step === 'paying') && 'Step 4 of 5: Paystack ₦5,000'}
+              {step === 'unlocked' && 'Step 5 of 5: Access Unlocked'}
+              {step === 'unavailable' && 'Listing Unavailable'}
+            </span>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#16794A' }}>
+              {step === 'form' ? '40%' : step === 'checking' ? '60%' : step === 'confirmed' || step === 'paying' ? '80%' : '100%'}
+            </span>
+          </div>
+          <div style={{ height: '4px', backgroundColor: '#E2E8F0', borderRadius: '999px', overflow: 'hidden' }}>
+            <div 
+              style={{ 
+                height: '100%', 
+                backgroundColor: '#000052', 
+                borderRadius: '999px', 
+                width: step === 'form' ? '40%' : step === 'checking' ? '60%' : step === 'confirmed' || step === 'paying' ? '80%' : '100%',
+                transition: 'width 0.3s ease'
+              }} 
+            />
+          </div>
         </div>
       </div>
 

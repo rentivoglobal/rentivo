@@ -52,8 +52,34 @@
 
 @media (max-width: 940px) {
   .auth-art-side {
-    min-height: 380px;
+    min-height: 340px;
     padding: 32px 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-art-side {
+    min-height: auto;
+    padding: 24px 20px 20px;
+  }
+  .auth-art-figure {
+    display: none;
+  }
+  .auth-art-copy h1 {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .auth-art-copy p {
+    font-size: 13px;
+    display: none;
+  }
+  .auth-art-badges {
+    margin-top: 10px;
+    gap: 6px;
+  }
+  .auth-art-badges span {
+    font-size: 11px;
+    padding: 5px 10px;
   }
 }
 

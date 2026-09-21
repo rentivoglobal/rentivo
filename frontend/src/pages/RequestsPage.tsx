@@ -132,7 +132,19 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
         {/* -----------------------------------------------------------------
             FILTER CHIPS FOR REQUEST STATUS
            ----------------------------------------------------------------- */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+        {/* Filter Pills */}
+        <div 
+          className="horizontal-touch-scroll"
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            overflowX: 'auto', 
+            whiteSpace: 'nowrap', 
+            paddingBottom: '4px',
+            marginBottom: '20px' 
+          }}
+        >
           <button
             type="button"
             onClick={() => setFilterStatus('all')}
@@ -141,6 +153,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
               borderRadius: '9999px',
               fontSize: '12.5px',
               fontWeight: 700,
+              flexShrink: 0,
               border: filterStatus === 'all' ? '1.5px solid #000052' : '1px solid #E2E8F0',
               backgroundColor: filterStatus === 'all' ? '#000052' : '#FFFFFF',
               color: filterStatus === 'all' ? '#FFFFFF' : '#64748B',
@@ -159,6 +172,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
               borderRadius: '9999px',
               fontSize: '12.5px',
               fontWeight: 700,
+              flexShrink: 0,
               border: filterStatus === 'pending' ? '1.5px solid #6B21A8' : '1px solid #E2E8F0',
               backgroundColor: filterStatus === 'pending' ? '#FAF5FF' : '#FFFFFF',
               color: filterStatus === 'pending' ? '#6B21A8' : '#64748B',
@@ -181,6 +195,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
               borderRadius: '9999px',
               fontSize: '12.5px',
               fontWeight: 700,
+              flexShrink: 0,
               border: filterStatus === 'confirmed' ? '1.5px solid #000052' : '1px solid #E2E8F0',
               backgroundColor: filterStatus === 'confirmed' ? '#F0E6FF' : '#FFFFFF',
               color: filterStatus === 'confirmed' ? '#000052' : '#64748B',
@@ -203,6 +218,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
               borderRadius: '9999px',
               fontSize: '12.5px',
               fontWeight: 700,
+              flexShrink: 0,
               border: filterStatus === 'unlocked' ? '1.5px solid #16794A' : '1px solid #E2E8F0',
               backgroundColor: filterStatus === 'unlocked' ? '#ECFDF5' : '#FFFFFF',
               color: filterStatus === 'unlocked' ? '#16794A' : '#64748B',
@@ -399,8 +415,9 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                             Pay the flat <strong>₦5,000 access fee</strong> via Paystack to unlock the landlord's direct phone number, WhatsApp, and schedule a physical inspection.
                           </div>
                           {promoStats.remaining > 0 && (
-                            <div style={{ fontSize: '12px', color: '#7E22CE', fontWeight: 700, marginTop: '4px' }}>
-                              🎉 Ibadan Launch Promo: {promoStats.remaining} free waivers remaining!
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#7E22CE', fontWeight: 700, marginTop: '4px' }}>
+                              <Sparkles size={14} color="#7E22CE" />
+                              <span>Ibadan Launch Promo: {promoStats.remaining} free waivers remaining!</span>
                             </div>
                           )}
                         </div>

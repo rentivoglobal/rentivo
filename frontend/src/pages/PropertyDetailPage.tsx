@@ -166,11 +166,11 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
         </div>
 
         {/* Big Photo Gallery */}
-        <div style={{ marginBottom: '32px' }}>
+        <div style={{ marginBottom: '24px' }}>
           <div 
             style={{ 
               width: '100%', 
-              height: '460px', 
+              height: 'clamp(240px, 52vw, 460px)', 
               borderRadius: '20px', 
               overflow: 'hidden', 
               backgroundColor: '#0F172A',
@@ -591,6 +591,48 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
             </div>
 
           </div>
+        </div>
+      </div>
+
+      {/* Sticky Bottom Mobile Booking Bar (Visible only on screens < 768px) */}
+      <div className="show-on-mobile sticky-mobile-bottom-bar">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '10.5px', fontWeight: 800, textTransform: 'uppercase', color: '#64748B', letterSpacing: '0.04em' }}>
+              Rental Price
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+              <span style={{ fontSize: '18px', fontWeight: 800, color: '#000052' }}>
+                ₦{formatNaira(listing.price)}
+              </span>
+              <span style={{ fontSize: '11.5px', color: '#64748B', fontWeight: 600 }}>
+                / {formatPeriod(listing.pricePeriod)}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onRequestAccess(listing)}
+            style={{
+              backgroundColor: '#000052',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '999px',
+              padding: '12px 20px',
+              fontSize: '13.5px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 12px rgba(0,0,82,0.25)',
+              minHeight: '44px'
+            }}
+          >
+            <span>Request Access</span>
+            <ChevronRight size={16} />
+          </button>
         </div>
       </div>
     </div>

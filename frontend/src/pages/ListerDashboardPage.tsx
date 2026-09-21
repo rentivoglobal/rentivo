@@ -126,7 +126,22 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
   // Pagination, View Mode & Listing Removal States
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 'grid';
+    }
+    return 'table';
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768 && viewMode === 'table') {
+        setViewMode('grid');
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [viewMode]);
   const [deleteModalListing, setDeleteModalListing] = useState<Listing | null>(null);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const tableTopRef = useRef<HTMLDivElement>(null);
@@ -541,7 +556,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
             </div>
 
             {/* Navigation links (Clean 3-Tab Architecture) */}
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <nav className="horizontal-touch-scroll" style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
               <button
                 type="button"
                 onClick={() => setActiveTab('listings')}
@@ -923,13 +938,18 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
         {activeTab === 'listings' && (
           <div>
             {/* INTERACTIVE PORTFOLIO QUICK FILTER CHIPS */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '20px',
-              flexWrap: 'wrap'
-            }}>
+            <div 
+              className="horizontal-touch-scroll"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '20px',
+                overflowX: 'auto',
+                whiteSpace: 'nowrap',
+                paddingBottom: '4px'
+              }}
+            >
               {[
                 { id: 'all', label: 'All Properties', count: statusCounts.all },
                 { id: 'live', label: 'Live on Rentivo', count: statusCounts.live, dotColor: '#10B981' },
@@ -953,6 +973,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                       fontSize: '12.5px',
                       fontWeight: 700,
                       display: 'inline-flex',
+                      flexShrink: 0,
                       alignItems: 'center',
                       gap: '6px',
                       cursor: 'pointer',

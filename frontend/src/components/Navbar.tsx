@@ -156,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             title="View saved properties"
           >
             <Heart size={14} color="#000052" fill={favoritesCount > 0 ? '#000052' : 'none'} />
-            <span>Saved</span>
+            <span className="nav-saved-text">Saved</span>
             {favoritesCount > 0 && (
               <span style={{
                 backgroundColor: '#BE89FF',
@@ -176,6 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {currentUser && !isLister && !isAdmin && (
             <button
               type="button"
+              className="nav-action-pill-desktop"
               onClick={() => handleNav('requests')}
               style={{
                 background: currentTab === 'requests' ? '#F1F5F9' : 'transparent',
@@ -203,6 +204,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {!isLister && !isAdmin && (
             <button
               type="button"
+              className="nav-action-pill-desktop"
               onClick={() => handleNav('list_property')}
               style={{
                 background: currentTab === 'list_property' ? '#F8F3FF' : '#FFFFFF',
@@ -230,6 +232,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {isLister && (
             <button
               type="button"
+              className="nav-action-pill-desktop"
               onClick={() => handleNav('lister')}
               style={{
                 background: currentTab === 'lister' || currentTab === 'listing_editor' ? '#F1F5F9' : 'transparent',
@@ -256,6 +259,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {isAdmin && (
             <button
               type="button"
+              className="nav-action-pill-desktop"
               onClick={() => handleNav('admin')}
               style={{
                 background: '#FEE2E2',
@@ -278,7 +282,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* GUEST: Sign In & Register Buttons */}
           {!currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="nav-action-pill-desktop" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
                 onClick={() => onOpenAuth('signin')}
@@ -594,8 +598,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               border: 'none',
               color: '#000052',
               cursor: 'pointer',
-              padding: '6px',
-              display: 'none'
+              padding: '8px'
             }}
             aria-label="Toggle navigation menu"
           >
@@ -610,17 +613,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           style={{
             backgroundColor: '#FFFFFF',
             borderTop: '1px solid #E6E3EE',
-            padding: '16px 20px',
+            padding: '16px 20px 24px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
-            boxShadow: '0 10px 25px rgba(0,0,82,0.06)'
+            boxShadow: '0 12px 30px rgba(0,0,82,0.08)',
+            maxHeight: 'calc(100vh - 70px)',
+            overflowY: 'auto'
           }}
         >
           <button
             type="button"
             onClick={() => handleNav('search')}
-            style={{ textAlign: 'left', padding: '10px', background: currentTab === 'search' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14px' }}
+            style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'search' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center' }}
           >
             Browse Properties
           </button>
@@ -629,14 +634,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={() => handleNav('favorites')}
-            style={{ textAlign: 'left', padding: '10px', background: currentTab === 'favorites' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'favorites' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Heart size={15} color="#000052" fill={favoritesCount > 0 ? '#000052' : 'none'} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Heart size={16} color="#000052" fill={favoritesCount > 0 ? '#000052' : 'none'} />
               <span>Saved Properties</span>
             </span>
             {favoritesCount > 0 && (
-              <span style={{ backgroundColor: '#BE89FF', color: '#000052', fontSize: '11px', fontWeight: 800, borderRadius: '999px', padding: '1px 7px' }}>
+              <span style={{ backgroundColor: '#BE89FF', color: '#000052', fontSize: '11px', fontWeight: 800, borderRadius: '999px', padding: '1px 8px' }}>
                 {favoritesCount}
               </span>
             )}
@@ -647,9 +652,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => handleNav('requests')}
-              style={{ textAlign: 'left', padding: '10px', background: currentTab === 'requests' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'requests' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center', gap: '10px' }}
             >
-              <FileText size={15} color="#000052" />
+              <FileText size={16} color="#000052" />
               <span>My Requests</span>
             </button>
           )}
@@ -661,19 +666,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => handleNav('list_property')}
               style={{
                 textAlign: 'left',
-                padding: '10px 12px',
+                minHeight: '46px',
+                padding: '10px 14px',
                 background: currentTab === 'list_property' ? '#F8F3FF' : '#FAF5FF',
                 border: '1.5px solid #E9D5FF',
                 borderRadius: '8px',
                 fontWeight: 800,
                 color: '#5B14B8',
-                fontSize: '14px',
+                fontSize: '14.5px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '10px'
               }}
             >
-              <Building size={16} color="#7E22CE" />
+              <Building size={17} color="#7E22CE" />
               <span>List your property for free</span>
             </button>
           )}
@@ -683,9 +689,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => handleNav('lister')}
-              style={{ textAlign: 'left', padding: '10px', background: currentTab === 'lister' || currentTab === 'listing_editor' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'lister' || currentTab === 'listing_editor' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center', gap: '10px' }}
             >
-              <Building size={15} color="#000052" />
+              <Building size={16} color="#000052" />
               <span>My Properties</span>
             </button>
           )}
@@ -694,7 +700,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => handleNav('admin')}
-              style={{ textAlign: 'left', padding: '10px', background: '#FEE2E2', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#DC2626', fontSize: '14px' }}
+              style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: '#FEE2E2', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#DC2626', fontSize: '14.5px', display: 'flex', alignItems: 'center' }}
             >
               Admin Operations
             </button>
@@ -704,28 +710,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => handleNav('profile')}
-              style={{ textAlign: 'left', padding: '10px', background: currentTab === 'profile' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'profile' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center', gap: '10px' }}
             >
-              <UserIcon size={15} color="#000052" />
+              <UserIcon size={16} color="#000052" />
               <span>Profile & Settings</span>
             </button>
           )}
 
-          <div style={{ height: '1px', backgroundColor: '#F1F5F9', margin: '6px 0' }} />
+          <div style={{ height: '1px', backgroundColor: '#F1F5F9', margin: '8px 0' }} />
 
           {!currentUser ? (
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '10px', paddingTop: '4px' }}>
               <button
                 type="button"
                 onClick={() => { onOpenAuth('signin'); setMobileMenuOpen(false); }}
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1.5px solid #000052', background: 'none', color: '#000052', fontWeight: 700, fontSize: '13px' }}
+                style={{ flex: 1, minHeight: '44px', padding: '10px', borderRadius: '8px', border: '1.5px solid #000052', background: 'none', color: '#000052', fontWeight: 700, fontSize: '13.5px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 Sign In
               </button>
               <button
                 type="button"
                 onClick={() => { onOpenAuth('signup'); setMobileMenuOpen(false); }}
-                style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#000052', color: '#FFFFFF', fontWeight: 700, fontSize: '13px' }}
+                style={{ flex: 1, minHeight: '44px', padding: '10px', borderRadius: '8px', border: 'none', background: '#000052', color: '#FFFFFF', fontWeight: 700, fontSize: '13.5px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 Sign Up
               </button>
@@ -734,7 +740,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={() => { onSignOut(); setMobileMenuOpen(false); }}
-              style={{ textAlign: 'left', padding: '10px', background: 'none', border: 'none', color: '#DC2626', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: 'none', border: 'none', color: '#DC2626', fontWeight: 700, fontSize: '14.5px', display: 'flex', alignItems: 'center', gap: '10px' }}
             >
               <LogOut size={16} />
               <span>Sign Out ({currentUser.name})</span>

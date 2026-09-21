@@ -352,7 +352,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
           </a>
 
           {/* Right: Saved, My Requests & Profile/Auth */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {/* Saved Button */}
             <button
               type="button"
@@ -360,7 +360,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               style={{
                 background: 'transparent',
                 border: '1.5px solid #E2E8F0',
-                padding: '7px 16px',
+                padding: '7px 14px',
                 borderRadius: '9999px',
                 fontSize: '13px',
                 fontWeight: 700,
@@ -374,7 +374,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               title="View saved properties"
             >
               <Heart size={14} color="#000052" fill={favorites.length > 0 ? '#000052' : 'none'} />
-              <span>Saved</span>
+              <span className="nav-saved-text">Saved</span>
               {favorites.length > 0 && (
                 <span style={{
                   backgroundColor: '#BE89FF',
@@ -393,6 +393,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             {/* My Requests Button */}
             <button
               type="button"
+              className="hide-on-mobile"
               onClick={() => { if (onNavigateToRequests) onNavigateToRequests(); }}
               style={{
                 background: 'transparent',
@@ -418,6 +419,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             {onPostListing && (
               <button
                 type="button"
+                className="hide-on-mobile"
                 onClick={onPostListing}
                 style={{
                   backgroundColor: '#FAF5FF',
@@ -442,7 +444,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
 
             {/* Auth Buttons or User Avatar */}
             {!currentUser ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '4px' }}>
                 <button
                   type="button"
                   onClick={() => onOpenAuth && onOpenAuth('signin')}
@@ -450,9 +452,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                     background: 'none',
                     border: 'none',
                     color: '#000052',
-                    fontSize: '13.5px',
+                    fontSize: '13px',
                     fontWeight: 700,
-                    padding: '7px 14px',
+                    padding: '7px 10px',
                     cursor: 'pointer'
                   }}
                 >
@@ -460,12 +462,13 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 </button>
                 <button
                   type="button"
+                  className="hide-on-mobile"
                   onClick={() => onOpenAuth && onOpenAuth('signup')}
                   style={{
                     backgroundColor: '#000052',
                     color: '#FFFFFF',
                     border: 'none',
-                    padding: '8px 18px',
+                    padding: '7px 16px',
                     borderRadius: '9999px',
                     fontSize: '13px',
                     fontWeight: 700,
@@ -476,7 +479,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 </button>
               </div>
             ) : (
-              <div style={{ position: 'relative', marginLeft: '6px' }} ref={userDropdownRef}>
+              <div style={{ position: 'relative', marginLeft: '4px' }} ref={userDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
@@ -1415,35 +1418,42 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 <span>Previous</span>
               </button>
 
-              {/* Page Number Chips */}
-              {getPageNumbers(validCurrentPage, totalPages).map((p, idx) => (
-                p === '...' ? (
-                  <span key={`ell-${idx}`} style={{ padding: '0 6px', color: '#94A3B8', fontSize: '13px' }}>...</span>
-                ) : (
-                  <button
-                    key={`p-${p}`}
-                    type="button"
-                    onClick={() => handlePageChange(Number(p))}
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '10px',
-                      border: Number(p) === validCurrentPage ? 'none' : '1.5px solid #E6E3EE',
-                      backgroundColor: Number(p) === validCurrentPage ? '#000052' : '#FFFFFF',
-                      color: Number(p) === validCurrentPage ? '#FFFFFF' : '#334155',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {p}
-                  </button>
-                )
-              ))}
+              {/* Page Number Chips on Desktop / Tablets */}
+              <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {getPageNumbers(validCurrentPage, totalPages).map((p, idx) => (
+                  p === '...' ? (
+                    <span key={`ell-${idx}`} style={{ padding: '0 6px', color: '#94A3B8', fontSize: '13px' }}>...</span>
+                  ) : (
+                    <button
+                      key={`p-${p}`}
+                      type="button"
+                      onClick={() => handlePageChange(Number(p))}
+                      style={{
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: '10px',
+                        border: Number(p) === validCurrentPage ? 'none' : '1.5px solid #E6E3EE',
+                        backgroundColor: Number(p) === validCurrentPage ? '#000052' : '#FFFFFF',
+                        color: Number(p) === validCurrentPage ? '#FFFFFF' : '#334155',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {p}
+                    </button>
+                  )
+                ))}
+              </div>
+
+              {/* Compact Current Page Indicator on Mobile */}
+              <span className="show-on-mobile" style={{ fontSize: '13px', fontWeight: 700, color: '#000052', padding: '0 8px' }}>
+                {validCurrentPage} / {totalPages}
+              </span>
 
               {/* FORWARD / NEXT BUTTON */}
               <button

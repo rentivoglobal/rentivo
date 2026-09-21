@@ -118,8 +118,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
           className="modal-card" 
           onClick={(e) => e.stopPropagation()}
           style={{ 
-            maxWidth: '560px', 
-            borderRadius: '20px',
+            maxWidth: 'min(560px, 100vw)', 
             backgroundColor: '#FFFFFF',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 82, 0.25)',
             border: '1px solid #E2E8F0',

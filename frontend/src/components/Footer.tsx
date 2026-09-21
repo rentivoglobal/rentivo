@@ -140,7 +140,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <div>
             © {new Date().getFullYear()} Rentivo Technologies Ltd. All rights reserved. Operating in Ibadan, Oyo State, Nigeria.
           </div>
-          <div style={{ display: 'flex', gap: '18px' }}>
+          <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <a href="/terms" onClick={(e) => { e.preventDefault(); onNavigate?.('terms'); }}>
               Terms of Service
             </a>
