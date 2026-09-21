@@ -576,7 +576,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <p>Filter by area, price, type, and availability. Open any listing to inspect the evidence.</p>
           </div>
           <div className="listing-grid">
-            {showcase.slice(0, 4).map(listing => (
+            {showcase.slice(0, 3).map(listing => (
               <article
                 key={listing.id}
                 className="home-card reveal is-in"
