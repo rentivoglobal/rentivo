@@ -82,7 +82,7 @@ export const HowItWorksPage: React.FC<HowItWorksPageProps> = ({
               Transparent Rental Marketplace
             </span>
           </div>
-          <h1 style={{ fontSize: '38px', fontWeight: 800, lineHeight: 1.2, margin: '0 0 16px', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: '38px', fontWeight: 800, lineHeight: 1.2, margin: '0 0 16px', letterSpacing: '-0.02em', color: '#FFFFFF' }}>
             How Rentivo Eliminates Exploitative Agent Fees in Ibadan
           </h1>
           <p style={{ fontSize: '16px', color: '#DCD6F5', lineHeight: 1.6, maxWidth: '640px', margin: '0 auto 28px' }}>

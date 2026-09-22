@@ -33,7 +33,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ onBack, onNavigateToTa
             <ShieldCheck size={14} />
             <span>NDPR &amp; Consumer Privacy Compliant</span>
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.02em', lineHeight: 1.2, color: '#FFFFFF' }}>
             Privacy Policy &amp; Data Protection
           </h1>
           <p style={{ fontSize: '15px', color: 'rgba(255, 255, 255, 0.8)', margin: '0 auto', maxWidth: '620px', lineHeight: 1.6 }}>

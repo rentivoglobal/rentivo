@@ -390,3 +390,25 @@
     flex-direction: row;
   }
 }
+
+/* ==========================================================================
+   Overlay & Preview Badge Safe Area Clearance (Netlify / Floating Badges)
+   Prevents floating preview badges from covering bottom action CTAs,
+   pagination, table action menus, hearts, or verification buttons.
+   ========================================================================== */
+main {
+  padding-bottom: 72px;
+}
+
+.lister-dashboard-container,
+.serp-container,
+.checkout-container {
+  padding-bottom: 80px;
+}
+
+/* Give generous margin to table bottoms and grid pagination */
+.pagination-container,
+.table-footer-actions {
+  margin-bottom: 24px;
+}
+

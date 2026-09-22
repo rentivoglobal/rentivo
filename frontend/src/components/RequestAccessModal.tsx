@@ -370,7 +370,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   </div>
 
                   <div style={{ borderTop: '1px solid #E2E8F0', marginTop: '14px', paddingTop: '10px', fontSize: '11.5px', color: '#64748B' }}>
-                    Questions? Ibadan Support: <a href="tel:+2348007368486" style={{ color: '#000052', fontWeight: 700, textDecoration: 'none' }}>+234 800 736 8486</a>
+                    Questions? Ibadan Support: <a href="mailto:support@rentivo.ng" style={{ color: '#000052', fontWeight: 700, textDecoration: 'none' }}>support@rentivo.ng</a>
                   </div>
                 </div>
               </div>

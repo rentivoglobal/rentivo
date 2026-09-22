@@ -90,6 +90,56 @@ export const App: React.FC = () => {
     }));
   }, [location.pathname, searchParams]);
 
+  useEffect(() => {
+    const path = location.pathname;
+    let pageTitle = 'Rentivo — Verified Property Marketplace in Ibadan';
+
+    if (path === '/search') {
+      const area = searchParams.get('area');
+      pageTitle = area ? `Properties in ${area}, Ibadan — Rentivo` : 'Search Verified Houses & Apartments in Ibadan — Rentivo';
+    } else if (path.startsWith('/listings/') && path.includes('/request')) {
+      pageTitle = 'Request Property Access — Rentivo';
+    } else if (path.startsWith('/listings/')) {
+      pageTitle = 'Property Details — Rentivo';
+    } else if (path.startsWith('/requests/')) {
+      pageTitle = 'Access Request Status — Rentivo';
+    } else if (path === '/how-it-works') {
+      pageTitle = 'How It Works — Rentivo';
+    } else if (path === '/list-property') {
+      pageTitle = 'List Your Property in Ibadan — Rentivo';
+    } else if (path === '/terms') {
+      pageTitle = 'Terms of Service — Rentivo';
+    } else if (path === '/privacy') {
+      pageTitle = 'Privacy Policy — Rentivo';
+    } else if (path === '/access-fee-terms') {
+      pageTitle = 'Access Fee Policy & Guarantees — Rentivo';
+    } else if (path === '/login') {
+      pageTitle = 'Sign In — Rentivo';
+    } else if (path === '/signup') {
+      pageTitle = 'Create an Account — Rentivo';
+    } else if (path === '/forgot-password' || path === '/reset-password') {
+      pageTitle = 'Reset Password — Rentivo';
+    } else if (path === '/account/favorites') {
+      pageTitle = 'Saved Properties — Rentivo';
+    } else if (path === '/account/requests') {
+      pageTitle = 'My Requests — Rentivo';
+    } else if (path === '/account/profile' || path === '/account') {
+      pageTitle = 'My Account — Rentivo';
+    } else if (path === '/lister/listings/new') {
+      pageTitle = 'Create New Listing — Rentivo Lister';
+    } else if (path === '/lister/verification') {
+      pageTitle = 'Physical Verification Booking — Rentivo';
+    } else if (path === '/lister/requests') {
+      pageTitle = 'Inquiries & Activity — Rentivo Lister';
+    } else if (path.startsWith('/lister')) {
+      pageTitle = 'Lister Dashboard — Rentivo';
+    } else if (path.startsWith('/admin')) {
+      pageTitle = 'Admin Operations — Rentivo';
+    }
+
+    document.title = pageTitle;
+  }, [location.pathname, searchParams]);
+
   const handleNavigate = (tab: NavigationTab) => {
     if ((tab === 'lister' || tab === 'listing_editor') && (!user || (user.role !== 'landlord' && user.role !== 'agent'))) {
       navigate('/signup?role=lister');
@@ -289,10 +339,12 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/lister" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} /></ProtectedRoute>} />
+          <Route path="/lister" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} tab="home" /></ProtectedRoute>} />
+          <Route path="/lister/home" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} tab="home" /></ProtectedRoute>} />
           <Route path="/lister/listings" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} tab="listings" /></ProtectedRoute>} />
           <Route path="/lister/requests" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} tab="inquiries" /></ProtectedRoute>} />
-          <Route path="/lister/verification" element={<ProtectedRoute listerOnly><ListerVerificationPage listings={listings} onBack={() => navigate('/lister')} /></ProtectedRoute>} />
+          <Route path="/lister/verification" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} tab="verification" /></ProtectedRoute>} />
+          <Route path="/lister/verification/request" element={<ProtectedRoute listerOnly><ListerVerificationPage listings={listings} initialMode="request" onBack={() => navigate('/lister/verification')} /></ProtectedRoute>} />
           <Route path="/lister/listings/new" element={<ProtectedRoute listerOnly><ListingEditorPage initialListing={null} onSaveSuccess={() => { void loadData(); showToast('Listing submitted for admin review.'); navigate('/lister/listings'); }} onCancel={() => navigate('/lister')} /></ProtectedRoute>} />
           <Route path="/lister/listings/:id/edit" element={<ProtectedRoute listerOnly><EditListingRoute onReload={loadData} showToast={showToast} /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminQueuePage listings={listings} onApproveVerification={(id) => { void listingsService.issueVerifiedBadge(id); showToast('Verified badge issued.'); }} onExit={() => navigate('/')} /></ProtectedRoute>} />
@@ -440,7 +492,7 @@ const ListerRoute: React.FC<{
   listings: Listing[];
   onReload: () => Promise<void>;
   showToast: (msg: string) => void;
-  tab?: 'listings' | 'inquiries' | 'stats';
+  tab?: 'home' | 'listings' | 'inquiries' | 'verification' | 'profile' | 'stats';
 }> = ({ listings, onReload, showToast, tab }) => {
   const navigate = useNavigate();
   const { signOut } = useAuth();

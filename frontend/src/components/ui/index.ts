@@ -9,3 +9,4 @@ export * from './OnboardingWidget';
 export * from './MiniChart';
 export * from './Popover';
 export * from './DashboardShell';
+export * from './NairaIcon';

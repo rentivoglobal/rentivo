@@ -113,21 +113,21 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => handleNav('list_property')}
+              onClick={() => handleNav('how_it_works')}
               style={{
                 background: 'none',
                 border: 'none',
                 padding: '8px 14px',
                 borderRadius: '8px',
                 fontSize: '13.5px',
-                fontWeight: currentTab === 'list_property' ? 800 : 600,
-                color: currentTab === 'list_property' ? '#000052' : '#636377',
-                backgroundColor: currentTab === 'list_property' ? '#F1F5F9' : 'transparent',
+                fontWeight: currentTab === 'how_it_works' ? 800 : 600,
+                color: currentTab === 'how_it_works' ? '#000052' : '#636377',
+                backgroundColor: currentTab === 'how_it_works' ? '#F1F5F9' : 'transparent',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
             >
-              For Property Owners
+              How It Works
             </button>
           </nav>
         </div>

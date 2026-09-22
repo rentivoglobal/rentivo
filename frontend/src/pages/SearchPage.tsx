@@ -23,7 +23,6 @@ import {
   Warehouse, 
   Map, 
   LayoutGrid, 
-  DollarSign, 
   Check, 
   X,
   Camera,
@@ -38,6 +37,7 @@ import { FilterOptions, PropertyType, CityLocation, User } from '../types';
 import { formatNaira } from '../utils/formatters';
 import { locationsService } from '../services/locationsService';
 import { OptimizedImage } from '../components/OptimizedImage';
+import { NairaIcon } from '../components/ui';
 
 interface SearchPageProps {
   listings: MarketplaceListing[];
@@ -814,7 +814,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 }}
                 title="Filter by rental budget"
               >
-                <DollarSign size={16} color="#64748B" style={{ flexShrink: 0 }} />
+                <NairaIcon size={16} color="#64748B" style={{ flexShrink: 0 }} />
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <span className="usb-microlabel">Budget</span>
                   <span className="usb-value">

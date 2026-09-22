@@ -8,7 +8,8 @@ export const isLiveBackend = Boolean(
 );
 
 export const isDemoSimulator =
-  import.meta.env.VITE_DEMO_SIMULATOR === 'true' || (!isLiveBackend && import.meta.env.VITE_DEMO_SIMULATOR !== 'false');
+  import.meta.env.VITE_DEMO_SIMULATOR === 'true' ||
+  (Boolean(import.meta.env.DEV) && import.meta.env.VITE_DEMO_SIMULATOR !== 'false');
 
 export const imagekitPublicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY || '';
 export const imagekitUrlEndpoint = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT || '';

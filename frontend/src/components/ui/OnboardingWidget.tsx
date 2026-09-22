@@ -19,7 +19,12 @@ export const OnboardingWidget: React.FC<OnboardingWidgetProps> = ({
   steps,
   onDismiss
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      return false;
+    }
+    return true;
+  });
   const [isDismissed, setIsDismissed] = useState(false);
 
   if (isDismissed) return null;

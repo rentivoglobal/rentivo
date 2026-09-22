@@ -33,7 +33,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack, onNavigateToTab })
             <ShieldCheck size={14} />
             <span>Rentivo Platform Agreement</span>
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.02em', lineHeight: 1.2, color: '#FFFFFF' }}>
             Terms of Service
           </h1>
           <p style={{ fontSize: '15px', color: 'rgba(255, 255, 255, 0.8)', margin: '0 auto', maxWidth: '620px', lineHeight: 1.6 }}>

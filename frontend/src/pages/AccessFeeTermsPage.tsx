@@ -1,5 +1,6 @@
 import React from 'react';
-import { ShieldCheck, CheckCircle2, ArrowLeft, DollarSign, AlertCircle, Scale, Building, ArrowRight } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, ArrowLeft, AlertCircle, Scale, Building, ArrowRight } from 'lucide-react';
+import { NairaIcon } from '../components/ui';
 
 interface AccessFeeTermsPageProps {
   onBack: () => void;
@@ -25,7 +26,7 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
             <span>Back</span>
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748B' }}>
-            <DollarSign size={15} color="#000052" />
+            <NairaIcon size={15} color="#000052" />
             <span style={{ fontWeight: 600 }}>Fee Transparency Policy</span>
           </div>
         </div>
@@ -38,7 +39,7 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
             <ShieldCheck size={14} />
             <span>Transparent Pricing Guarantee</span>
           </div>
-          <h1 style={{ fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.02em', lineHeight: 1.2, color: '#FFFFFF' }}>
             Access Fee Policy &amp; Guarantees
           </h1>
           <p style={{ fontSize: '15px', color: 'rgba(255, 255, 255, 0.8)', margin: '0 auto', maxWidth: '640px', lineHeight: 1.6 }}>

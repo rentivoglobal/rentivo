@@ -3,7 +3,7 @@ import { INITIAL_LISTINGS } from '../data/mockData';
 import { ACCESS_FEE_NAIRA, PROMO_CAP } from '../lib/config';
 import { maskListerContact, slugify } from '../lib/mappers';
 
-const PREFIX = 'rentivo_v3_';
+const PREFIX = 'rentivo_v6_';
 const KEYS = {
   users: `${PREFIX}users`,
   session: `${PREFIX}session`,

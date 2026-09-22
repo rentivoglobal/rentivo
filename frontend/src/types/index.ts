@@ -87,6 +87,8 @@ export interface Listing {
     frontageRoad?: string;
   };
   accessRequestsCount?: number;
+  inquiriesCount?: number;
+  verificationNote?: string;
   createdAt: string;
   isAvailable: boolean;
   isApproved?: boolean;

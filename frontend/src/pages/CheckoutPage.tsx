@@ -567,7 +567,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     </div>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                       <Clock size={16} color="#2563EB" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <span>Direct 48-hour response window active. Most Ibadan listers confirm within 15–30 minutes.</span>
+                      <span>We ask the landlord to verify vacancy. Most replies arrive within a day.</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                       <ShieldCheck size={16} color="#7E22CE" style={{ flexShrink: 0, marginTop: '2px' }} />
@@ -577,7 +577,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
                   <div style={{ borderTop: '1px solid #E2E8F0', marginTop: '16px', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                     <span style={{ fontSize: '12px', color: '#64748B' }}>
-                      Need help? Ibadan Ops: <a href="tel:+2348007368486" style={{ color: '#000052', fontWeight: 700, textDecoration: 'none' }}>+234 800 736 8486</a>
+                      Need help? Ibadan Desk: <a href="mailto:support@rentivo.ng" style={{ color: '#000052', fontWeight: 700, textDecoration: 'none' }}>support@rentivo.ng</a>
                     </span>
                     <button
                       type="button"
@@ -1237,12 +1237,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <div style={{ marginTop: '18px', textAlign: 'center', fontSize: '12px', color: '#64748B' }}>
                 Questions about this checkout?{' '}
                 <a 
-                  href="https://wa.me/2348000000000?text=Hello%20Rentivo%20Support,%20I%20have%20a%20question%20about%20my%20checkout" 
-                  target="_blank" 
-                  rel="noreferrer"
+                  href="mailto:support@rentivo.ng?subject=Rentivo%20Checkout%20Question" 
                   style={{ color: '#000052', fontWeight: 700, textDecoration: 'none' }}
                 >
-                  Chat with Rentivo Support
+                  Contact Rentivo Support (support@rentivo.ng)
                 </a>
               </div>
 
