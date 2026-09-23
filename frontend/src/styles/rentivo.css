@@ -183,7 +183,7 @@ img{max-width:100%;display:block;}
   background:linear-gradient(180deg,#fff 0%, #fff 38%, rgba(255,255,255,.78) 68%, rgba(255,255,255,0) 100%);
 }
 .hero-copy{
-  position:relative;z-index:3;max-width:760px;margin:0 auto;width:100%;
+  position:relative;z-index:3;max-width:920px;margin:0 auto;width:100%;
   padding:12px max(40px, env(safe-area-inset-right)) 0 max(40px, env(safe-area-inset-left));
   pointer-events:none;overflow:visible;
 }
@@ -231,7 +231,7 @@ h1,.display{
 
 .search{
   display:flex;align-items:center;background:#fff;border:1px solid #e5e3ee;
-  border-radius:999px;padding:8px 10px 8px 16px;max-width:880px;margin:0 auto;
+  border-radius:999px;padding:8px 10px 8px 16px;width:100%;max-width:880px;margin:0 auto;
   box-shadow:0 18px 48px -18px rgba(0,0,82,.25), 0 4px 16px rgba(15,15,40,.05);
   transition:box-shadow .3s ease, border-color .3s ease;
   overflow:visible;position:relative;z-index:20;

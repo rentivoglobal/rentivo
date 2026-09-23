@@ -57,7 +57,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
   };
 
   return (
-    <div style={{ backgroundColor: '#F8FAFC', minHeight: 'calc(100vh - 72px)', padding: '36px 20px 72px' }}>
+    <div className="renter-page-container" style={{ backgroundColor: '#F8FAFC', minHeight: 'calc(100vh - 72px)', padding: '36px 20px 72px' }}>
       <div style={{ maxWidth: '1040px', margin: '0 auto' }}>
         
         {/* Clean Modern Page Header */}
@@ -72,7 +72,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
             Saved Properties ({savedListings.length})
           </h1>
           <p style={{ fontSize: '14px', color: '#636377', margin: 0, lineHeight: 1.5 }}>
-            Review your shortlisted properties in Ibadan. Requesting access is always free, and you only pay flat ₦5,000 once vacancy is certified.
+            Review your shortlisted properties in Ibadan. Requesting access is always free, and you only pay a flat access fee once vacancy is certified.
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '20px' }}>
             {savedListings.map(listing => {
               const activeReq = getRequestForListing(listing.id);
 
@@ -253,7 +253,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
                           {activeReq.status === 'confirmed' && (
                             <div style={{ backgroundColor: '#F0E6FF', border: '1px solid #D8B4FE', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', color: '#000052', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
                               <CheckCircle2 size={14} color="#16794A" />
-                              <span>Confirmed Vacant! Ready to pay ₦5,000.</span>
+                              <span>Confirmed Vacant! Ready to pay access fee.</span>
                             </div>
                           )}
 
@@ -309,7 +309,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
                             boxShadow: '0 2px 8px rgba(0,0,82,0.2)'
                           }}
                         >
-                          <span>Pay ₦5,000</span>
+                          <span>Pay Access Fee</span>
                           <ArrowRight size={13} />
                         </button>
                       ) : activeReq?.status === 'paid' ? (

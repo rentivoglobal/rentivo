@@ -218,7 +218,7 @@ export const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
             Hello {request.renterName},
           </h2>
           <p style={{ fontSize: '14px', lineHeight: 1.6, color: '#334155', marginBottom: '20px' }}>
-            Your <b>₦5,000 access fee</b> payment via Paystack was successful. You now have direct, unhindered access to contact the verified owner/mandated agent for <b>{listing.title}</b>.
+            Your <b>access fee</b> payment via Paystack was successful. You now have direct, unhindered access to contact the verified owner/mandated agent for <b>{listing.title}</b>.
           </p>
 
           {/* Landlord Contact Unlocked Dossier */}
@@ -380,7 +380,7 @@ export const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
                 <span>One-Time Direct Access Fee:</span>
-                <span style={{ fontWeight: 700, color: '#0F172A' }}>₦5,000.00</span>
+                <span style={{ fontWeight: 700, color: '#0F172A' }}>Access Fee</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
                 <span>Payment Gateway:</span>
@@ -396,7 +396,7 @@ export const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
               </div>
               <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '8px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '15px', color: '#000052' }}>
                 <span>Total Paid:</span>
-                <span>₦5,000.00</span>
+                <span>Access Fee</span>
               </div>
             </div>
           </div>

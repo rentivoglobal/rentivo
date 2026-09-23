@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rentivo | Lister portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   RENTIVO LISTER PORTAL, v2
+   One typeface, one navy + lilac palette, one segmented control,
+   one pill, one request card. Horizontal navigation at every width.
+   ===================================================================== */
+
+/* ---------- Reset ---------- */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:var(--font);font-size:.9375rem;line-height:1.5;background:var(--paper);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+img,svg{display:block;max-width:100%}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+ul,ol{list-style:none}
+h1,h2,h3{line-height:1.2;letter-spacing:-.015em}
+h1:focus,h2:focus{outline:none}
+:focus-visible{outline:2.5px solid var(--focus);outline-offset:2px;border-radius:6px}
+.topbar :focus-visible{outline-color:#fff}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:12px;top:-64px;z-index:200;background:var(--lilac);color:var(--navy);padding:10px 16px;border-radius:8px;font-weight:700}
+.skip:focus{top:12px}
+
+/* ---------- Tokens ---------- */
+:root{
+  --navy:#000052;
+  --lilac:#BE89FF;
+  --paper:#F5F4FA;
+  --surface:#FFFFFF;
+  --surface-2:#EFEDF8;
+  --line:#E3E1EF;
+  --line-strong:#C9C6DF;
+  --ink:#14143A;
+  --ink-soft:#55557A;
+  --ink-faint:#6C6C8E;
+  --link:#000052;
+  --focus:#000052;
+
+  --primary:#000052;
+  --primary-hover:#1B1B74;
+  --on-primary:#FFFFFF;
+
+  --success:#17794B;   --success-bg:#E1F3EA;
+  --success-solid:#17794B; --on-success:#FFFFFF;
+  --amber:#8A5100;     --amber-bg:#FBEACB;
+  --coral:#B82F47;     --coral-bg:#FBE3E8;
+  --verified:#000052;  --verified-bg:#EBDDFF;
+  --lilac-soft:rgba(190,137,255,.35);
+
+  --head-bg:#000052;
+  --head-soft:#BDBDE8;
+  --wordmark-accent:#7C3FD6;
+
+  --r-s:8px; --r-m:12px; --r-l:16px;
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B0B1F; --surface:#14142E; --surface-2:#1D1D3D;
+    --line:#2A2A4C; --line-strong:#3D3D6B;
+    --ink:#F0EFFA; --ink-soft:#B5B3D6; --ink-faint:#9391B8;
+    --link:#D2ADFF; --focus:#D2ADFF;
+    --primary:#BE89FF; --primary-hover:#CFA5FF; --on-primary:#000052;
+    --success:#4CC38A; --success-bg:#0F3324; --success-solid:#4CC38A; --on-success:#062015;
+    --amber:#F0B45A; --amber-bg:#3A2C14;
+    --coral:#FF8095; --coral-bg:#3A1620;
+    --verified:#D2ADFF; --verified-bg:#2B1F4D;
+    --wordmark-accent:#BE89FF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B0B1F; --surface:#14142E; --surface-2:#1D1D3D;
+  --line:#2A2A4C; --line-strong:#3D3D6B;
+  --ink:#F0EFFA; --ink-soft:#B5B3D6; --ink-faint:#9391B8;
+  --link:#D2ADFF; --focus:#D2ADFF;
+  --primary:#BE89FF; --primary-hover:#CFA5FF; --on-primary:#000052;
+  --success:#4CC38A; --success-bg:#0F3324; --success-solid:#4CC38A; --on-success:#062015;
+  --amber:#F0B45A; --amber-bg:#3A2C14;
+  --coral:#FF8095; --coral-bg:#3A1620;
+  --verified:#D2ADFF; --verified-bg:#2B1F4D;
+  --wordmark-accent:#BE89FF;
+  color-scheme:dark;
+}
+
+/* ---------- Top bar + horizontal navigation ---------- */
+.topbar{background:var(--head-bg);color:#fff;position:sticky;top:0;z-index:50;border-bottom:1px solid rgba(255,255,255,.08)}
+.topbar-in{max-width:1120px;margin:0 auto;padding:0 32px;min-height:64px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:36px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.1rem;letter-spacing:-.01em;color:#fff}
+.brand-mark{width:32px;height:32px;border-radius:8px;background:var(--lilac);color:var(--navy);display:grid;place-items:center}
+.brand-mark svg{width:19px;height:19px}
+.brand-word em{font-style:normal;color:var(--lilac)}
+.mainnav{align-self:stretch;min-width:0;display:flex}
+.mainnav-scroll{position:relative;display:flex;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.mainnav-scroll::-webkit-scrollbar{display:none}
+.navlink{position:relative;display:flex;align-items:center;gap:8px;padding:0 14px;flex:none;white-space:nowrap;font-weight:600;font-size:.9rem;color:var(--head-soft);transition:color .15s}
+.navlink:hover{color:#fff}
+.navlink[aria-current="page"]{color:#fff}
+.navlink[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--lilac)}
+.navlink .count{min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:#F5B544;color:var(--navy);font-size:.72rem;font-weight:800;display:grid;place-items:center}
+.top-actions{display:flex;align-items:center;gap:12px}
+
+@media (max-width:959px){
+  .topbar-in{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand actions" "nav nav";padding:0 16px;column-gap:12px}
+  .brand{grid-area:brand;min-height:56px}
+  .top-actions{grid-area:actions}
+  .mainnav{grid-area:nav;height:46px;margin:0 -16px;padding:0 4px;border-top:1px solid rgba(255,255,255,.12)}
+  .mainnav.fade-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
+  .mainnav.fade-l{-webkit-mask-image:linear-gradient(270deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(270deg,#000 calc(100% - 40px),transparent)}
+  .mainnav.fade-l.fade-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent)}
+  .navlink{padding:0 13px}
+  .navlink[aria-current="page"]::after{left:13px;right:13px}
+}
+
+/* ---------- Page frame ---------- */
+.page{max-width:1120px;margin:0 auto;padding:32px 32px 72px}
+.page.narrow{max-width:800px}
+@media (max-width:639px){.page{padding:22px 16px 56px}}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.page-head h1{font-size:1.75rem;font-weight:800;letter-spacing:-.025em}
+@media (max-width:639px){.page-head h1{font-size:1.5rem}}
+.lede{color:var(--ink-soft);margin-top:6px;max-width:62ch}
+.section{margin-top:32px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+.section-head h2{font-size:1.0625rem;font-weight:700}
+.section-head .n{color:var(--ink-faint);font-weight:600}
+.link{color:var(--link);font-weight:700;font-size:.85rem;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px;background:none}
+.muted{color:var(--ink-soft)}
+.faint{color:var(--ink-faint)}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:var(--r-s);border:1.5px solid transparent;font-weight:700;font-size:.9rem;line-height:1;white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s}
+.btn svg{width:18px;height:18px;flex:none}
+.btn-primary{background:var(--primary);color:var(--on-primary)}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-accent{background:var(--lilac);color:var(--navy)}
+.btn-accent:hover{background:#CDA3FF}
+.btn-secondary{background:var(--surface);color:var(--ink);border-color:var(--line-strong)}
+.btn-secondary:hover{background:var(--surface-2)}
+.btn-ghost{color:var(--ink-soft)}
+.btn-ghost:hover{background:var(--surface-2);color:var(--ink)}
+.btn-success{background:var(--success-solid);color:var(--on-success)}
+.btn-success:hover{filter:brightness(1.08)}
+.btn-danger{background:var(--coral-bg);color:var(--coral)}
+.btn-danger:hover{filter:brightness(.96)}
+.btn-danger-solid{background:var(--coral);color:#fff}
+.btn-sm{min-height:36px;padding:0 13px;font-size:.84rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+@media (pointer:coarse){.btn{min-height:44px}.btn-sm{min-height:42px}}
+
+/* ---------- Pills ---------- */
+.pill{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:99px;font-size:.75rem;font-weight:700;white-space:nowrap}
+.pill svg{width:13px;height:13px;flex:none}
+.pill-success{background:var(--success-bg);color:var(--success)}
+.pill-amber{background:var(--amber-bg);color:var(--amber)}
+.pill-coral{background:var(--coral-bg);color:var(--coral)}
+.pill-neutral{background:var(--surface-2);color:var(--ink-soft)}
+.pill-verified{background:var(--verified-bg);color:var(--verified)}
+.tag{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:99px;background:var(--surface-2);font-size:.82rem;font-weight:600}
+
+/* ---------- Cards, stats, empty, note ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m)}
+.card-pad{padding:20px}
+.card + .card{margin-top:16px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);overflow:hidden}
+.stat{display:block;padding:18px 20px;border-left:1px solid var(--line)}
+.stat:first-child{border-left:0}
+.stat b{display:block;font-size:1.75rem;line-height:1.1;font-weight:800;letter-spacing:-.025em}
+.stat b.warn{color:var(--amber)}
+.stat span{font-size:.82rem;color:var(--ink-soft)}
+a.stat:hover{background:var(--surface-2)}
+@media (max-width:639px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .stat:nth-child(3){border-left:0}
+  .stat:nth-child(n+3){border-top:1px solid var(--line)}
+}
+.empty{border:1.5px dashed var(--line-strong);border-radius:var(--r-m);padding:36px 24px;text-align:center;color:var(--ink-soft)}
+.empty svg{width:32px;height:32px;margin:0 auto 12px;color:var(--ink-faint)}
+.empty h3{font-size:1rem;color:var(--ink);margin-bottom:4px}
+.empty p{max-width:36ch;margin:0 auto 16px;font-size:.88rem}
+.empty p:last-child{margin-bottom:0}
+.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--r-m);background:var(--surface-2);color:var(--ink-soft);font-size:.88rem;margin-bottom:20px}
+.note svg{width:20px;height:20px;flex:none;color:var(--ink);margin-top:1px}
+.note strong{color:var(--ink)}
+
+/* ---------- Segmented control (filters, tabs, theme) ---------- */
+.seg{display:flex;gap:4px;padding:4px;background:var(--surface-2);border-radius:10px;width:fit-content;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{display:flex;align-items:center;gap:6px;min-height:34px;padding:0 14px;border-radius:7px;font-weight:700;font-size:.85rem;color:var(--ink-soft);white-space:nowrap}
+.seg button svg{width:16px;height:16px}
+.seg button .n{font-weight:600;color:var(--ink-faint)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.seg.block{width:100%}
+.seg.block button{flex:1;justify-content:center}
+@media (pointer:coarse){.seg button{min-height:40px}}
+
+/* ---------- Switch ---------- */
+.sw{position:relative;z-index:2;display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:.85rem}
+.sw input{position:absolute;opacity:0;width:44px;height:26px;margin:0;cursor:pointer}
+.sw-track{position:relative;width:44px;height:26px;border-radius:99px;background:var(--line-strong);flex:none;transition:background-color .15s}
+.sw-track::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.sw input:checked + .sw-track{background:var(--success-solid)}
+.sw input:checked + .sw-track::after{transform:translateX(18px)}
+.sw input:focus-visible + .sw-track{outline:2.5px solid var(--focus);outline-offset:2px}
+.sw-text{min-width:64px}
+
+/* ---------- Listing rows ---------- */
+.lrows{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);overflow:hidden}
+.lrow{position:relative;display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px 16px;align-items:center;padding:16px 20px;border-top:1px solid var(--line);transition:background-color .15s}
+.lrow:first-child{border-top:0}
+.lrow:hover{background:var(--surface-2)}
+.lrow-main h3{font-size:.98rem;font-weight:700}
+.lrow-main h3 a::after{content:"";position:absolute;inset:0}
+.meta{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:3px;font-size:.82rem;color:var(--ink-soft)}
+.meta span{display:inline-flex;align-items:center;gap:5px}
+.meta svg{width:14px;height:14px}
+.lrow-stats{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:10px 20px}
+.lrow-price{font-weight:800;font-size:1rem;letter-spacing:-.01em}
+.lrow-price small{display:block;font-size:.72rem;font-weight:500;color:var(--ink-faint);letter-spacing:0}
+.lrow-req{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--ink-soft)}
+.lrow-req svg{width:16px;height:16px}
+@media (min-width:900px){
+  .lrow{grid-template-columns:64px minmax(0,1fr) 120px 110px 150px 130px;gap:16px}
+  .lrow-stats{display:contents}
+}
+.lhead{display:none}
+@media (min-width:900px){
+  .lhead{display:grid;grid-template-columns:64px minmax(0,1fr) 120px 110px 150px 130px;gap:16px;padding:10px 20px;font-size:.78rem;font-weight:700;color:var(--ink-faint);border-bottom:1px solid var(--line);background:var(--surface-2)}
+}
+.thumb{width:64px;height:64px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;color:var(--ink-faint);overflow:hidden;flex:none}
+.thumb svg{width:26px;height:26px}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.lrow .thumb{background:var(--line)}
+.mini{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);transition:background-color .15s}
+.mini:first-child{border-top:0}
+.mini:hover{background:var(--surface-2)}
+.mini .thumb{width:44px;height:44px;border-radius:8px}
+.mini .thumb svg{width:20px;height:20px}
+.mini-main{flex:1;min-width:0}
+.mini-main strong{display:block;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-main span{font-size:.8rem;color:var(--ink-soft)}
+
+/* ---------- Request card ---------- */
+.req-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr));gap:16px}
+.stack{display:grid;gap:12px}
+.req{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+.req-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.who{display:flex;align-items:center;gap:12px;min-width:0}
+.ini{width:40px;height:40px;border-radius:50%;background:var(--surface-2);font-weight:800;font-size:.8rem;display:grid;place-items:center;flex:none}
+.who strong{display:block;line-height:1.25}
+.who span{font-size:.8rem;color:var(--ink-soft)}
+.req-for{font-size:.9rem;color:var(--ink-soft)}
+.req-for a{color:var(--ink);font-weight:700;text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+.req-alert{padding:10px 12px;border-radius:var(--r-s);background:var(--coral-bg);color:var(--coral);font-size:.84rem;font-weight:500}
+.req-actions{display:flex;flex-wrap:wrap;gap:8px}
+
+/* ---------- Forms ---------- */
+.field{display:grid;gap:6px;align-content:start}
+.field > label,.label{font-size:.85rem;font-weight:700}
+.field .opt{font-weight:500;color:var(--ink-faint)}
+.hint{font-size:.8rem;color:var(--ink-faint)}
+.input,.select,.textarea{width:100%;min-height:44px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:var(--r-s);background:var(--surface);color:var(--ink);transition:border-color .15s}
+.input:hover,.select:hover,.textarea:hover{border-color:var(--ink-faint)}
+.input:focus,.select:focus,.textarea:focus{outline:2.5px solid var(--focus);outline-offset:1px;border-color:var(--focus)}
+.input::placeholder,.textarea::placeholder{color:var(--ink-faint)}
+.textarea{min-height:112px;resize:vertical}
+.select{appearance:none;padding-right:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236C6C8E' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px}
+.form-grid{display:grid;gap:20px}
+@media (min-width:640px){.form-grid.two{grid-template-columns:1fr 1fr}.span-2{grid-column:1/-1}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 15px;border-radius:99px;border:1.5px solid var(--line-strong);background:var(--surface);font-weight:600;font-size:.85rem;transition:background-color .15s,border-color .15s}
+.chip:hover{border-color:var(--ink-faint)}
+.chip svg{width:15px;height:15px}
+.chip[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:519px){.choices{grid-template-columns:1fr}}
+.choice{display:flex;align-items:flex-start;gap:14px;padding:18px;text-align:left;border:1.5px solid var(--line-strong);border-radius:var(--r-m);background:var(--surface);transition:border-color .15s}
+.choice:hover{border-color:var(--ink-faint)}
+.choice .ic{width:42px;height:42px;border-radius:10px;background:var(--surface-2);display:grid;place-items:center;flex:none}
+.choice .ic svg{width:22px;height:22px}
+.choice strong{display:block}
+.choice span.d{font-size:.83rem;color:var(--ink-soft)}
+.choice[aria-pressed="true"]{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary)}
+.choice[aria-pressed="true"] .ic{background:var(--primary);color:var(--on-primary)}
+
+/* ---------- Stepper (wizard + verification tracker) ---------- */
+.stepper{display:flex;margin-bottom:24px}
+.stepper li{position:relative;flex:1;display:flex;justify-content:center;font-size:.78rem;font-weight:600;color:var(--ink-faint);text-align:center}
+.stepper li::before{content:"";position:absolute;top:15px;left:calc(-50% + 20px);right:calc(50% + 20px);height:2px;background:var(--line-strong)}
+.stepper li:first-child::before{display:none}
+.stepper li.done::before,.stepper li.now::before{background:var(--primary)}
+.step-in{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;color:inherit}
+.dot{position:relative;z-index:1;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line-strong);background:var(--surface);font-weight:800;font-size:.8rem;color:var(--ink-faint)}
+.dot svg{width:15px;height:15px}
+.stepper li.done .dot{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.stepper li.now .dot{border-color:var(--primary);color:var(--ink);box-shadow:0 0 0 4px var(--lilac-soft)}
+.stepper li.now,.stepper li.done{color:var(--ink)}
+button.step-in:hover .dot{filter:brightness(1.2)}
+.stepper.sm{margin:16px 0 0}
+.stepper.sm li{font-size:.74rem}
+.stepper.sm li::before{top:11px;left:calc(-50% + 14px);right:calc(50% + 14px)}
+.stepper.sm .dot{width:22px;height:22px;font-size:.7rem}
+.stepper.sm .dot svg{width:12px;height:12px}
+
+/* ---------- Wizard ---------- */
+.wiz{padding:28px}
+@media (max-width:639px){.wiz{padding:20px}}
+.wiz-title{font-size:1.25rem;font-weight:800;margin-bottom:20px}
+.wiz-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:28px;padding-top:20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.wiz-hint{font-size:.85rem;color:var(--ink-soft);flex:1;min-width:180px}
+.wiz-btns{display:flex;gap:10px;margin-left:auto}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.ph{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.ph img{width:100%;height:100%;object-fit:cover}
+.ph-tag{position:absolute;left:8px;top:8px;background:var(--navy);color:#fff;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:99px}
+.ph-rm{position:absolute;right:6px;top:6px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,50,.75);color:#fff;display:grid;place-items:center}
+.ph-rm svg{width:14px;height:14px}
+.ph-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px dashed var(--line-strong);background:transparent;color:var(--ink-soft);font-weight:700;font-size:.82rem;cursor:pointer}
+.ph-add:hover{background:var(--surface-2)}
+.ph-add:focus-within{outline:2.5px solid var(--focus);outline-offset:2px}
+.ph-add svg{width:24px;height:24px}
+.progress{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:10px 0 16px}
+.progress i{display:block;height:100%;background:var(--primary);border-radius:99px;transition:width .2s}
+
+/* ---------- Detail ---------- */
+.back{display:inline-flex;align-items:center;gap:6px;margin-bottom:16px;font-weight:700;font-size:.87rem;color:var(--ink-soft)}
+.back svg{width:18px;height:18px}
+.back:hover{color:var(--ink)}
+.detail{display:grid;gap:20px}
+@media (min-width:1000px){.detail{grid-template-columns:minmax(0,1fr) 340px;align-items:start}.aside{position:sticky;top:88px}}
+.aside{display:grid;gap:16px}
+.aside .card + .card{margin-top:0}
+.gallery{display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:8px;height:300px;border-radius:var(--r-m);overflow:hidden}
+@media (max-width:639px){.gallery{height:200px}}
+.gallery > *{background:var(--surface-2);display:grid;place-items:center;color:var(--ink-faint);overflow:hidden;position:relative}
+.gallery > :first-child{grid-row:1/3}
+.gallery img{width:100%;height:100%;object-fit:cover}
+.gallery svg{width:30px;height:30px}
+.gallery .ph-empty{font-size:.8rem;font-weight:600;text-align:center;padding:12px}
+.gallery .ph-empty svg{margin:0 auto 6px}
+.about h2,.aside h2{font-size:1rem;font-weight:700;margin-bottom:12px}
+.price-big{font-size:1.6rem;font-weight:800;letter-spacing:-.02em}
+.price-big small{font-size:.85rem;font-weight:500;color:var(--ink-faint);letter-spacing:0}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px 20px;margin:16px 0}
+.facts dt{font-size:.78rem;color:var(--ink-faint);font-weight:600}
+.facts dd{font-weight:600}
+.side-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.side-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:.88rem}
+.side-list li:first-child{border-top:0}
+
+/* ---------- Settings / account ---------- */
+.two-col{display:grid;gap:20px}
+@media (min-width:900px){.two-col{grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:start}}
+.cols{display:grid;gap:32px}
+.cols .section{margin-top:0}
+@media (min-width:1000px){.cols{grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:start}}
+.profile-head{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.profile-avatar{width:56px;height:56px;border-radius:50%;background:var(--primary);color:var(--on-primary);font-weight:800;font-size:1.1rem;display:grid;place-items:center;flex:none}
+.kv{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-top:1px solid var(--line)}
+.kv:first-of-type{border-top:0}
+.kv dt{color:var(--ink-soft)}
+.kv dd{font-weight:600;text-align:right;overflow-wrap:anywhere}
+.setting{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;border-top:1px solid var(--line)}
+.setting:first-of-type{border-top:0}
+.setting strong{display:block;font-size:.92rem}
+.setting span.d{font-size:.82rem;color:var(--ink-soft)}
+.card h2.card-title{font-size:1rem;font-weight:700;margin-bottom:6px}
+
+/* ---------- Auth ---------- */
+.auth{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px;background:var(--navy)}
+.auth-card{width:100%;max-width:400px;background:var(--surface);border-radius:var(--r-l);padding:32px}
+.auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:24px;font-weight:800;font-size:1.25rem}
+.auth-brand .brand-mark{background:var(--navy);color:var(--lilac)}
+.auth-brand em{font-style:normal;color:var(--wordmark-accent)}
+.auth-card .seg{margin-bottom:20px}
+.auth-card form{display:grid;gap:16px}
+.auth-foot{text-align:center;font-size:.82rem;color:var(--ink-faint);margin-top:18px}
+
+/* ---------- Dialog + toast ---------- */
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(8,8,40,.55);display:grid;place-items:center;padding:16px;animation:fade .15s ease}
+.dialog{width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);padding:24px}
+.dialog h2{font-size:1.15rem;font-weight:800;margin-bottom:8px}
+.dialog p{color:var(--ink-soft);margin-bottom:22px}
+.dialog-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.toast-wrap{position:fixed;left:0;right:0;bottom:24px;z-index:120;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 16px;pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;max-width:440px;padding:12px 18px;border-radius:var(--r-s);background:var(--navy);color:#fff;font-weight:600;font-size:.88rem;box-shadow:0 8px 24px rgba(0,0,40,.35);border:1px solid rgba(255,255,255,.12);animation:fade .2s ease}
+.toast svg{width:18px;height:18px;color:var(--lilac);flex:none}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div id="app"></div>
+<div id="overlayRoot"></div>
+<div class="toast-wrap" id="toastWrap" role="status" aria-live="polite"></div>
+<script>
+/* =====================================================================
+   ICONS: Tabler-style outline paths, inlined so there is no CDN dependency
+   ===================================================================== */
+const P = {
+  home:'<path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/>',
+  store:'<path d="M3 21l18 0"/><path d="M3 7v1a3 3 0 0 0 6 0v-1m0 1a3 3 0 0 0 6 0v-1m0 1a3 3 0 0 0 6 0v-1h-18l2 -4h14l2 4"/><path d="M5 21l0 -10.15"/><path d="M19 21l0 -10.15"/><path d="M9 21v-4a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v4"/>',
+  plus:'<path d="M12 5l0 14"/><path d="M5 12l14 0"/>',
+  check:'<path d="M5 12l5 5l10 -10"/>',
+  x:'<path d="M18 6l-12 12"/><path d="M6 6l12 12"/>',
+  back:'<path d="M5 12l14 0"/><path d="M5 12l6 6"/><path d="M5 12l6 -6"/>',
+  clock:'<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 7v5l3 3"/>',
+  inbox:'<path d="M4 4m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M4 13h3l3 3h4l3 -3h3"/>',
+  shield:'<path d="M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06"/><path d="M15 19l2 2l4 -4"/>',
+  edit:'<path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/>',
+  trash:'<path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/>',
+  photo:'<path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/>',
+  pin:'<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0"/>',
+  alert:'<path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0"/><path d="M12 16h.01"/>',
+  info:'<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 9h.01"/><path d="M11 12h1v4h1"/>',
+  logout:'<path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"/><path d="M9 12h12l-3 -3"/><path d="M18 15l3 -3"/>',
+  sun:'<path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7"/>',
+  moon:'<path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"/>',
+  desktop:'<path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10"/><path d="M7 20h10"/><path d="M9 16l0 4"/><path d="M15 16l0 4"/>',
+  ok:'<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M9 12l2 2l4 -4"/>'
+};
+const icon = n => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]||''}</svg>`;
+
+/* =====================================================================
+   CONSTANTS + DATA
+   ===================================================================== */
+const KEY = 'rentivo_lister_v2';
+const ACCESS_FEE = 5000, MIN_PHOTOS = 3, MAX_PHOTOS = 8;
+const NAV = [
+  {id:'overview',     label:'Overview'},
+  {id:'listings',     label:'Listings'},
+  {id:'requests',     label:'Requests'},
+  {id:'verification', label:'Verification'},
+  {id:'account',      label:'Account'},
+];
+const TITLES = {overview:'Overview',listings:'Listings',listing:'Listing',post:'Post a listing',requests:'Requests',verification:'Verification',account:'Account'};
+const AREAS = ['Bodija','Ring Road','Sango','UI Area (Agbowo)','Dugbe','Mokola','Akobo','Iwo Road','Bashorun','Jericho'];
+const TYPES = {residential:['Self-contain','Flat / Apartment','House'], commercial:['Shop','Office space']};
+const AMENITIES = {
+  residential:['Water','24hr security','Parking','Generator house','Fenced compound','BQ','Gated estate'],
+  commercial:['Water','24hr security','Parking','Elevator','Backup power','Signage space']
+};
+const STAGES = [
+  {k:'requested', t:'Requested', d:'We are arranging a visit with our verification partner.'},
+  {k:'scheduled', t:'Scheduled', d:'An inspection visit has been booked.'},
+  {k:'inspected', t:'Inspected', d:'Inspection done. We are reviewing the checklist.'},
+  {k:'verified',  t:'Verified',  d:'Renters now see the Verified badge on this listing.'},
+];
+
+const uid = () => 'id' + Math.random().toString(36).slice(2,9);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const naira = n => '₦' + Number(n || 0).toLocaleString('en-NG');
+const $ = s => document.querySelector(s);
+
+function freshDraft(){ return {step:1, category:'', type:'', title:'', description:'', price:'', area:'', rooms:'', amenities:[], photos:[], editingId:null}; }
+
+function seedState(){
+  return {
+    theme:'system', authed:true, authTab:'login',
+    user:{name:'Adebayo Okonkwo', phone:'080 3312 4477', email:'adebayo.o@example.com', role:'Landlord', memberSince:'Feb 2026'},
+    settings:{whatsapp:true, sms:true, email:false},
+    ui:{listFilter:'all', reqFilter:'needs'},
+    postDraft:freshDraft(),
+    listings:[
+      {id:'l1', title:'2-Bedroom Self-Contain', category:'residential', type:'Self-contain', area:'Bodija', price:850000, rooms:'2 bedrooms', amenities:['Water','Fenced compound','Parking'], status:'active', verification:'verified', requests:3, photos:[], description:'', createdAt:'12 Feb 2026'},
+      {id:'l2', title:'Shop Space, Ring Road Complex', category:'commercial', type:'Shop', area:'Ring Road', price:450000, rooms:'240 sq ft', amenities:['24hr security','Signage space'], status:'active', verification:'inspected', requests:1, photos:[], description:'', createdAt:'18 Feb 2026'},
+      {id:'l3', title:'3-Bedroom Duplex', category:'residential', type:'House', area:'UI Area (Agbowo)', price:1800000, rooms:'3 bedrooms', amenities:['BQ','Generator house','Gated estate'], status:'active', verification:'none', requests:2, photos:[], description:'', createdAt:'2 Mar 2026'},
+      {id:'l4', title:'Office Suite, Dugbe', category:'commercial', type:'Office space', area:'Dugbe', price:600000, rooms:'3 rooms + reception', amenities:['Elevator','Backup power'], status:'rented', verification:'verified', requests:5, photos:[], description:'', createdAt:'20 Jan 2026'},
+    ],
+    requests:[
+      {id:'r1', listingId:'l1', tenant:'Adaeze O.', kind:'residential', status:'awaiting',    minutes:9,  since:'9 min ago'},
+      {id:'r2', listingId:'l3', tenant:'Femi B.',   kind:'residential', status:'escalated',   minutes:38, since:'38 min ago'},
+      {id:'r3', listingId:'l2', tenant:'Kunle A. (Kunle Fashions)', kind:'business', status:'confirmed', paid:true, minutes:0, since:'Yesterday'},
+      {id:'r4', listingId:'l4', tenant:'Grace E.',  kind:'business', status:'unavailable', minutes:0, since:'3 days ago'},
+    ],
+  };
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const s = Object.assign(seedState(), JSON.parse(raw)); s.ui = Object.assign({listFilter:'all',reqFilter:'needs'}, s.ui); s.settings = Object.assign({whatsapp:true,sms:true,email:false}, s.settings); return s; }
+  }catch(e){ /* storage unavailable: start from seed */ }
+  return seedState();
+}
+let state = load();
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ /* ignore */ } }
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const getListing = id => state.listings.find(l => l.id === id);
+const needsReply = () => state.requests.filter(r => r.status === 'awaiting' || r.status === 'escalated').sort((a,b) => (b.status==='escalated') - (a.status==='escalated') || b.minutes - a.minutes);
+const initials = name => name.split('(')[0].trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase();
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const joinList = a => a.length < 2 ? a.join('') : a.slice(0,-1).join(', ') + ' and ' + a[a.length-1];
+const catIcon = c => icon(c === 'commercial' ? 'store' : 'home');
+
+function route(){
+  const parts = location.hash.replace(/^#\/?/, '').split('/');
+  const a = parts[0] || 'overview';
+  if(!NAV.some(n => n.id === a) && a !== 'post') return {name:'overview'};
+  if(a === 'listings' && parts[1]) return {name:'listing', id:parts[1]};
+  return {name:a, sub:parts[1]};
+}
+function nav(h){ if(location.hash === h){ render(); window.scrollTo(0,0); } else location.hash = h; }
+
+function verifPill(v){
+  if(v === 'verified')  return `<span class="pill pill-verified">${icon('shield')}Verified</span>`;
+  if(v === 'inspected') return `<span class="pill pill-neutral">${icon('clock')}Awaiting approval</span>`;
+  if(v === 'scheduled') return `<span class="pill pill-neutral">${icon('clock')}Inspection booked</span>`;
+  if(v === 'requested') return `<span class="pill pill-neutral">${icon('clock')}Inspection requested</span>`;
+  return `<span class="pill pill-neutral">Not verified</span>`;
+}
+const statusPill = s => s === 'active' ? `<span class="pill pill-success">${icon('check')}Available</span>` : `<span class="pill pill-neutral">Taken</span>`;
+
+function reqStatus(r){
+  if(r.status === 'awaiting')    return {pill:`<span class="pill pill-amber">${icon('clock')}Waiting ${r.minutes} min</span>`, act:true};
+  if(r.status === 'escalated')   return {pill:`<span class="pill pill-coral">${icon('alert')}Overdue, ${r.minutes} min</span>`, act:true};
+  if(r.status === 'confirmed')   return {pill:r.paid ? `<span class="pill pill-success">${icon('check')}Fee paid, contact shared</span>` : `<span class="pill pill-neutral">${icon('clock')}Waiting for renter to pay</span>`, act:false};
+  return {pill:`<span class="pill pill-neutral">Marked as taken</span>`, act:false};
+}
+
+function toast(msg){
+  const w = $('#toastWrap'), t = document.createElement('div');
+  t.className = 'toast'; t.innerHTML = `${icon('ok')}<span>${esc(msg)}</span>`;
+  w.appendChild(t); setTimeout(() => t.remove(), 3000);
+}
+
+/* ---------- Dialog (centered at every width) ---------- */
+let lastFocus = null;
+function openDialog(o){
+  lastFocus = document.activeElement;
+  $('#overlayRoot').innerHTML = `
+  <div class="overlay" id="ovl"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+    <h2 id="dlgTitle">${esc(o.title)}</h2><p>${esc(o.body)}</p>
+    <div class="dialog-actions">
+      <button class="btn btn-secondary" data-action="closeDialog" id="dlgCancel">Cancel</button>
+      <button class="btn ${o.cls||'btn-primary'}" data-action="${o.action}" data-id="${esc(o.id||'')}" id="dlgOk">${esc(o.confirm)}</button>
+    </div></div></div>`;
+  $('#ovl').addEventListener('click', e => { if(e.target.id === 'ovl') closeDialog(); });
+  (o.focusCancel ? $('#dlgCancel') : $('#dlgOk')).focus();
+}
+function closeDialog(){
+  const o = $('#ovl'); if(!o) return;
+  o.remove();
+  if(lastFocus && document.contains(lastFocus)) lastFocus.focus();
+}
+document.addEventListener('keydown', e => {
+  const o = $('#ovl'); if(!o) return;
+  if(e.key === 'Escape') closeDialog();
+  if(e.key === 'Tab'){
+    const f = [...o.querySelectorAll('button')]; const first = f[0], last = f[f.length-1];
+    if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
+});
+
+/* =====================================================================
+   SHARED PIECES
+   ===================================================================== */
+function header(R){
+  const cur = R.name === 'listing' ? 'listings' : R.name;
+  const n = needsReply().length;
+  return `
+  <header class="topbar"><div class="topbar-in">
+    <a class="brand" href="#/overview" aria-label="Rentivo, go to overview"><span class="brand-mark">${icon('home')}</span><span class="brand-word">RENT<em>ivo</em></span></a>
+    <nav class="mainnav" id="mainNav" aria-label="Main"><div class="mainnav-scroll" id="navScroll">
+      ${NAV.map(i => `<a class="navlink" href="#/${i.id}" ${cur === i.id ? 'aria-current="page"' : ''}>${i.label}${i.id === 'requests' && n ? `<span class="count" aria-label="${n} waiting for your reply">${n}</span>` : ''}</a>`).join('')}
+    </div></nav>
+    <div class="top-actions"><a class="btn btn-accent" href="#/post/new">${icon('plus')}Post a listing</a></div>
+  </div></header>`;
+}
+
+const pageHead = (title, lede, actions='') => `
+  <div class="page-head"><div><h1 id="pageTitle" tabindex="-1">${title}</h1>${lede ? `<p class="lede">${lede}</p>` : ''}</div>${actions ? `<div>${actions}</div>` : ''}</div>`;
+
+const emptyState = (ic, title, body, cta='') => `<div class="empty">${icon(ic)}<h3>${title}</h3><p>${body}</p>${cta}</div>`;
+
+function thumb(l){ return `<div class="thumb">${l.photos && l.photos[0] ? `<img src="${l.photos[0]}" alt="">` : catIcon(l.category)}</div>`; }
+
+function sw(id, on, action, dataId, label, aria){
+  return `<label class="sw"><input type="checkbox" role="switch" ${on?'checked':''} data-action="${action}" data-id="${esc(dataId)}" data-fk="${id}" ${label?'':`aria-label="${esc(aria||id)}"`}><span class="sw-track"></span>${label?`<span class="sw-text">${label}</span>`:''}</label>`;
+}
+
+function listingRow(l){
+  const meta = [l.area && `<span>${icon('pin')}${esc(l.area)}</span>`, l.rooms && `<span>${esc(l.rooms)}</span>`, l.type && `<span>${esc(l.type)}</span>`].filter(Boolean).join('');
+  return `
+  <article class="lrow">
+    ${thumb(l)}
+    <div class="lrow-main"><h3><a href="#/listings/${l.id}">${esc(l.title)}</a></h3><p class="meta">${meta}</p></div>
+    <div class="lrow-stats">
+      <div class="lrow-price">${naira(l.price)}<small>per year</small></div>
+      <div class="lrow-req">${icon('inbox')}${plural(l.requests,'request')}</div>
+      <div>${verifPill(l.verification)}</div>
+      ${sw('sw-'+l.id, l.status==='active', 'toggleStatus', l.id, l.status==='active' ? 'Available' : 'Taken')}
+    </div>
+  </article>`;
+}
+const listingsHead = () => `<div class="lhead" aria-hidden="true"><span></span><span>Property</span><span>Yearly rent</span><span>Requests</span><span>Verification</span><span>Availability</span></div>`;
+
+function reqCard(r){
+  const l = getListing(r.listingId), s = reqStatus(r);
+  const first = r.tenant.split(' ')[0];
+  return `
+  <article class="req">
+    <div class="req-head">
+      <div class="who"><span class="ini" aria-hidden="true">${esc(initials(r.tenant))}</span><div><strong>${esc(r.tenant)}</strong><span>${r.kind === 'business' ? 'Business renter' : 'Residential tenant'}</span></div></div>
+      ${s.pill}
+    </div>
+    <p class="req-for">Wants access to ${l ? `<a href="#/listings/${l.id}">${esc(l.title)}</a>` : 'a listing you removed'}</p>
+    ${r.status === 'escalated' ? `<div class="req-alert">You did not reply in time, so our support team is calling ${esc(first)} directly. You can still confirm below.</div>` : ''}
+    ${s.act ? `<div class="req-actions">
+      <button class="btn btn-success btn-sm" data-action="confirmAvail" data-id="${r.id}">${icon('check')}Still available</button>
+      <button class="btn btn-secondary btn-sm" data-action="denyAvail" data-id="${r.id}">${icon('x')}No longer available</button>
+    </div>` : `<p class="hint">${esc(r.since)}</p>`}
+  </article>`;
+}
+
+function verifTrack(v, small){
+  const idx = ['none','requested','scheduled','inspected','verified'].indexOf(v);
+  return `<ol class="stepper ${small?'sm':''}" aria-label="Verification progress">${STAGES.map((s,i) => {
+    const n = i + 1;
+    const cls = v === 'verified' || n < idx ? 'done' : n === idx ? 'now' : '';
+    return `<li class="${cls}" ${cls==='now'?'aria-current="step"':''}><div class="step-in"><span class="dot">${cls==='done' ? icon('check') : n}</span><span>${s.t}</span></div></li>`;
+  }).join('')}</ol>`;
+}
+const stageText = v => (STAGES.find(s => s.k === v) || {}).d || '';
+
+function gallery(photos, cat){
+  const p = photos || [];
+  const tile = i => p[i] ? `<div><img src="${p[i]}" alt="Property photo ${i+1}"></div>` : `<div>${i === 0 ? `<div class="ph-empty">${icon('photo')}${p.length ? '' : 'No photos yet'}</div>` : icon('photo')}</div>`;
+  return `<div class="gallery">${tile(0)}${tile(1)}${tile(2)}</div>`;
+}
+
+/* =====================================================================
+   VIEWS
+   ===================================================================== */
+function viewAuth(){
+  const login = state.authTab === 'login';
+  return `
+  <div class="auth"><div class="auth-card">
+    <div class="auth-brand"><span class="brand-mark">${icon('home')}</span><span>RENT<em>ivo</em></span></div>
+    <div class="seg block" role="group" aria-label="Log in or sign up">
+      <button aria-pressed="${login}" data-action="authTab" data-tab="login">Log in</button>
+      <button aria-pressed="${!login}" data-action="authTab" data-tab="signup">Sign up</button>
+    </div>
+    <form data-action="authSubmit">
+      ${login ? '' : `<div class="field"><label for="a-name">Full name</label><input class="input" id="a-name" autocomplete="name" placeholder="e.g. Adebayo Okonkwo" required></div>`}
+      <div class="field"><label for="a-phone">Phone number</label><input class="input" id="a-phone" type="tel" autocomplete="tel" placeholder="080 000 0000" required></div>
+      ${login ? '' : `<div class="field"><label for="a-email">Email</label><input class="input" id="a-email" type="email" autocomplete="email" placeholder="you@example.com" required></div>`}
+      <div class="field"><label for="a-pass">Password</label><input class="input" id="a-pass" type="password" autocomplete="${login?'current-password':'new-password'}" required></div>
+      <button class="btn btn-primary" type="submit">${login ? 'Log in' : 'Create account'}</button>
+    </form>
+    <p class="auth-foot">Listing on Rentivo is free for landlords and agents.</p>
+  </div></div>`;
+}
+
+/* ---------- Overview ---------- */
+function viewOverview(){
+  const L = state.listings, need = needsReply();
+  const active = L.filter(l => l.status === 'active').length;
+  const verified = L.filter(l => l.verification === 'verified').length;
+  const total = L.reduce((a,l) => a + l.requests, 0);
+  const lede = need.length ? `${plural(need.length,'renter')} ${need.length === 1 ? 'is' : 'are'} waiting for you to confirm a property is still available.` : 'No renters are waiting on you right now.';
+  return `
+  ${pageHead('Welcome back, ' + esc(state.user.name.split(' ')[0]), lede)}
+  <div class="stats">
+    <a class="stat" href="#/listings"><b>${active}</b><span>Active listings</span></a>
+    <a class="stat" href="#/verification"><b>${verified}</b><span>Verified</span></a>
+    <a class="stat" href="#/requests"><b>${total}</b><span>Total requests</span></a>
+    <a class="stat" href="#/requests"><b class="${need.length?'warn':''}">${need.length}</b><span>Waiting for your reply</span></a>
+  </div>
+  <div class="cols" style="margin-top:32px">
+    <section class="section" aria-labelledby="h-need">
+      <div class="section-head"><h2 id="h-need">Needs your reply</h2><a class="link" href="#/requests">All requests</a></div>
+      ${need.length ? `<div class="stack">${need.map(reqCard).join('')}</div>` : emptyState('ok','You are all caught up','New access requests appear here as soon as a renter picks one of your listings.')}
+    </section>
+    <section class="section" aria-labelledby="h-list">
+      <div class="section-head"><h2 id="h-list">Your listings</h2><a class="link" href="#/listings">All listings</a></div>
+      ${L.length ? `<div class="lrows">${L.slice(0,4).map(l => `
+        <a class="mini" href="#/listings/${l.id}">${thumb(l)}
+          <div class="mini-main"><strong>${esc(l.title)}</strong><span>${naira(l.price)} per year</span></div>${statusPill(l.status)}</a>`).join('')}</div>`
+        : emptyState('home','No listings yet','Post your first property to start reaching renters.', `<a class="btn btn-primary" href="#/post/new">${icon('plus')}Post a listing</a>`)}
+    </section>
+  </div>`;
+}
+
+/* ---------- Listings ---------- */
+function viewListings(){
+  const L = state.listings, f = state.ui.listFilter;
+  const c = {all:L.length, active:L.filter(l => l.status==='active').length, rented:L.filter(l => l.status==='rented').length};
+  const shown = f === 'all' ? L : L.filter(l => l.status === f);
+  const tab = (k, t) => `<button aria-pressed="${f===k}" data-action="filterListings" data-f="${k}" data-fk="lf-${k}">${t} <span class="n">${c[k]}</span></button>`;
+  return `
+  ${pageHead('Listings', 'Every property you have posted. Switch a listing to Taken as soon as it is rented.')}
+  <div class="seg" role="group" aria-label="Filter listings" style="margin-bottom:16px">${tab('all','All')}${tab('active','Available')}${tab('rented','Taken')}</div>
+  ${shown.length ? `<div class="lrows">${listingsHead()}${shown.map(listingRow).join('')}</div>` :
+    L.length ? emptyState('home', f === 'active' ? 'Nothing available right now' : 'No taken listings', f === 'active' ? 'Switch a listing back to Available when it is free again.' : 'Listings you mark as Taken appear here.')
+             : emptyState('home','No listings yet','Post your first property to start reaching renters and business owners across Ibadan.', `<a class="btn btn-primary" href="#/post/new">${icon('plus')}Post a listing</a>`)}`;
+}
+
+/* ---------- Listing detail ---------- */
+function viewListing(id){
+  const l = getListing(id);
+  if(!l) return viewListings();
+  const mine = state.requests.filter(r => r.listingId === l.id);
+  const facts = [['Type', l.type], [l.category === 'commercial' ? 'Floor size' : 'Rooms', l.rooms], ['Area', l.area], ['Posted', l.createdAt]].filter(f => f[1]);
+  return `
+  <a class="back" href="#/listings">${icon('back')}Back to listings</a>
+  ${pageHead(esc(l.title), `<span style="display:inline-flex;align-items:center;gap:6px">${icon('pin').replace('<svg','<svg width="16" height="16"')}${esc(l.area)}</span>`,
+    `<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-secondary" data-action="editListing" data-id="${l.id}">${icon('edit')}Edit listing</button><button class="btn btn-danger" data-action="confirmDelete" data-id="${l.id}">${icon('trash')}Delete</button></div>`)}
+  <div class="detail">
+    <div>
+      ${gallery(l.photos, l.category)}
+      <section class="card card-pad about" style="margin-top:16px">
+        <div class="price-big">${naira(l.price)} <small>per year</small></div>
+        <dl class="facts">${facts.map(f => `<div><dt>${f[0]}</dt><dd>${esc(f[1])}</dd></div>`).join('')}</dl>
+        <h2>About this property</h2>
+        <p class="${l.description ? '' : 'muted'}" style="margin-bottom:16px">${l.description ? esc(l.description) : 'No description yet. Use Edit listing to add one so renters know what to expect.'}</p>
+        ${(l.amenities||[]).length ? `<div class="chips" aria-label="Amenities">${l.amenities.map(a => `<span class="tag">${esc(a)}</span>`).join('')}</div>` : ''}
+      </section>
+    </div>
+    <aside class="aside">
+      <section class="card card-pad">
+        <h2>Availability</h2>
+        <div class="side-row">${sw('sw-d-'+l.id, l.status==='active','toggleStatus',l.id, l.status==='active'?'Available':'Taken')}${statusPill(l.status)}</div>
+        <p class="hint" style="margin-top:10px">Switch to Taken once this property is rented so renters stop asking for it.</p>
+      </section>
+      <section class="card card-pad">
+        <h2>Verification</h2>
+        ${l.verification === 'none' ? `
+          <p class="muted" style="margin-bottom:14px">Not verified yet. A short inspection earns the Verified badge, which tells renters the property has been checked.</p>
+          <button class="btn btn-primary btn-sm" data-action="requestVerification" data-id="${l.id}">Request free inspection</button>`
+        : `<div>${verifPill(l.verification)}</div>${verifTrack(l.verification, true)}<p class="hint" style="margin-top:14px">${stageText(l.verification)}</p>`}
+      </section>
+      <section class="card card-pad">
+        <h2>Requests</h2>
+        <p class="muted">${plural(l.requests,'renter')} asked for access in total.</p>
+        ${mine.length ? `<ul class="side-list" style="margin-top:8px">${mine.map(r => `<li><span>${esc(r.tenant.split('(')[0].trim())}</span>${reqStatus(r).pill}</li>`).join('')}</ul>` : ''}
+        <a class="link" href="#/requests" style="display:inline-block;margin-top:12px">Go to requests</a>
+      </section>
+    </aside>
+  </div>`;
+}
+
+/* ---------- Post / edit wizard ---------- */
+function stepMissing(d, step){
+  if(step === 1){ if(!d.category) return 'Choose a category to continue.'; if(!d.type) return 'Choose a property type to continue.'; }
+  if(step === 2){
+    const m = []; if(!d.title.trim()) m.push('a title'); if(!(Number(d.price) > 0)) m.push('the yearly rent'); if(!d.area) m.push('the area');
+    if(m.length) return 'Add ' + joinList(m) + ' to continue.';
+  }
+  if(step === 3 && !d.editingId && d.photos.length < MIN_PHOTOS) return `Add ${plural(MIN_PHOTOS - d.photos.length,'more photo')} to continue.`;
+  return '';
+}
+const hasDraft = d => d.editingId || d.step > 1 || d.category || d.title || d.price || d.photos.length;
+
+function wizFoot(d, nextLabel, nextAction){
+  const miss = nextAction === 'wizardNext' ? stepMissing(d, d.step) : '';
+  return `<div class="wiz-foot">
+    <p class="wiz-hint" id="wizHint">${miss || 'Changes are saved on this device as you go.'}</p>
+    <div class="wiz-btns">
+      ${d.step > 1 ? `<button class="btn btn-secondary" data-action="wizardBack">Back</button>` : ''}
+      <button class="btn btn-primary" data-action="${nextAction}" ${miss ? 'disabled aria-describedby="wizHint"' : ''}>${nextLabel}</button>
+    </div></div>`;
+}
+
+function viewPost(){
+  const d = state.postDraft, names = ['Category','Details','Photos','Review'];
+  const titles = ['What are you listing?','Property details','Add photos','Review and publish'];
+  const body = [postStep1, postStep2, postStep3, postStep4][d.step - 1](d);
+  return `
+  ${pageHead(d.editingId ? 'Edit listing' : 'Post a listing', d.editingId ? 'Update what renters see.' : 'Listing is free and takes about three minutes.',
+    hasDraft(d) ? `<button class="btn btn-ghost btn-sm" data-action="discardDraft">${d.editingId ? 'Cancel editing' : 'Discard draft'}</button>` : '')}
+  <ol class="stepper" aria-label="Progress">${names.map((n,i) => {
+    const s = i + 1, cls = s < d.step ? 'done' : s === d.step ? 'now' : '';
+    const inner = `<span class="dot">${cls==='done' ? icon('check') : s}</span><span>${n}</span>`;
+    return `<li class="${cls}" ${cls==='now'?'aria-current="step"':''}>${cls==='done' ? `<button class="step-in" data-action="wizardGo" data-step="${s}" data-fk="step-${s}" aria-label="Back to ${n}">${inner}</button>` : `<div class="step-in">${inner}</div>`}</li>`;
+  }).join('')}</ol>
+  <section class="card wiz" aria-labelledby="stepTitle"><h2 class="wiz-title" id="stepTitle" tabindex="-1">${titles[d.step-1]}</h2>${body}</section>`;
+}
+
+function postStep1(d){
+  return `
+  <div class="field" style="margin-bottom:24px"><span class="label" id="lb-cat">Property category</span>
+    <div class="choices" role="group" aria-labelledby="lb-cat">
+      <button class="choice" aria-pressed="${d.category==='residential'}" data-action="draftSet" data-k="category" data-v="residential" data-fk="cat-r"><span class="ic">${icon('home')}</span><span><strong>Residential</strong><span class="d">Self-contains, flats and houses to live in.</span></span></button>
+      <button class="choice" aria-pressed="${d.category==='commercial'}" data-action="draftSet" data-k="category" data-v="commercial" data-fk="cat-c"><span class="ic">${icon('store')}</span><span><strong>Commercial</strong><span class="d">Shops and offices for businesses.</span></span></button>
+    </div></div>
+  ${d.category ? `<div class="field"><span class="label" id="lb-type">Property type</span><div class="chips" role="group" aria-labelledby="lb-type">
+    ${TYPES[d.category].map(t => `<button class="chip" aria-pressed="${d.type===t}" data-action="draftSet" data-k="type" data-v="${esc(t)}" data-fk="type-${esc(t)}">${d.type===t ? icon('check') : ''}${esc(t)}</button>`).join('')}</div></div>` : ''}
+  ${wizFoot(d, 'Continue', 'wizardNext')}`;
+}
+
+function postStep2(d){
+  const com = d.category === 'commercial';
+  return `
+  <div class="form-grid two">
+    <div class="field span-2"><label for="f-title">Listing title</label><input class="input" id="f-title" data-action="draftInput" data-k="title" value="${esc(d.title)}" placeholder="e.g. 2-Bedroom Self-Contain, Bodija" autocomplete="off"></div>
+    <div class="field"><label for="f-price">Yearly rent (₦)</label><input class="input" id="f-price" type="number" inputmode="numeric" min="0" data-action="draftInput" data-k="price" value="${esc(d.price)}" placeholder="e.g. 850000"><span class="hint" id="priceHint">${Number(d.price) > 0 ? naira(d.price) + ' per year' : 'Rent for one year, in naira.'}</span></div>
+    <div class="field"><label for="f-area">Area in Ibadan</label><select class="select" id="f-area" data-action="draftInput" data-k="area"><option value="">Select an area</option>${AREAS.map(a => `<option ${d.area===a?'selected':''}>${esc(a)}</option>`).join('')}</select></div>
+    <div class="field span-2"><label for="f-rooms">${com ? 'Floor size' : 'Rooms'} <span class="opt">(optional)</span></label><input class="input" id="f-rooms" data-action="draftInput" data-k="rooms" value="${esc(d.rooms)}" placeholder="${com ? 'e.g. 300 sq ft' : 'e.g. 2 bedrooms'}" autocomplete="off"></div>
+    <div class="field span-2"><label for="f-desc">Description <span class="opt">(optional)</span></label><textarea class="textarea" id="f-desc" data-action="draftInput" data-k="description" placeholder="Layout, condition, nearby landmarks">${esc(d.description)}</textarea></div>
+    <div class="field span-2"><span class="label" id="lb-am">Amenities <span class="opt">(optional)</span></span><div class="chips" role="group" aria-labelledby="lb-am">
+      ${(AMENITIES[d.category] || []).map(a => `<button class="chip" aria-pressed="${d.amenities.includes(a)}" data-action="toggleAmenity" data-v="${esc(a)}" data-fk="am-${esc(a)}">${d.amenities.includes(a) ? icon('check') : ''}${esc(a)}</button>`).join('')}</div></div>
+  </div>
+  ${wizFoot(d, 'Continue', 'wizardNext')}`;
+}
+
+function postStep3(d){
+  const n = d.photos.length, pct = Math.min(100, Math.round(n / MIN_PHOTOS * 100));
+  return `
+  <p class="muted">${d.editingId ? 'Add or remove photos.' : `Add at least ${MIN_PHOTOS} photos.`} Bright, uncluttered shots of the main rooms help renters decide. The first photo is the cover.</p>
+  <div class="progress" aria-hidden="true"><i style="width:${pct}%"></i></div>
+  <div class="photos">
+    ${d.photos.map((p,i) => `<div class="ph"><img src="${p}" alt="Photo ${i+1}">${i===0 ? '<span class="ph-tag">Cover</span>' : ''}<button class="ph-rm" data-action="removePhoto" data-i="${i}" aria-label="Remove photo ${i+1}">${icon('x')}</button></div>`).join('')}
+    ${n < MAX_PHOTOS ? `<label class="ph ph-add">${icon('plus')}<span>Add photos</span><input class="sr" type="file" accept="image/*" multiple data-action="addPhoto"></label>` : ''}
+  </div>
+  <p class="hint" style="margin-top:10px">${n} added${d.editingId ? '' : `, ${MIN_PHOTOS} needed`}. Up to ${MAX_PHOTOS}.</p>
+  ${wizFoot(d, 'Continue', 'wizardNext')}`;
+}
+
+function postStep4(d){
+  const facts = [['Type', d.type], [d.category==='commercial' ? 'Floor size' : 'Rooms', d.rooms], ['Area', d.area]].filter(f => f[1]);
+  return `
+  ${gallery(d.photos, d.category)}
+  <div style="margin-top:20px">
+    <h3 style="font-size:1.15rem;font-weight:800">${esc(d.title)}</h3>
+    <div class="price-big" style="margin-top:6px">${naira(d.price)} <small>per year</small></div>
+    <dl class="facts">${facts.map(f => `<div><dt>${f[0]}</dt><dd>${esc(f[1])}</dd></div>`).join('')}</dl>
+    ${d.description ? `<p style="margin-bottom:14px">${esc(d.description)}</p>` : ''}
+    ${d.amenities.length ? `<div class="chips">${d.amenities.map(a => `<span class="tag">${esc(a)}</span>`).join('')}</div>` : ''}
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:20px">
+    <button class="btn btn-secondary btn-sm" data-action="wizardGo" data-step="1">Edit category</button>
+    <button class="btn btn-secondary btn-sm" data-action="wizardGo" data-step="2">Edit details</button>
+    <button class="btn btn-secondary btn-sm" data-action="wizardGo" data-step="3">Edit photos</button>
+  </div>
+  <div class="note" style="margin:20px 0 0">${icon('info')}<p>${d.editingId ? 'Your changes go live as soon as you save.' : 'Your listing goes live as soon as you publish. You can request a verification inspection any time from the Verification page.'}</p></div>
+  ${wizFoot(d, d.editingId ? 'Save changes' : 'Publish listing', 'publishListing')}`;
+}
+
+/* ---------- Requests ---------- */
+function viewRequests(){
+  const R = state.requests, f = state.ui.reqFilter;
+  const groups = {needs:needsReply(), confirmed:R.filter(r => r.status==='confirmed'), closed:R.filter(r => r.status==='unavailable'), all:R};
+  const tab = (k, t) => `<button aria-pressed="${f===k}" data-action="filterRequests" data-f="${k}" data-fk="rf-${k}">${t} <span class="n">${groups[k].length}</span></button>`;
+  const shown = groups[f] || R;
+  const empties = {
+    needs:['ok','Nothing waiting on you','When a renter wants to move forward, you will be asked here.'],
+    confirmed:['inbox','No confirmed requests yet','Requests you confirm appear here.'],
+    closed:['inbox','No closed requests','Requests you mark as no longer available appear here.'],
+    all:['inbox','No access requests yet','Requests appear here the moment a renter picks your listing to move forward.']
+  }[f];
+  return `
+  ${pageHead('Requests', 'Renters who want to move forward on one of your listings.')}
+  <div class="note">${icon('info')}<p><strong>How it works.</strong> Confirm the property is still available and the renter pays a ${naira(ACCESS_FEE)} access fee to get your contact details. If it is taken, they are told at no charge.</p></div>
+  <div class="seg" role="group" aria-label="Filter requests" style="margin-bottom:16px">${tab('needs','Needs reply')}${tab('confirmed','Confirmed')}${tab('closed','Closed')}${tab('all','All')}</div>
+  ${shown.length ? `<div class="req-grid">${shown.map(reqCard).join('')}</div>` : emptyState(...empties)}`;
+}
+
+/* ---------- Verification ---------- */
+function viewVerification(){
+  const L = state.listings;
+  const groups = [
+    ['Not verified', L.filter(l => l.verification === 'none')],
+    ['In progress',  L.filter(l => ['requested','scheduled','inspected'].includes(l.verification))],
+    ['Verified',     L.filter(l => l.verification === 'verified')],
+  ];
+  const card = l => `
+    <article class="card card-pad">
+      <div class="req-head"><div><h3 style="font-size:.98rem;font-weight:700"><a href="#/listings/${l.id}">${esc(l.title)}</a></h3><p class="meta"><span>${icon('pin')}${esc(l.area)}</span></p></div>${verifPill(l.verification)}</div>
+      ${l.verification === 'none'
+        ? `<p class="muted" style="margin:14px 0">A short inspection earns the Verified badge.</p><button class="btn btn-primary btn-sm" data-action="requestVerification" data-id="${l.id}">Request free inspection</button>`
+        : `${verifTrack(l.verification)}<p class="hint" style="text-align:center">${stageText(l.verification)}</p>`}
+    </article>`;
+  return `
+  ${pageHead('Verification', 'A short physical inspection earns your listing the Verified badge, so renters know it has been checked.')}
+  ${L.length ? groups.filter(g => g[1].length).map(g => `
+    <section class="section" style="margin-top:0;margin-bottom:28px"><div class="section-head"><h2>${g[0]} <span class="n">${g[1].length}</span></h2></div>
+      <div class="req-grid">${g[1].map(card).join('')}</div></section>`).join('')
+    : emptyState('shield','No listings to verify','Post a listing first, then request an inspection here.', `<a class="btn btn-primary" href="#/post/new">${icon('plus')}Post a listing</a>`)}`;
+}
+
+/* ---------- Account ---------- */
+function viewAccount(){
+  const u = state.user, s = state.settings;
+  const set = (k, t, d) => `<div class="setting"><div><strong>${t}</strong><span class="d">${d}</span></div>${sw('set-'+k, s[k], 'setSetting', k, '', t)}</div>`;
+  const th = (k, ic, t) => `<button aria-pressed="${state.theme===k}" data-action="setTheme" data-v="${k}" data-fk="th-${k}">${icon(ic)}${t}</button>`;
+  return `
+  ${pageHead('Account', 'Your details and preferences.')}
+  <div class="two-col">
+    <section class="card card-pad" aria-labelledby="h-prof">
+      <div class="profile-head"><div class="profile-avatar" aria-hidden="true">${esc(initials(u.name))}</div><div><h2 class="card-title" id="h-prof" style="margin:0">${esc(u.name)}</h2><span class="muted">${esc(u.role)}, member since ${esc(u.memberSince)}</span></div></div>
+      <dl><div class="kv"><dt>Phone</dt><dd>${esc(u.phone)}</dd></div><div class="kv"><dt>Email</dt><dd>${esc(u.email)}</dd></div><div class="kv"><dt>Role</dt><dd>${esc(u.role)}</dd></div></dl>
+    </section>
+    <div>
+      <section class="card card-pad"><h2 class="card-title">Notifications</h2>
+        ${set('whatsapp','WhatsApp availability checks','Messages when a renter wants to move forward.')}
+        ${set('sms','SMS fallback','Sent if the WhatsApp message is not delivered.')}
+        ${set('email','Email summaries','A recap of your listings and requests.')}
+      </section>
+      <section class="card card-pad"><h2 class="card-title" style="margin-bottom:12px">Appearance</h2>
+        <div class="seg block" role="group" aria-label="Theme">${th('light','sun','Light')}${th('dark','moon','Dark')}${th('system','desktop','System')}</div>
+      </section>
+      <button class="btn btn-danger" style="margin-top:16px" data-action="logout">${icon('logout')}Log out</button>
+    </div>
+  </div>`;
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function applyTheme(){
+  const r = document.documentElement;
+  if(state.theme === 'light' || state.theme === 'dark') r.setAttribute('data-theme', state.theme); else r.removeAttribute('data-theme');
+}
+function updateNavFade(){
+  const s = document.getElementById('navScroll'); if(!s) return;
+  const nav = s.parentElement, max = s.scrollWidth - s.clientWidth;
+  nav.classList.toggle('fade-r', max > 2 && s.scrollLeft < max - 2);
+  nav.classList.toggle('fade-l', s.scrollLeft > 2);
+}
+function render(){
+  applyTheme(); save();
+  const fk = document.activeElement && document.activeElement.getAttribute ? document.activeElement.getAttribute('data-fk') : null;
+  const app = $('#app');
+  if(!state.authed){ app.innerHTML = viewAuth(); document.title = 'Rentivo | Log in'; return; }
+  const R = route();
+  const views = {overview:viewOverview, listings:viewListings, listing:() => viewListing(R.id), post:viewPost, requests:viewRequests, verification:viewVerification, account:viewAccount};
+  app.innerHTML = header(R) + `<main id="main" class="page ${R.name === 'post' ? 'narrow' : ''}">${views[R.name]()}</main>`;
+  document.title = (TITLES[R.name] || 'Rentivo') + ' | Rentivo';
+  const s = document.getElementById('navScroll');
+  if(s){
+    const a = s.querySelector('[aria-current]');
+    if(a && s.scrollWidth > s.clientWidth) s.scrollLeft = a.offsetLeft - (s.clientWidth - a.offsetWidth) / 2;
+    s.addEventListener('scroll', updateNavFade, {passive:true});
+    updateNavFade();
+  }
+  if(fk){ const el = document.querySelector(`[data-fk="${CSS.escape(fk)}"]`); if(el) el.focus({preventScroll:true}); }
+}
+window.addEventListener('resize', updateNavFade);
+
+function focusHeading(id){ const h = document.getElementById(id); if(h) h.focus({preventScroll:true}); }
+
+function normaliseHash(){
+  const R = route();
+  if(R.name === 'post' && R.sub === 'new'){
+    if(state.postDraft.editingId) state.postDraft = freshDraft();
+    try{ history.replaceState(null, '', '#/post'); }catch(e){ location.hash = '#/post'; }
+  }
+}
+window.addEventListener('hashchange', () => { normaliseHash(); render(); window.scrollTo(0,0); focusHeading('pageTitle'); });
+
+/* =====================================================================
+   EVENTS
+   ===================================================================== */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-action]'); if(!el) return;
+  if(el.matches('input,select,textarea,form')) return;
+  const A = actions[el.dataset.action]; if(A) A(el, e);
+});
+document.addEventListener('change', e => {
+  const el = e.target.closest('[data-action]'); if(!el || !el.matches('input,select,textarea')) return;
+  const A = actions[el.dataset.action]; if(A) A(el, e);
+});
+document.addEventListener('input', e => {
+  const el = e.target.closest('[data-action="draftInput"]'); if(el) actions.draftInput(el);
+});
+document.addEventListener('submit', e => {
+  const f = e.target.closest('form[data-action]'); if(!f) return;
+  e.preventDefault(); const A = actions[f.dataset.action]; if(A) A(f, e);
+});
+
+function fileToDataURL(file, max = 1100, q = .78){
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', q));
+      };
+      img.onerror = () => res(r.result); img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+const actions = {
+  /* auth + account */
+  authTab(el){ state.authTab = el.dataset.tab; render(); },
+  authSubmit(){ state.authed = true; if(!location.hash) location.hash = '#/overview'; render(); toast('Welcome to Rentivo'); },
+  logout(){ state.authed = false; render(); },
+  setTheme(el){ state.theme = el.dataset.v; render(); },
+  setSetting(el){ state.settings[el.dataset.id] = el.checked; save(); toast('Notification preference saved'); },
+
+  /* filters */
+  filterListings(el){ state.ui.listFilter = el.dataset.f; render(); },
+  filterRequests(el){ state.ui.reqFilter = el.dataset.f; render(); },
+
+  /* listings */
+  toggleStatus(el){
+    const l = getListing(el.dataset.id); if(!l) return;
+    l.status = l.status === 'active' ? 'rented' : 'active'; render();
+    toast(l.status === 'active' ? 'Listing marked as available' : 'Listing marked as taken');
+  },
+  editListing(el){
+    const l = getListing(el.dataset.id); if(!l) return;
+    state.postDraft = {step:2, category:l.category, type:l.type, title:l.title, description:l.description || '', price:l.price, area:l.area, rooms:l.rooms || '', amenities:[...(l.amenities||[])], photos:[...(l.photos||[])], editingId:l.id};
+    nav('#/post');
+  },
+  confirmDelete(el){ openDialog({title:'Delete this listing?', body:'This cannot be undone. Renters will no longer find it or ask for access.', confirm:'Delete listing', cls:'btn-danger-solid', action:'doDelete', id:el.dataset.id, focusCancel:true}); },
+  doDelete(el){ state.listings = state.listings.filter(l => l.id !== el.dataset.id); closeDialog(); nav('#/listings'); toast('Listing deleted'); },
+  closeDialog(){ closeDialog(); },
+  requestVerification(el){
+    const l = getListing(el.dataset.id); if(!l) return;
+    l.verification = 'requested'; render(); toast('Inspection requested. We will contact you to schedule it.');
+  },
+
+  /* wizard */
+  draftSet(el){
+    const d = state.postDraft, {k, v} = el.dataset;
+    if(k === 'category' && d.category !== v){ d.type = ''; d.amenities = []; }
+    d[k] = v; render();
+  },
+  draftInput(el){
+    state.postDraft[el.dataset.k] = el.value; save();
+    if(el.dataset.k === 'price'){ const h = $('#priceHint'); if(h) h.textContent = Number(el.value) > 0 ? naira(el.value) + ' per year' : 'Rent for one year, in naira.'; }
+    const btn = document.querySelector('.wiz-btns .btn-primary'), hint = $('#wizHint'), d = state.postDraft;
+    if(btn && hint && d.step === 2){ const m = stepMissing(d, 2); btn.disabled = !!m; hint.textContent = m || 'Changes are saved on this device as you go.'; }
+  },
+  toggleAmenity(el){ const a = state.postDraft.amenities, v = el.dataset.v, i = a.indexOf(v); if(i > -1) a.splice(i,1); else a.push(v); render(); },
+  async addPhoto(el){
+    const d = state.postDraft, files = [...el.files].slice(0, MAX_PHOTOS - d.photos.length);
+    if(!files.length) return;
+    const urls = await Promise.all(files.map(f => fileToDataURL(f)));
+    d.photos.push(...urls); render();
+  },
+  removePhoto(el){ state.postDraft.photos.splice(+el.dataset.i, 1); render(); },
+  wizardNext(){ const d = state.postDraft; if(stepMissing(d, d.step)) return; d.step = Math.min(4, d.step + 1); render(); window.scrollTo(0,0); focusHeading('stepTitle'); },
+  wizardBack(){ const d = state.postDraft; d.step = Math.max(1, d.step - 1); render(); window.scrollTo(0,0); focusHeading('stepTitle'); },
+  wizardGo(el){ state.postDraft.step = +el.dataset.step; render(); window.scrollTo(0,0); focusHeading('stepTitle'); },
+  discardDraft(){
+    const edit = !!state.postDraft.editingId;
+    openDialog({title: edit ? 'Cancel editing?' : 'Discard this draft?', body: edit ? 'Your changes to this listing will be lost.' : 'Everything you have entered so far will be removed.', confirm: edit ? 'Cancel editing' : 'Discard draft', cls:'btn-danger-solid', action:'doDiscard', focusCancel:true});
+  },
+  doDiscard(){ const edit = !!state.postDraft.editingId; state.postDraft = freshDraft(); closeDialog(); if(edit) nav('#/listings'); else { render(); window.scrollTo(0,0); } },
+  publishListing(){
+    const d = state.postDraft;
+    if([1,2,3].some(s => stepMissing(d, s))) return;
+    if(d.editingId){
+      const l = getListing(d.editingId);
+      if(l) Object.assign(l, {category:d.category, type:d.type, title:d.title.trim(), description:d.description, price:Number(d.price), area:d.area, rooms:d.rooms, amenities:d.amenities, photos:d.photos});
+      toast('Changes saved');
+    } else {
+      state.listings.unshift({id:uid(), category:d.category, type:d.type, title:d.title.trim(), description:d.description, price:Number(d.price), area:d.area, rooms:d.rooms, amenities:d.amenities, photos:d.photos, status:'active', verification:'none', requests:0, createdAt:new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})});
+      toast('Listing published');
+    }
+    state.postDraft = freshDraft(); nav('#/listings');
+  },
+
+  /* requests */
+  confirmAvail(el){
+    const r = state.requests.find(x => x.id === el.dataset.id); if(!r) return;
+    openDialog({title:'Confirm this property is still available?', body:`${r.tenant.split(' ')[0]} will be able to pay the ${naira(ACCESS_FEE)} access fee and receive your contact details.`, confirm:'Yes, still available', cls:'btn-success', action:'doConfirm', id:r.id});
+  },
+  doConfirm(el){
+    const r = state.requests.find(x => x.id === el.dataset.id);
+    if(r){ r.status = 'confirmed'; r.paid = false; r.minutes = 0; r.since = 'Just now'; toast(`Confirmed. ${r.tenant.split(' ')[0]} can now pay the access fee.`); }
+    closeDialog(); render();
+  },
+  denyAvail(el){
+    openDialog({title:'Mark as no longer available?', body:'The renter is told at no charge, and the listing is marked as Taken so you can update it later.', confirm:'Yes, it is taken', cls:'btn-primary', action:'doDeny', id:el.dataset.id, focusCancel:true});
+  },
+  doDeny(el){
+    const r = state.requests.find(x => x.id === el.dataset.id);
+    if(r){ r.status = 'unavailable'; r.minutes = 0; r.since = 'Just now'; const l = getListing(r.listingId); if(l) l.status = 'rented'; toast('Renter notified. Listing marked as taken.'); }
+    closeDialog(); render();
+  },
+};
+
+/* ---------- Boot ---------- */
+normaliseHash();
+render();
+</script>
+</body>
+</html>

@@ -295,7 +295,7 @@ export const PropertyDetailModal: React.FC<PropertyDetailModalProps> = ({
               NO UPFRONT PAYMENT REQUIRED
             </div>
             <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-              Flat ₦5,000 access fee only after lister confirms availability.
+              Flat access fee only after lister confirms availability.
             </div>
           </div>
 

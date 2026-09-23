@@ -231,7 +231,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   <ul style={{ fontSize: '12.5px', color: '#1E293B', lineHeight: 1.6, margin: 0, paddingLeft: '18px' }}>
                     <li><b>Free to submit:</b> Zero payment card or fee required to check vacancy.</li>
                     <li><b>Automated verification:</b> We email <b>{listing.lister.fullName}</b> a one-click YES / NO link to confirm the unit is unoccupied.</li>
-                    <li><b>Flat ₦5,000 fee:</b> Only charged if the property is confirmed vacant and ready.</li>
+                     <li><b>Flat access fee:</b> Only charged if the property is confirmed vacant and ready.</li>
                   </ul>
                 </div>
 
@@ -412,7 +412,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                     <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>One-time Direct Access Fee:</span>
-                    <span style={{ fontSize: '18px', fontWeight: 800, color: '#000052', fontFamily: 'monospace' }}>₦5,000</span>
+                    <span style={{ fontSize: '18px', fontWeight: 800, color: '#000052', fontFamily: 'monospace' }}>Access Fee</span>
                   </div>
 
                   <div style={{ borderTop: '1px dashed #CBD5E1', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12.5px' }}>
@@ -458,7 +458,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   }}
                 >
                   <CreditCard size={18} />
-                  <span>Pay ₦5,000 with Paystack</span>
+                  <span>Pay Access Fee with Paystack</span>
                 </button>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11.5px', color: '#64748B' }}>
@@ -485,7 +485,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   <CreditCard size={28} className="animate-spin" />
                 </div>
                 <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#000052', marginBottom: '8px' }}>
-                  Processing ₦5,000 Payment...
+                  Processing Payment...
                 </h3>
                 <p style={{ fontSize: '13px', color: '#64748B', maxWidth: '340px', margin: '0 auto' }}>
                   Communicating with Paystack Nigeria gateway. Releasing landlord contact dossier and generating email receipt.
@@ -515,7 +515,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   Direct Contact Unlocked!
                 </h3>
                 <p style={{ fontSize: '12.5px', color: '#64748B', marginBottom: '14px' }}>
-                  ₦5,000 payment verified. Full landlord dossier is ready below and also dispatched to your email.
+                  Payment verified. Full landlord dossier is ready below and also dispatched to your email.
                 </p>
 
                 {/* Email Dispatched Banner with Interactive Preview Button */}

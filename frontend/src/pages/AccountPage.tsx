@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Heart, FileText, User as UserIcon, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Heart, FileText, User as UserIcon, ArrowRight, ShieldCheck, Search } from 'lucide-react';
 import { AccessRequest, Listing, NavigationTab } from '../types';
 import { requestsService } from '../services/requestsService';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,21 +35,26 @@ export const AccountPage: React.FC<AccountPageProps> = ({
         <h1 style={{ fontSize: 28, fontWeight: 800, color: '#000052', marginBottom: 8 }}>
           Hello{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
         </h1>
-        <p style={{ color: '#636377', marginBottom: 28 }}>Your requests, saved homes, and profile shortcuts.</p>
+        <p style={{ color: '#636377', marginBottom: 28 }}>Your requests, saved homes, search portal, and profile shortcuts.</p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 28 }}>
+          <button type="button" onClick={() => onNavigateToTab('search')} style={cardBtn}>
+            <Search size={18} color="#000052" />
+            <strong>Search properties</strong>
+            <span>Browse verified listings in your portal</span>
+          </button>
           <button type="button" onClick={() => onNavigateToTab('requests')} style={cardBtn}>
-            <FileText size={18} />
+            <FileText size={18} color="#000052" />
             <strong>{requests.length} requests</strong>
             <span>Track vacancy checks and unlocks</span>
           </button>
           <button type="button" onClick={() => onNavigateToTab('favorites')} style={cardBtn}>
-            <Heart size={18} />
+            <Heart size={18} color="#000052" />
             <strong>{favorites.length} saved</strong>
             <span>Shortlisted Ibadan listings</span>
           </button>
           <button type="button" onClick={() => onNavigateToTab('profile')} style={cardBtn}>
-            <UserIcon size={18} />
+            <UserIcon size={18} color="#000052" />
             <strong>Profile</strong>
             <span>Name, WhatsApp, alerts</span>
           </button>

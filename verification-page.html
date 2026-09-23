@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verification · Rentivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#000052; --lavender:#be89ff; --violet:#6d2fc7;
+  --paper:#f6f5fb; --surface:#fff; --surface-2:#eeeaf8;
+  --ink:#16163a; --ink-soft:#4f4f73; --ink-faint:#65658a; --line:#e0dcef; --control:#857fa8;
+  --ok:#0f6b43; --ok-bg:#e2f5ec; --ok-solid:#12704a;
+  --warn:#7a4b00; --warn-bg:#fbeccf;
+  --info:#5b21b6; --info-bg:#efe4ff;
+  --bad:#a61e36; --bad-bg:#fbe6e9; --bad-solid:#b3243b;
+  --r-s:8px; --r-m:12px; --r-l:16px;
+  --font-head:'Outfit',system-ui,sans-serif; --font-body:'Plus Jakarta Sans',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0c0c1f; --surface:#15152f; --surface-2:#1e1e40;
+    --ink:#f1f0fa; --ink-soft:#c3c1de; --ink-faint:#9c9ac0; --line:#2c2c52; --control:#5c5a8c;
+    --ok:#3ddc97; --ok-bg:#0f3327;
+    --warn:#f5c451; --warn-bg:#3a2c05;
+    --info:#c9adff; --info-bg:#241a45;
+    --bad:#ff9fb0; --bad-bg:#3a1620;
+    --lavender:#c9a3ff;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0c0c1f; --surface:#15152f; --surface-2:#1e1e40;
+  --ink:#f1f0fa; --ink-soft:#c3c1de; --ink-faint:#9c9ac0; --line:#2c2c52; --control:#5c5a8c;
+  --ok:#3ddc97; --ok-bg:#0f3327;
+  --warn:#f5c451; --warn-bg:#3a2c05;
+  --info:#c9adff; --info-bg:#241a45;
+  --bad:#ff9fb0; --bad-bg:#3a1620;
+  --lavender:#c9a3ff;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--font-head);margin:0}
+p{margin:0}
+a{color:var(--violet)}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.ic{width:16px;height:16px;flex:none}
+.wrap{max-width:900px;margin:0 auto;padding:28px 20px 80px}
+.topbar{background:var(--navy);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-weight:800;font-size:1.0625rem;letter-spacing:.2px}
+.brand span{color:var(--lavender)}
+.theme-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:99px;padding:6px 14px;font:inherit;font-size:.8125rem;font-weight:600;cursor:pointer}
+.page-head{margin-bottom:20px}
+.page-head h1{font-size:2rem;font-weight:800;margin-bottom:8px}
+.page-sub{color:var(--ink-soft);max-width:62ch;line-height:1.5}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m)}
+.panel-pad{padding:20px}
+.section{margin-top:28px}
+.section-head{margin-bottom:14px}
+.section-head h2{font-size:1.125rem}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);margin-bottom:28px}
+.stat{padding:18px 20px;border-top:1px solid var(--line)}
+.stat:nth-child(-n+2){border-top:0}
+.stat:nth-child(even){border-left:1px solid var(--line)}
+.stat b{display:block;font-family:var(--font-head);font-size:1.875rem;font-weight:700;line-height:1.1}
+.stat span{color:var(--ink-soft);font-size:.9375rem}
+@media (min-width:640px){
+  .stats{grid-template-columns:repeat(4,1fr)}
+  .stat{border-top:0;border-left:1px solid var(--line)}
+  .stat:first-child{border-left:0}
+}
+.btn{font:inherit;font-weight:700;font-size:.9375rem;border-radius:var(--r-s);border:1px solid transparent;padding:12px 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:filter .15s}
+.btn:hover{filter:brightness(1.06)}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-outline{background:transparent;border-color:var(--control);color:var(--ink)}
+.btn-block{width:100%}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;font-size:.8125rem;font-weight:700;white-space:nowrap}
+.pill-warn{background:var(--warn-bg);color:var(--warn)}
+.pill-info{background:var(--info-bg);color:var(--info)}
+.pill-bad{background:var(--bad-bg);color:var(--bad)}
+.pill-neutral{background:var(--surface-2);color:var(--ink-soft)}
+.hint{color:var(--ink-soft);font-size:.9375rem;line-height:1.5}
+.c-title{font-weight:700;color:var(--ink);text-decoration:none}
+.c-sub{color:var(--ink-soft);font-size:.875rem}
+.verif-card + .verif-card{margin-top:16px}
+.verif-card.is-revoked{border-color:var(--bad-solid)}
+.verif-head{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.verif-head h3{font-size:1.0625rem}
+.verif-checklist{margin:0 0 16px;border:1px solid var(--line);border-radius:var(--r-s);padding:2px 14px;background:var(--surface-2)}
+.verif-checklist summary{cursor:pointer;padding:10px 0;font-weight:600;font-size:.9375rem;list-style:none}
+.verif-checklist summary::-webkit-details-marker{display:none}
+.verif-checklist summary::before{content:"▸";display:inline-block;margin-right:6px;transition:transform .15s}
+.verif-checklist[open] summary::before{transform:rotate(90deg)}
+.verif-checklist ul{margin:0 0 12px;padding-left:20px;display:grid;gap:6px;color:var(--ink-soft);font-size:.9375rem}
+.verif-revoked{display:flex;gap:12px;align-items:flex-start;background:var(--bad-bg);color:var(--bad);border-radius:var(--r-s);padding:14px;margin-bottom:14px}
+.verif-revoked .ic{width:20px;height:20px;margin-top:2px}
+.verif-revoked p{margin:0;color:var(--ink)}
+.verif-revoked b{color:var(--bad)}
+/* stage tracker */
+.stages{display:grid;gap:0;list-style:none;margin:0;padding:0}
+.stage{position:relative;padding:0 0 22px 44px;min-height:28px}
+.stage:last-child{padding-bottom:0}
+.stage-dot{position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--control);background:var(--surface);color:var(--ink-faint);z-index:1}
+.stage::after{content:"";position:absolute;left:13px;top:32px;bottom:4px;width:2px;background:var(--line)}
+.stage:last-child::after{display:none}
+.stage.done .stage-dot{background:var(--ok-solid);border-color:var(--ok-solid);color:#fff}
+.stage.done::after{background:var(--ok-solid)}
+.stage.now .stage-dot{background:var(--lavender);border-color:var(--lavender);color:var(--navy)}
+.stage b{display:block;font-weight:600;line-height:28px}
+.stage span{display:block;font-size:.875rem;color:var(--ink-soft);margin-top:-2px}
+.stage.todo b{color:var(--ink-soft);font-weight:500}
+@media (min-width:760px){
+  .stages.h{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+  .stages.h .stage{padding:0 20px 0 0}
+  .stages.h .stage-dot{position:relative;margin-bottom:10px}
+  .stages.h .stage::after{left:36px;right:8px;top:13px;bottom:auto;width:auto;height:2px}
+  .stages.h .stage b{line-height:1.3}
+  .stages.h .stage span{margin-top:2px}
+}
+/* verification record (history log) */
+.verif-history{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.verif-history summary{cursor:pointer;font-weight:600;font-size:.9375rem;color:var(--ink-soft);list-style:none;display:flex;align-items:center;gap:6px}
+.verif-history summary::-webkit-details-marker{display:none}
+.verif-history summary::before{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .15s}
+.verif-history[open] summary::before{transform:rotate(-135deg)}
+.vh-list{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:16px}
+.vh-item{display:flex;gap:12px;align-items:flex-start}
+.vh-dot{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-soft)}
+.vh-dot .ic{width:13px;height:13px}
+.vh-item.ok .vh-dot{background:var(--ok-bg);color:var(--ok)}
+.vh-item.bad .vh-dot{background:var(--bad-bg);color:var(--bad)}
+.vh-item b{display:block;font-weight:600;font-size:.9375rem}
+.vh-date{display:block;font-size:.8125rem;color:var(--ink-faint)}
+.vh-note{margin:4px 0 0;font-size:.875rem;color:var(--ink-soft);max-width:52ch}
+/* verified list rows */
+.rows{list-style:none;margin:0;padding:0}
+.vrow-item{border-bottom:1px solid var(--line)}
+.vrow-item:last-child{border-bottom:0}
+.vrow-details summary{list-style:none;cursor:pointer}
+.vrow-details summary::-webkit-details-marker{display:none}
+.vrow-details .vrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px}
+.vrow-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.vrow-end{display:flex;align-items:center;gap:10px}
+.vrow-chevron{display:grid;place-items:center;color:var(--ink-faint);transform:rotate(-90deg);transition:transform .15s}
+.vrow-details[open] .vrow-chevron{transform:rotate(90deg)}
+.vrow-chevron svg{width:14px;height:14px}
+.vrow-open{padding:0 20px 18px}
+.vrow-open .verif-history{border-top:0;padding-top:14px}
+.empty{text-align:center;padding:36px 20px;color:var(--ink-soft)}
+.empty h2{font-size:1.125rem;margin:10px 0 6px;color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,12px);background:var(--navy);color:#fff;padding:13px 20px;border-radius:12px;font-weight:600;font-size:.9375rem;box-shadow:0 10px 30px -8px rgba(0,0,40,.5);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:50}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">RENT<span>ivo</span></div>
+  <button class="theme-btn" id="themeBtn" type="button" aria-pressed="false">Dark mode</button>
+</header>
+<div class="wrap">
+  <div class="page-head">
+    <h1>Verification</h1>
+    <p class="page-sub">A free, in-person visit from a Rentivo partner confirms a listing is real. Verified listings get a badge renters trust, and every request, visit and result is kept on record here — even if a badge is later removed.</p>
+  </div>
+  <div id="app"></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- icons ---------- */
+const ICONS = {
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  shield:'<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+  alert:'<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  chevronL:'<path d="M15 18l-6-6 6-6"/>',
+};
+const icon = n => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MIN_PHOTOS = 3;
+
+/* ---------- sample data (4 listings covering every verification state) ---------- */
+let listings = [
+  {id:'l1', title:'2-Bedroom Self-Contain', area:'Bodija', verification:'verified', verifiedOn:'20 Feb 2026', photos:3,
+    verifHistory:[{status:'requested', date:'10 Feb 2026'}, {status:'scheduled', date:'12 Feb 2026', note:'Visit booked for 18 Feb.'}, {status:'inspected', date:'18 Feb 2026'}, {status:'verified', date:'20 Feb 2026'}]},
+  {id:'l2', title:'Shop Space, Ring Road Complex', area:'Ring Road', verification:'inspected', photos:3,
+    verifHistory:[{status:'requested', date:'19 Feb 2026'}, {status:'scheduled', date:'21 Feb 2026', note:'Visit booked for 25 Feb.'}, {status:'inspected', date:'25 Feb 2026'}]},
+  {id:'l3', title:'3-Bedroom Duplex', area:'UI Area (Agbowo)', verification:'none', photos:3, verifHistory:[]},
+  {id:'l4', title:'Office Suite, Dugbe', area:'Dugbe', verification:'revoked', photos:3,
+    verificationNote:'A routine recheck found the office had been renovated and reassigned to a different tenant since our last visit.',
+    verifHistory:[{status:'requested', date:'25 Jan 2026'}, {status:'scheduled', date:'28 Jan 2026'}, {status:'inspected', date:'2 Feb 2026'}, {status:'verified', date:'5 Feb 2026'}, {status:'revoked', date:'14 Aug 2026', note:'A routine recheck found the office had been renovated and reassigned to a different tenant since our last visit.'}]},
+];
+
+/* ---------- verification helpers ---------- */
+function verifPill(v){
+  const m = {
+    verified:['pill-warn','shield','Verified'], inspected:['pill-info','clock','Inspection done'],
+    scheduled:['pill-info','clock','Inspection booked'], requested:['pill-info','clock','Awaiting inspection'],
+    revoked:['pill-bad','alert','Needs re-verification'],
+    none:['pill-neutral','','Not verified'],
+  }[v] || ['pill-neutral','','Not verified'];
+  return `<span class="pill ${m[0]}">${m[1] ? icon(m[1]) : ''}${m[2]}</span>`;
+}
+const CHECKLIST = [
+  'Visits the address in person and confirms the property matches your listing',
+  'Checks your photos and description are accurate',
+  'Asks to see proof of ownership, or a signed lease or management agreement',
+  'Confirms the property is genuinely available to rent right now',
+];
+function checklistHTML(){
+  return `<details class="verif-checklist"><summary>What our partner checks</summary><ul>${CHECKLIST.map(c => `<li>${esc(c)}</li>`).join('')}</ul></details>`;
+}
+const STAGES = [
+  {t:'Requested', d:'You asked Rentivo to inspect this property.'},
+  {t:'Inspection booked', d:'A visit is booked with our verification partner.'},
+  {t:'Inspection done', d:'Checklist reviewed, awaiting approval.'},
+  {t:'Verified', d:'The Verified badge now shows to renters.'},
+];
+function stagesHTML(status, layout){
+  const idx = ['none','requested','scheduled','inspected','verified'].indexOf(status);
+  return `<ol class="stages ${layout}">${STAGES.map((s, i) => {
+    const n = i + 1;
+    const st = status === 'verified' || n < idx ? 'done' : n === idx ? 'now' : 'todo';
+    return `<li class="stage ${st}"><span class="stage-dot">${st === 'done' ? icon('check') : st === 'now' ? icon('clock') : ''}</span><b>${s.t}</b><span>${s.d}</span></li>`;
+  }).join('')}</ol>`;
+}
+const VERIF_EVENT_LABEL = {requested:'Inspection requested', scheduled:'Inspection booked', inspected:'Inspection completed', verified:'Verified badge awarded', revoked:'Verified badge removed'};
+function verifTimelineHTML(history){
+  if(!history || !history.length) return '';
+  return `<details class="verif-history"><summary>Verification record (${history.length})</summary>
+    <ol class="vh-list">${history.map(h => `<li class="vh-item ${h.status === 'revoked' ? 'bad' : h.status === 'verified' ? 'ok' : ''}">
+      <span class="vh-dot">${icon(h.status === 'revoked' ? 'alert' : h.status === 'verified' ? 'shield' : 'check')}</span>
+      <div><b>${esc(VERIF_EVENT_LABEL[h.status] || h.status)}</b><span class="vh-date">${esc(h.date)}</span>${h.note ? `<p class="vh-note">${esc(h.note)}</p>` : ''}</div>
+    </li>`).join('')}</ol></details>`;
+}
+function verifBlock(l, layout){
+  if(l.verification === 'revoked'){
+    return `<div class="verif-revoked">${icon('alert')}<p><b>Verified badge removed.</b> ${esc(l.verificationNote || 'A recheck found this listing no longer matches the property.')}</p></div>
+      <button class="btn btn-primary" type="button" data-action="request" data-id="${l.id}">Request re-verification</button>`;
+  }
+  if(l.verification === 'verified'){
+    return `<p class="hint" style="margin:0">${icon('shield')} Verified, ${esc(l.verifiedOn || '')}. Renters see this badge on your listing.</p>`;
+  }
+  if(l.verification === 'none'){
+    const short = MIN_PHOTOS - (l.photos || 0);
+    if(short > 0) return `<p class="hint" style="margin:0">Add ${short === MIN_PHOTOS ? 'at least ' + MIN_PHOTOS + ' photos' : short + ' more photo' + (short === 1 ? '' : 's')} before requesting an inspection, so our partner knows what to expect.</p>`;
+    return `<p class="hint" style="margin:0 0 14px">A Rentivo partner visits the property to confirm it's real and matches your listing. It's free, and earns the Verified badge.</p>${checklistHTML()}<button class="btn btn-primary btn-block" type="button" data-action="request" data-id="${l.id}">Request inspection</button>`;
+  }
+  return stagesHTML(l.verification, layout);
+}
+
+/* ---------- render ---------- */
+function render(){
+  const needsAction = listings.filter(l => l.verification === 'none' || l.verification === 'revoked');
+  const inProgress = listings.filter(l => ['requested','scheduled','inspected'].includes(l.verification));
+  const verified = listings.filter(l => l.verification === 'verified');
+  const total = listings.length;
+  const pct = total ? Math.round((verified.length / total) * 100) : 0;
+  const stats = [[verified.length,'Verified'],[inProgress.length,'In progress'],[needsAction.length,'Needs input'],[`${pct}%`,'Of your listings']];
+
+  const card = l => `<section class="panel panel-pad verif-card ${l.verification === 'revoked' ? 'is-revoked' : ''}">
+      <div class="verif-head"><div><h3 class="c-title">${esc(l.title)}</h3><span class="c-sub">${esc(l.area)}</span></div>${verifPill(l.verification)}</div>
+      ${verifBlock(l, 'h')}${verifTimelineHTML(l.verifHistory)}</section>`;
+
+  const verifiedRow = l => `<li class="vrow-item"><details class="vrow-details">
+      <summary class="vrow"><span class="vrow-text"><span class="c-title">${esc(l.title)}</span>${l.verifiedOn ? `<span class="c-sub">Verified ${esc(l.verifiedOn)}</span>` : ''}</span><span class="vrow-end">${verifPill('verified')}<span class="vrow-chevron">${icon('chevronL')}</span></span></summary>
+      <div class="vrow-open">${verifTimelineHTML(l.verifHistory)}</div></details></li>`;
+
+  document.getElementById('app').innerHTML = `
+    <div class="panel stats">${stats.map(s => `<div class="stat"><b>${s[0]}</b><span>${s[1]}</span></div>`).join('')}</div>
+    ${needsAction.length ? `<section class="section" aria-label="Needs your input"><div class="section-head"><h2>Needs your input (${needsAction.length})</h2></div>${needsAction.map(card).join('')}</section>` : ''}
+    ${inProgress.length ? `<section class="section" aria-label="In progress"><div class="section-head"><h2>In progress (${inProgress.length})</h2></div>${inProgress.map(card).join('')}</section>` : ''}
+    ${!needsAction.length && !inProgress.length ? `<div class="panel"><div class="empty">${icon('shield')}<h2>All caught up</h2><p>Every listing is verified, or already in progress.</p></div></div>` : ''}
+    ${verified.length ? `<section class="section"><div class="section-head"><h2>Verified (${verified.length})</h2></div><div class="panel"><ul class="rows">${verified.map(verifiedRow).join('')}</ul></div></section>` : ''}`;
+}
+
+/* ---------- actions ---------- */
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 3200);
+}
+document.getElementById('app').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action="request"]');
+  if(!btn) return;
+  const l = listings.find(x => x.id === btn.dataset.id); if(!l) return;
+  const was = l.verification;
+  l.verification = 'requested'; delete l.verificationNote;
+  l.verifHistory = l.verifHistory || [];
+  l.verifHistory.push({status:'requested', date:'Just now', ...(was === 'revoked' ? {note:'Re-requested after the Verified badge was removed.'} : {})});
+  render();
+  toast(was === 'revoked' ? "Re-verification requested. We'll contact you to book a visit." : "Inspection requested. We'll contact you to book a visit.");
+});
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next === 'dark' ? 'Light mode' : 'Dark mode';
+  document.getElementById('themeBtn').setAttribute('aria-pressed', String(next === 'dark'));
+});
+
+render();
+</script>
+</body>
+</html>

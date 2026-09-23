@@ -33,17 +33,17 @@ export const HowItWorksPage: React.FC<HowItWorksPageProps> = ({
   const traditionalViewingFees = 15000; // Roadside registration / viewing fee
   const traditionalTotal = traditionalAgentFee + traditionalAgreementFee + traditionalViewingFees;
 
-  const rentivoFee = 5000; // Flat ₦5,000 access fee
+  const rentivoFee = 5000; // Flat access fee
   const netSavings = traditionalTotal - rentivoFee;
 
   const faqs = [
     {
-      q: 'Why does Rentivo charge ₦5,000 instead of standard 10% agent fees?',
-      a: 'Traditional agents charge up to 10% to 20% in agent and agreement packages because they act as expensive middlemen who hoard phone numbers. Rentivo uses technology and local field verification officers to aggregate genuine landlords into one trusted marketplace, charging only a flat ₦5,000 operational fee once availability is confirmed.'
+      q: 'Why does Rentivo charge a flat fee instead of standard 10% agent fees?',
+      a: 'Traditional agents charge up to 10% to 20% in agent and agreement packages because they act as expensive middlemen who hoard phone numbers. Rentivo uses technology and local field verification officers to aggregate genuine landlords into one trusted marketplace, charging only a flat operational fee once availability is confirmed.'
     },
     {
-      q: 'When do I pay the ₦5,000 fee?',
-      a: 'Never upfront. Browsing and submitting access requests is free. We email the property owner a one-click YES / NO link. Only when they confirm the unit is vacant are you invited to pay ₦5,000 via Paystack.'
+      q: 'When do I pay the access fee?',
+      a: 'Never upfront. Browsing and submitting access requests is free. We email the property owner a one-click YES / NO link. Only when they confirm the unit is vacant are you invited to pay via Paystack.'
     },
     {
       q: 'What happens if the property is no longer available?',
@@ -86,7 +86,7 @@ export const HowItWorksPage: React.FC<HowItWorksPageProps> = ({
             How Rentivo Eliminates Exploitative Agent Fees in Ibadan
           </h1>
           <p style={{ fontSize: '16px', color: '#DCD6F5', lineHeight: 1.6, maxWidth: '640px', margin: '0 auto 28px' }}>
-            No roadside viewing fees. No 10% agent markups. Just verified rentals, confirmed vacancies, and a flat ₦5,000 fee payable only after landlord verification.
+            No roadside viewing fees. No 10% agent markups. Just verified rentals, confirmed vacancies, and a flat fee payable only after landlord verification.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button 
@@ -186,10 +186,10 @@ export const HowItWorksPage: React.FC<HowItWorksPageProps> = ({
                 04
               </div>
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#000052', margin: '0 0 8px' }}>
-                Flat ₦5,000 Unlock
+                Direct Access Unlock
               </h3>
               <p style={{ fontSize: '13.5px', color: '#636377', lineHeight: 1.55, margin: 0 }}>
-                Pay the flat ₦5,000 access fee via secure Paystack channels. Immediately receive the landlord's verified phone, WhatsApp chat, and physical address.
+                Pay the flat access fee via secure Paystack channels. Immediately receive the landlord's verified phone, WhatsApp chat, and physical address.
               </p>
             </div>
           </div>

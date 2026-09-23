@@ -2175,7 +2175,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
         {activeSection === 'payments' && (
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 800, color: '#000052' }}>Paystack ledger</h1>
-            <p style={{ color: '#636377', marginBottom: 18 }}>₦5,000 access fees, references, and refunds.</p>
+            <p style={{ color: '#636377', marginBottom: 18 }}>Access fees, references, and refunds.</p>
             <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>

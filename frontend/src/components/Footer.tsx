@@ -33,7 +33,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-lilac)' }}>
               <ShieldCheck size={16} />
-              <span>Flat ₦5,000 access fee only after confirmation.</span>
+              <span>Flat access fee only after confirmation.</span>
             </div>
           </div>
 
@@ -48,7 +48,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               </li>
               <li>
                 <a href="/how-it-works" onClick={(e) => { e.preventDefault(); onNavigate?.('how_it_works'); }}>
-                  How ₦5,000 Fee Works
+                  How Our Fee Works
                 </a>
               </li>
               <li>
@@ -64,7 +64,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <h4>Property Owners</h4>
             <ul>
               <li>
-                <a href="/list-property" onClick={(e) => { e.preventDefault(); onNavigate?.('list_property'); }}>
+                <a href="/lister/listings/new" onClick={(e) => { e.preventDefault(); onNavigate?.('list_property'); }}>
                   List Your Property (Free)
                 </a>
               </li>
@@ -79,7 +79,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 </a>
               </li>
               <li>
-                <a href="/list-property" onClick={(e) => { e.preventDefault(); onNavigate?.('list_property'); }}>
+                <a href="/how-it-works" onClick={(e) => { e.preventDefault(); onNavigate?.('how_it_works'); }}>
                   Owner FAQs &amp; Direct Tenants
                 </a>
               </li>
@@ -148,7 +148,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               Privacy Policy
             </a>
             <a href="/access-fee-terms" onClick={(e) => { e.preventDefault(); onNavigate?.('access_fee_terms'); }}>
-              Access Fee Terms (₦5,000)
+              Access Fee Terms
             </a>
           </div>
         </div>

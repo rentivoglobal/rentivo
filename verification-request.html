@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Request verification · Rentivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#000052; --lavender:#be89ff; --violet:#6d2fc7; --focus:#6d2fc7;
+  --primary-bg:#000052; --primary-fg:#fff;
+  --paper:#f6f5fb; --surface:#fff; --surface-2:#eeeaf8;
+  --ink:#16163a; --ink-soft:#4f4f73; --ink-faint:#65658a; --line:#e0dcef; --control:#857fa8;
+  --ok:#0f6b43; --ok-bg:#e2f5ec; --ok-solid:#12704a;
+  --warn:#7a4b00; --warn-bg:#fbeccf;
+  --info:#5b21b6; --info-bg:#efe4ff;
+  --bad:#a61e36; --bad-bg:#fbe6e9; --bad-solid:#b3243b;
+  --r-s:8px; --r-m:12px; --r-l:16px;
+  --font-head:'Outfit',system-ui,sans-serif; --font-body:'Plus Jakarta Sans',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0c0c1f; --surface:#15152f; --surface-2:#1e1e40;
+    --ink:#f1f0fa; --ink-soft:#c3c1de; --ink-faint:#9c9ac0; --line:#2c2c52; --control:#5c5a8c;
+    --ok:#3ddc97; --ok-bg:#0f3327; --warn:#f5c451; --warn-bg:#3a2c05;
+    --info:#c9adff; --info-bg:#241a45; --bad:#ff9fb0; --bad-bg:#3a1620;
+    --lavender:#c9a3ff; --focus:#c79bff; --primary-bg:#c79bff; --primary-fg:#000052;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0c0c1f; --surface:#15152f; --surface-2:#1e1e40;
+  --ink:#f1f0fa; --ink-soft:#c3c1de; --ink-faint:#9c9ac0; --line:#2c2c52; --control:#5c5a8c;
+  --ok:#3ddc97; --ok-bg:#0f3327; --warn:#f5c451; --warn-bg:#3a2c05;
+  --info:#c9adff; --info-bg:#241a45; --bad:#ff9fb0; --bad-bg:#3a1620;
+  --lavender:#c9a3ff; --focus:#c79bff; --primary-bg:#c79bff; --primary-fg:#000052;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--font-head);margin:0}
+p{margin:0}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+.ic{width:16px;height:16px;flex:none}
+.wrap{max-width:640px;margin:0 auto;padding:28px 20px 90px}
+.topbar{background:var(--navy);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--font-head);font-weight:800;font-size:1.0625rem}
+.brand span{color:var(--lavender)}
+.theme-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:99px;padding:6px 14px;font:inherit;font-size:.8125rem;font-weight:600;cursor:pointer}
+.page-head{margin-bottom:22px}
+.page-head h1{font-size:1.875rem;font-weight:800;margin-bottom:8px}
+.page-sub{color:var(--ink-soft);line-height:1.5;max-width:56ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m)}
+.panel-pad{padding:22px}
+.section{margin-bottom:28px}
+.section:last-child{margin-bottom:0}
+.section h2{font-size:1rem;margin-bottom:4px}
+.section-sub{color:var(--ink-soft);font-size:.875rem;margin-bottom:14px;display:block}
+.field{margin-bottom:18px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-weight:600;font-size:.9375rem;margin-bottom:6px}
+.input,.select,.textarea{width:100%;min-height:48px;padding:11px 14px;border:1.5px solid var(--control);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:1rem}
+.textarea{min-height:88px;resize:vertical;font-family:inherit}
+.input::placeholder,.textarea::placeholder{color:var(--ink-faint)}
+.input:focus,.select:focus,.textarea:focus{outline:3px solid var(--focus);outline-offset:1px;border-color:var(--focus)}
+[aria-invalid="true"]{border-color:var(--bad-solid)!important}
+.field-error{display:flex;gap:6px;align-items:flex-start;font-size:.875rem;font-weight:600;color:var(--bad);margin-top:6px}
+.field-error .ic{width:16px;height:16px;margin-top:2px}
+.hint{color:var(--ink-soft);font-size:.875rem;margin-top:6px;display:block}
+/* chips (native radios/checkboxes, styled) */
+.chip-row{display:flex;flex-wrap:wrap;gap:10px}
+.chip{position:relative;display:block;cursor:pointer}
+.chip input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.chip > span{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:56px;min-height:52px;padding:6px 10px;border-radius:12px;border:1.5px solid var(--control);font-weight:500;font-size:.8125rem;background:var(--surface);text-align:center}
+.chip > span b{font-family:var(--font-head);font-size:1.0625rem;font-weight:700;line-height:1.1}
+.chip input:checked + span{background:var(--primary-bg);border-color:var(--primary-bg);color:var(--primary-fg)}
+.chip input:focus-visible + span{outline:3px solid var(--focus);outline-offset:2px}
+.chip input:disabled + span{opacity:.4;cursor:not-allowed}
+.time-chip > span{min-width:150px;align-items:flex-start;text-align:left;flex-direction:column;gap:2px;padding:12px 14px}
+.time-chip small{font-weight:500;font-size:.8125rem;opacity:.85}
+.date-grid{display:flex;flex-wrap:wrap;gap:8px;max-height:172px;overflow-y:auto;padding:2px 2px 4px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.add-slot-row{display:flex;justify-content:flex-end;margin-top:14px}
+.btn{font:inherit;font-weight:700;font-size:.9375rem;border-radius:var(--r-s);border:1.5px solid transparent;padding:12px 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:filter .15s,opacity .15s}
+.btn:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--primary-bg);color:var(--primary-fg)}
+.btn-outline{background:transparent;border-color:var(--control);color:var(--ink)}
+.btn-block{width:100%}
+.btn-sm{padding:9px 14px;font-size:.875rem}
+.slots{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
+.slot{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface-2);border-radius:10px;padding:10px 14px}
+.slot b{font-weight:700;font-size:.9375rem}
+.slot span{display:block;font-size:.8125rem;color:var(--ink-soft)}
+.slot-remove{background:none;border:0;color:var(--ink-faint);cursor:pointer;padding:6px;border-radius:8px;display:grid;place-items:center}
+.slot-remove:hover{color:var(--bad);background:var(--bad-bg)}
+.slot-label{font-size:.75rem;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:.03em;margin-right:8px}
+.prop-card{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;background:var(--surface-2);border-radius:var(--r-s);padding:14px 16px;margin-bottom:18px}
+.prop-card b{display:block;font-weight:700}
+.prop-card span{display:block;color:var(--ink-soft);font-size:.875rem;margin-top:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:99px;font-size:.8125rem;font-weight:700;white-space:nowrap;flex:none}
+.pill-neutral{background:var(--surface);color:var(--ink-soft);border:1px solid var(--line)}
+.pill-bad{background:var(--bad-bg);color:var(--bad)}
+.gate{display:flex;gap:12px;align-items:flex-start;background:var(--warn-bg);color:var(--warn);border-radius:var(--r-s);padding:16px}
+.gate .ic{width:20px;height:20px;margin-top:2px}
+.gate p{color:var(--ink);margin:0}
+.gate b{color:var(--warn)}
+.verif-checklist{margin:0 0 22px;border:1px solid var(--line);border-radius:var(--r-s);padding:2px 14px;background:var(--surface-2)}
+.verif-checklist summary{cursor:pointer;padding:10px 0;font-weight:600;font-size:.9375rem;list-style:none}
+.verif-checklist summary::-webkit-details-marker{display:none}
+.verif-checklist summary::before{content:"▸";display:inline-block;margin-right:6px;transition:transform .15s}
+.verif-checklist[open] summary::before{transform:rotate(90deg)}
+.verif-checklist ul{margin:0 0 12px;padding-left:20px;display:grid;gap:6px;color:var(--ink-soft);font-size:.9375rem}
+/* confirmation state */
+.confirm{text-align:center;padding:14px 6px 6px}
+.confirm-badge{width:56px;height:56px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;margin:0 auto 18px}
+.confirm-badge .ic{width:26px;height:26px}
+.confirm h1{font-size:1.5rem;margin-bottom:10px}
+.confirm p{color:var(--ink-soft);max-width:44ch;margin:0 auto;line-height:1.5}
+.summary{margin-top:26px;text-align:left;border-top:1px solid var(--line);padding-top:20px}
+.summary-row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--line)}
+.summary-row:last-child{border-bottom:0}
+.summary-row b{font-size:.875rem;color:var(--ink-faint);font-weight:600;flex:none;width:120px}
+.summary-row div{font-size:.9375rem;text-align:right}
+.summary-row ul{margin:0;padding:0;list-style:none;text-align:right}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">RENT<span>ivo</span></div>
+  <button class="theme-btn" id="themeBtn" type="button" aria-pressed="false">Dark mode</button>
+</header>
+<div class="wrap">
+  <div id="app"></div>
+</div>
+
+<script>
+/* ---------- icons ---------- */
+const ICONS = {
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  alert:'<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  x:'<path d="M18 6L6 18M6 6l12 12"/>',
+  shield:'<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/>',
+};
+const icon = n => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`;
+function escHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+const MIN_PHOTOS = 3;
+const TIME_SLOTS = [
+  {id:'morning', label:'Morning', range:'8am – 12pm'},
+  {id:'afternoon', label:'Afternoon', range:'12pm – 4pm'},
+  {id:'evening', label:'Evening', range:'4pm – 7pm'},
+];
+const CHECKLIST = [
+  'Visits the address in person and confirms the property matches your listing',
+  'Checks your photos and description are accurate',
+  'Asks to see proof of ownership, or a signed lease or management agreement',
+  'Confirms the property is genuinely available to rent right now',
+];
+
+/* sample properties a lister might pick from — covers ready, not-ready (photo gate), and re-verification */
+const PROPERTIES = [
+  {id:'p1', title:'3-Bedroom Duplex', area:'UI Area (Agbowo)', category:'Residential · House', photos:3, state:'none', address:''},
+  {id:'p2', title:'Self-Contain, Sango', area:'Sango', category:'Residential · Self-contain', photos:1, state:'none', address:''},
+  {id:'p3', title:'Office Suite, Dugbe', area:'Dugbe', category:'Commercial · Office space', photos:3, state:'revoked', note:'A routine recheck found the office had been renovated and reassigned to a different tenant since our last visit.', address:'14 Ijebu Bypass, opposite First Bank, Dugbe'},
+];
+const LISTER = {name:'Adebayo Okonkwo', phone:'080 123 4567'};
+
+let selectedId = PROPERTIES[0].id;
+let contactMethod = 'whatsapp';
+let slots = [];   // {key, dateLabel, dateSub, time, timeLabel}
+let submitted = null;
+
+function nextDays(n){
+  const out = []; const d = new Date(); d.setHours(0,0,0,0);
+  let cur = new Date(d); cur.setDate(cur.getDate() + 1); // start tomorrow
+  while(out.length < n){
+    out.push(new Date(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
+}
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS = nextDays(14).map(d => ({
+  iso: d.toISOString().slice(0,10),
+  wd: WD[d.getDay()],
+  day: d.getDate(),
+  full: `${WD[d.getDay()]}, ${d.getDate()} ${MO[d.getMonth()]}`,
+}));
+
+function prop(id){ return PROPERTIES.find(p => p.id === id); }
+
+function checklistHTML(){
+  return `<details class="verif-checklist"><summary>What our partner checks</summary><ul>${CHECKLIST.map(c => `<li>${escHtml(c)}</li>`).join('')}</ul></details>`;
+}
+
+function render(){
+  const app = document.getElementById('app');
+  if(submitted){ app.innerHTML = confirmHTML(submitted); attachConfirmEvents(); return; }
+
+  const p = prop(selectedId);
+  const short = MIN_PHOTOS - p.photos;
+  const isReverify = p.state === 'revoked';
+
+  app.innerHTML = `
+    <div class="page-head">
+      <h1>${isReverify ? 'Request re-verification' : 'Request verification'}</h1>
+      <p class="page-sub">Tell us a bit more so our partner can plan the visit. This is free, and a Verified badge helps renters trust your listing.</p>
+    </div>
+    <div class="panel panel-pad">
+      <div class="field">
+        <label for="propSel">Which listing is this for?</label>
+        <select class="select" id="propSel">${PROPERTIES.map(x => `<option value="${x.id}" ${x.id === selectedId ? 'selected' : ''}>${escHtml(x.title)} — ${escHtml(x.area)}</option>`).join('')}</select>
+      </div>
+      <div class="prop-card">
+        <div><b>${escHtml(p.title)}</b><span>${escHtml(p.category)} · ${escHtml(p.area)}</span></div>
+        ${isReverify ? `<span class="pill pill-bad">${icon('alert')}Needs re-verification</span>` : `<span class="pill pill-neutral">Not verified</span>`}
+      </div>
+      ${isReverify ? `<div class="gate" style="background:var(--bad-bg);color:var(--bad);margin-bottom:22px"><span>${icon('alert')}</span><p><b style="color:var(--bad)">Why this needs another look:</b> ${escHtml(p.note)}</p></div>` : ''}
+      ${short > 0 ? `
+        <div class="gate">${icon('alert')}<p><b>Add ${short === MIN_PHOTOS ? 'at least ' + MIN_PHOTOS + ' photos' : short + ' more photo' + (short === 1 ? '' : 's')}</b> to this listing before requesting an inspection, so our partner knows what to expect on arrival. You can come back here once they're added.</p></div>
+      ` : formHTML(p)}
+    </div>`;
+
+  attachEvents(p, short > 0);
+}
+
+function formHTML(p){
+  return `
+    ${checklistHTML()}
+    <form id="reqForm" novalidate>
+      <div class="section">
+        <h2>Who should our partner contact?</h2>
+        <span class="section-sub">We'll reach out to confirm the visit.</span>
+        <div class="field">
+          <label for="cName">Your name</label>
+          <input class="input" id="cName" value="${escHtml(LISTER.name)}" required>
+        </div>
+        <div class="field">
+          <label for="cPhone">Phone number</label>
+          <input class="input" id="cPhone" type="tel" inputmode="tel" value="${escHtml(LISTER.phone)}" required>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>Preferred contact method</label>
+          <div class="chip-row" role="radiogroup" aria-label="Preferred contact method">
+            ${[['whatsapp','WhatsApp'],['call','Phone call'],['sms','SMS']].map(([v,l]) => `
+              <label class="chip"><input type="radio" name="contactMethod" value="${v}" ${contactMethod === v ? 'checked' : ''}><span style="min-height:44px;min-width:0;padding:0 16px">${l}</span></label>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Property address</h2>
+        <span class="section-sub">The exact address our partner should visit — include a landmark if it's hard to find.</span>
+        <div class="field" style="margin-bottom:0">
+          <label for="addr" class="sr-only">Full address</label>
+          <textarea class="textarea" id="addr" placeholder="e.g. 12 Awolowo Avenue, off Ring Road, ${escHtml(p.area)}" required>${escHtml(p.address || '')}</textarea>
+          <div id="addrErr"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Preferred inspection times</h2>
+        <span class="section-sub">Pick a date and time of day, then add it. Give us 1–3 options — our partner will confirm one, or suggest another if none work.</span>
+        <div class="field">
+          <label id="dateLbl">Date</label>
+          <div class="date-grid" role="radiogroup" aria-labelledby="dateLbl">
+            ${DAYS.map(d => `<label class="chip"><input type="radio" name="date" value="${d.iso}" data-full="${escHtml(d.full)}"><span><b>${d.day}</b>${d.wd}</span></label>`).join('')}
+          </div>
+        </div>
+        <div class="field">
+          <label id="timeLbl">Time of day</label>
+          <div class="chip-row" role="radiogroup" aria-labelledby="timeLbl">
+            ${TIME_SLOTS.map(t => `<label class="chip time-chip"><input type="radio" name="time" value="${t.id}" data-label="${t.label}"><span><b>${t.label}</b><small>${t.range}</small></span></label>`).join('')}
+          </div>
+        </div>
+        <div class="add-slot-row"><button type="button" class="btn btn-outline btn-sm" id="addSlotBtn">${icon('check')}Add this time</button></div>
+        <ul class="slots" id="slotsList" aria-live="polite">${slotsHTML()}</ul>
+        <div id="slotsErr"></div>
+      </div>
+
+      <div class="section">
+        <h2>Anything our partner should know? <span style="font-weight:500;color:var(--ink-faint)">(optional)</span></h2>
+        <div class="field" style="margin-bottom:0">
+          <label for="notes" class="sr-only">Notes</label>
+          <textarea class="textarea" id="notes" placeholder="e.g. Gate code, who to ask for on site, best entrance to use"></textarea>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block" type="submit">Send ${p.state === 'revoked' ? 're-verification' : 'verification'} request</button>
+    </form>`;
+}
+
+function slotsHTML(){
+  if(!slots.length) return '';
+  return slots.map((s, i) => `<li class="slot"><span><span class="slot-label">Option ${i + 1}</span><b>${escHtml(s.dateFull)}</b><span>${escHtml(s.timeLabel)} · ${escHtml(s.timeRange)}</span></span><button type="button" class="slot-remove" data-i="${i}" aria-label="Remove ${escHtml(s.dateFull)}, ${escHtml(s.timeLabel)}">${icon('x')}</button></li>`).join('');
+}
+
+function confirmHTML(sub){
+  const p = prop(sub.propertyId);
+  return `<div class="panel panel-pad confirm">
+    <div class="confirm-badge">${icon('check')}</div>
+    <h1>Request sent</h1>
+    <p>We'll confirm one of your preferred times over ${sub.contactMethod === 'whatsapp' ? 'WhatsApp' : sub.contactMethod === 'call' ? 'a phone call' : 'SMS'} within 24 hours — or suggest another time if none of these work.</p>
+    <div class="summary">
+      <div class="summary-row"><b>Property</b><div>${escHtml(p.title)}<br><span style="color:var(--ink-soft);font-size:.875rem">${escHtml(p.area)}</span></div></div>
+      <div class="summary-row"><b>Contact</b><div>${escHtml(sub.name)}<br><span style="color:var(--ink-soft);font-size:.875rem">${escHtml(sub.phone)}</span></div></div>
+      <div class="summary-row"><b>Address</b><div>${escHtml(sub.address)}</div></div>
+      <div class="summary-row"><b>Preferred times</b><div><ul>${sub.slots.map(s => `<li>${escHtml(s.dateFull)}, ${escHtml(s.timeLabel)}</li>`).join('')}</ul></div></div>
+    </div>
+    <button class="btn btn-outline btn-block" style="margin-top:24px" id="againBtn">Make another request</button>
+  </div>`;
+}
+
+function attachConfirmEvents(){
+  document.getElementById('againBtn').addEventListener('click', () => {
+    submitted = null; slots = []; render();
+  });
+}
+
+function attachEvents(p, gated){
+  document.getElementById('propSel').addEventListener('change', e => { selectedId = e.target.value; slots = []; render(); });
+  if(gated) return;
+
+  document.querySelectorAll('input[name="contactMethod"]').forEach(el => el.addEventListener('change', e => { contactMethod = e.target.value; }));
+
+  document.getElementById('addSlotBtn').addEventListener('click', () => {
+    const dateEl = document.querySelector('input[name="date"]:checked');
+    const timeEl = document.querySelector('input[name="time"]:checked');
+    const err = document.getElementById('slotsErr');
+    err.innerHTML = '';
+    if(!dateEl || !timeEl){
+      err.innerHTML = `<div class="field-error">${icon('alert')}<span>Choose a date and a time of day, then add it.</span></div>`;
+      return;
+    }
+    const key = dateEl.value + '|' + timeEl.value;
+    if(slots.some(s => s.key === key)) return;
+    if(slots.length >= 3) return;
+    const t = TIME_SLOTS.find(x => x.id === timeEl.value);
+    slots.push({key, dateFull: dateEl.dataset.full, timeLabel: t.label, timeRange: t.range});
+    dateEl.checked = false; timeEl.checked = false;
+    document.getElementById('slotsList').innerHTML = slotsHTML();
+    document.getElementById('addSlotBtn').disabled = slots.length >= 3;
+    attachSlotRemoval();
+  });
+  document.getElementById('addSlotBtn').disabled = slots.length >= 3;
+  attachSlotRemoval();
+
+  document.getElementById('reqForm').addEventListener('submit', e => {
+    e.preventDefault();
+    let firstInvalid = null;
+    const name = document.getElementById('cName'), phone = document.getElementById('cPhone'), addr = document.getElementById('addr');
+    [name, phone].forEach(el => el.removeAttribute('aria-invalid'));
+    document.getElementById('addrErr').innerHTML = '';
+    document.getElementById('slotsErr').innerHTML = '';
+
+    if(!name.value.trim()){ name.setAttribute('aria-invalid','true'); firstInvalid = firstInvalid || name; }
+    if(!phone.value.trim()){ phone.setAttribute('aria-invalid','true'); firstInvalid = firstInvalid || phone; }
+    if(!addr.value.trim()){
+      addr.setAttribute('aria-invalid','true');
+      document.getElementById('addrErr').innerHTML = `<div class="field-error">${icon('alert')}<span>Add the property address.</span></div>`;
+      firstInvalid = firstInvalid || addr;
+    }
+    if(!slots.length){
+      document.getElementById('slotsErr').innerHTML = `<div class="field-error">${icon('alert')}<span>Add at least one preferred time.</span></div>`;
+      firstInvalid = firstInvalid || document.getElementById('addSlotBtn');
+    }
+    if(firstInvalid){ firstInvalid.focus(); return; }
+
+    submitted = {
+      propertyId: p.id, name: name.value.trim(), phone: phone.value.trim(),
+      address: addr.value.trim(), contactMethod, slots: slots.slice(),
+    };
+    render();
+  });
+}
+function attachSlotRemoval(){
+  document.querySelectorAll('.slot-remove').forEach(btn => {
+    btn.onclick = () => { slots.splice(+btn.dataset.i, 1); document.getElementById('slotsList').innerHTML = slotsHTML(); document.getElementById('addSlotBtn').disabled = slots.length >= 3; attachSlotRemoval(); };
+  });
+}
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  document.getElementById('themeBtn').textContent = next === 'dark' ? 'Light mode' : 'Dark mode';
+  document.getElementById('themeBtn').setAttribute('aria-pressed', String(next === 'dark'));
+});
+
+render();
+</script>
+</body>
+</html>

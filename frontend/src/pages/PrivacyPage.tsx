@@ -72,7 +72,7 @@ export const PrivacyPage: React.FC<PrivacyPageProps> = ({ onBack, onNavigateToTa
                 <span>Zero Public Contact Exposure</span>
               </div>
               <p style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.6, margin: 0 }}>
-                To shield landlords from harassment by unstructured roadside agents and unsolicited sales calls, direct phone numbers, WhatsApp links, and exact street numbers are <strong>never displayed publicly</strong> on search or property pages. Contacts are unlocked strictly to confirmed renters after verification and payment of the ₦5,000 direct access fee.
+                To shield landlords from harassment by unstructured roadside agents and unsolicited sales calls, direct phone numbers, WhatsApp links, and exact street numbers are <strong>never displayed publicly</strong> on search or property pages. Contacts are unlocked strictly to confirmed renters after verification and payment of the direct access fee.
               </p>
             </div>
           </div>

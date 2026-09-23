@@ -20,7 +20,6 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { AccountPage } from './pages/AccountPage';
 import { ListerVerificationPage } from './pages/ListerVerificationPage';
-import { ListPropertyLandingPage } from './pages/ListPropertyLandingPage';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -90,6 +89,19 @@ export const App: React.FC = () => {
     }));
   }, [location.pathname, searchParams]);
 
+  const [activeRequestsCount, setActiveRequestsCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      void requestsService.getAllRequests().then((reqs) => {
+        const active = reqs.filter(r => r.status !== 'unavailable').length;
+        setActiveRequestsCount(active);
+      });
+    } else {
+      setActiveRequestsCount(0);
+    }
+  }, [user, location.pathname]);
+
   useEffect(() => {
     const path = location.pathname;
     let pageTitle = 'Rentivo — Verified Property Marketplace in Ibadan';
@@ -105,8 +117,6 @@ export const App: React.FC = () => {
       pageTitle = 'Access Request Status — Rentivo';
     } else if (path === '/how-it-works') {
       pageTitle = 'How It Works — Rentivo';
-    } else if (path === '/list-property') {
-      pageTitle = 'List Your Property in Ibadan — Rentivo';
     } else if (path === '/terms') {
       pageTitle = 'Terms of Service — Rentivo';
     } else if (path === '/privacy') {
@@ -123,6 +133,8 @@ export const App: React.FC = () => {
       pageTitle = 'Saved Properties — Rentivo';
     } else if (path === '/account/requests') {
       pageTitle = 'My Requests — Rentivo';
+    } else if (path === '/account/search') {
+      pageTitle = 'Search Properties — Rentivo Portal';
     } else if (path === '/account/profile' || path === '/account') {
       pageTitle = 'My Account — Rentivo';
     } else if (path === '/lister/listings/new') {
@@ -149,6 +161,11 @@ export const App: React.FC = () => {
     if ((tab === 'requests' || tab === 'profile') && !user) {
       navigate(`/login?next=${encodeURIComponent(pathForTab(tab))}`);
       showToast('Please sign in to continue.');
+      return;
+    }
+    if (tab === 'search' && (location.pathname.startsWith('/account') || (user && user.role !== 'landlord' && user.role !== 'agent' && user.role !== 'admin'))) {
+      navigate('/account/search');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     navigate(pathForTab(tab));
@@ -193,8 +210,11 @@ export const App: React.FC = () => {
     navigate(`/listings/${listing.id}/request`);
   };
 
-  const showNavbar = !STANDALONE_TABS.includes(currentTab) && !location.pathname.startsWith('/lister') && !location.pathname.startsWith('/admin') && location.pathname !== '/search';
-  const showFooter = FOOTER_TABS.includes(currentTab) || location.pathname.startsWith('/account');
+  const isPortalRoute = location.pathname.startsWith('/account') || location.pathname.startsWith('/lister') || location.pathname.startsWith('/admin');
+  const isRenterPortalSearch = location.pathname.startsWith('/account/search');
+  const isBrowsePropertiesSearch = (location.pathname.startsWith('/search') || location.pathname.startsWith('/browse') || location.pathname.startsWith('/properties')) && !isRenterPortalSearch;
+  const showNavbar = !STANDALONE_TABS.includes(currentTab) && !location.pathname.startsWith('/lister') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/account') && !isBrowsePropertiesSearch && !isRenterPortalSearch;
+  const showFooter = !isPortalRoute && (FOOTER_TABS.includes(currentTab) || isBrowsePropertiesSearch);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -207,6 +227,7 @@ export const App: React.FC = () => {
           onSignOut={() => { void signOut(); navigate('/'); }}
           onOpenAuth={handleOpenAuth}
           favoritesCount={favorites.length}
+          activeRequestsCount={activeRequestsCount}
         />
       )}
 
@@ -246,31 +267,22 @@ export const App: React.FC = () => {
                 onOpenAuth={handleOpenAuth}
                 onPostListing={() => {
                   if (user?.role === 'landlord' || user?.role === 'agent') navigate('/lister/listings/new');
-                  else navigate('/list-property');
+                  else navigate('/signup?role=lister');
                 }}
+                isPortalMode={false}
               />
             }
           />
+          <Route path="/browse" element={<Navigate to="/search" replace />} />
+          <Route path="/properties" element={<Navigate to="/search" replace />} />
           <Route path="/listings/:id" element={<ListingDetailRoute favorites={favorites} onToggleFavorite={handleToggleFavorite} onRequestAccess={handleRequestAccess} />} />
-          <Route path="/listings/:id/request" element={<ProtectedRoute><CheckoutRoute /></ProtectedRoute>} />
-          <Route path="/requests/:id" element={<ProtectedRoute><CheckoutRoute /></ProtectedRoute>} />
+          <Route path="/listings/:id/request" element={<Navigate to="/account/requests" replace />} />
+          <Route path="/requests/:id" element={<Navigate to="/account/requests" replace />} />
+          <Route path="/requests" element={<Navigate to="/account/requests" replace />} />
           <Route path="/how-it-works" element={<HowItWorksPage onBrowseProperties={() => navigate('/search')} onPostListing={() => handleOpenAuth('signup', 'lister')} />} />
-          <Route 
-            path="/list-property" 
-            element={
-              <ListPropertyLandingPage
-                currentUser={user}
-                onStartListing={() => {
-                  if (user?.role === 'landlord' || user?.role === 'agent') navigate('/lister/listings/new');
-                  else handleOpenAuth('signup', 'lister');
-                }}
-                onSignIn={() => handleOpenAuth('signin', 'lister')}
-                onBrowseMarketplace={() => navigate('/search')}
-              />
-            } 
-          />
-          <Route path="/post-property" element={<Navigate to="/list-property" replace />} />
-          <Route path="/for-owners" element={<Navigate to="/list-property" replace />} />
+          <Route path="/list-property" element={<Navigate to="/lister/listings/new" replace />} />
+          <Route path="/post-property" element={<Navigate to="/lister/listings/new" replace />} />
+          <Route path="/for-owners" element={<Navigate to="/lister/listings/new" replace />} />
           <Route path="/terms" element={<TermsPage onBack={() => navigate(-1)} onNavigateToTab={handleNavigate} />} />
           <Route path="/privacy" element={<PrivacyPage onBack={() => navigate(-1)} onNavigateToTab={handleNavigate} />} />
           <Route path="/access-fee-terms" element={<AccessFeeTermsPage onBack={() => navigate(-1)} onBrowseListings={() => navigate('/search')} onNavigateToTab={handleNavigate} />} />
@@ -283,12 +295,34 @@ export const App: React.FC = () => {
             path="/account"
             element={
               <ProtectedRoute>
-                <AccountPage
-                  listings={listings}
+                <Navigate to="/account/search" replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account/search"
+            element={
+              <ProtectedRoute>
+                <SearchPage
+                  listings={listings as never}
                   favorites={favorites}
-                  onNavigateToTab={handleNavigate}
+                  filters={filters}
+                  onFilterChange={(up) => setFilters((prev) => ({ ...prev, ...up }))}
+                  onToggleFavorite={handleToggleFavorite}
                   onSelectListing={handleSelectListing}
-                  onOpenRequest={(req) => navigate(`/requests/${req.id}`)}
+                  onRequestAccess={handleRequestAccess}
+                  onNavigateHome={() => navigate('/account/search')}
+                  onNavigateToFavorites={() => handleNavigate('favorites')}
+                  onNavigateToRequests={() => handleNavigate('requests')}
+                  onNavigateToProfile={() => handleNavigate('profile')}
+                  currentUser={user}
+                  onSignOut={() => { void signOut(); navigate('/'); }}
+                  onOpenAuth={handleOpenAuth}
+                  onPostListing={() => {
+                    if (user?.role === 'landlord' || user?.role === 'agent') navigate('/lister/listings/new');
+                    else navigate('/signup?role=lister');
+                  }}
+                  isPortalMode={true}
                 />
               </ProtectedRoute>
             }
@@ -300,7 +334,7 @@ export const App: React.FC = () => {
                 <RequestsPage
                   listings={listings}
                   favorites={favorites}
-                  onBrowseListings={() => navigate('/search')}
+                  onBrowseListings={() => navigate('/account/search')}
                   onNavigateToFavorites={() => handleNavigate('favorites')}
                   onSelectListing={handleSelectListing}
                   onProceedToCheckout={(listing) => navigate(`/listings/${listing.id}/request`)}
@@ -319,7 +353,7 @@ export const App: React.FC = () => {
                   onToggleFavorite={handleToggleFavorite}
                   onSelectListing={handleSelectListing}
                   onRequestAccess={handleRequestAccess}
-                  onBrowseListings={() => navigate('/search')}
+                  onBrowseListings={() => navigate('/account/search')}
                   onNavigateToRequests={() => handleNavigate('requests')}
                   onProceedToCheckout={(listing) => navigate(`/listings/${listing.id}/request`)}
                 />
@@ -345,6 +379,8 @@ export const App: React.FC = () => {
           <Route path="/lister/requests" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} tab="inquiries" /></ProtectedRoute>} />
           <Route path="/lister/verification" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} tab="verification" /></ProtectedRoute>} />
           <Route path="/lister/verification/request" element={<ProtectedRoute listerOnly><ListerVerificationPage listings={listings} initialMode="request" onBack={() => navigate('/lister/verification')} /></ProtectedRoute>} />
+          <Route path="/lister/account" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} tab="profile" /></ProtectedRoute>} />
+          <Route path="/lister/profile" element={<ProtectedRoute listerOnly><ListerRoute listings={listings} onReload={loadData} showToast={showToast} tab="profile" /></ProtectedRoute>} />
           <Route path="/lister/listings/new" element={<ProtectedRoute listerOnly><ListingEditorPage initialListing={null} onSaveSuccess={() => { void loadData(); showToast('Listing submitted for admin review.'); navigate('/lister/listings'); }} onCancel={() => navigate('/lister')} /></ProtectedRoute>} />
           <Route path="/lister/listings/:id/edit" element={<ProtectedRoute listerOnly><EditListingRoute onReload={loadData} showToast={showToast} /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminQueuePage listings={listings} onApproveVerification={(id) => { void listingsService.issueVerifiedBadge(id); showToast('Verified badge issued.'); }} onExit={() => navigate('/')} /></ProtectedRoute>} />
@@ -405,8 +441,18 @@ const ListingDetailRoute: React.FC<{
       listing={listing}
       isFavorite={favorites.includes(listing.id)}
       onToggleFavorite={onToggleFavorite}
-      onBack={() => navigate('/search')}
+      onBack={() => {
+        if (window.history.length > 1) {
+          navigate(-1);
+        } else {
+          navigate('/search');
+        }
+      }}
       onRequestAccess={onRequestAccess}
+      onSelectListing={(l) => {
+        navigate(`/listings/${l.id}`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }}
     />
   );
 };
@@ -507,7 +553,7 @@ const ListerRoute: React.FC<{
       onNavigateToMarketplace={() => navigate('/search')}
       onOpenVerification={() => navigate('/lister/verification')}
       onOpenRequests={() => navigate('/lister/requests')}
-      onNavigateToProfile={() => navigate('/account/profile')}
+      onNavigateToProfile={() => navigate('/lister/account')}
       onSignOut={() => { void signOut(); navigate('/'); }}
     />
   );

@@ -67,6 +67,7 @@ export interface Listing {
   bedrooms?: number;
   bathrooms?: number;
   areaSqm?: number;
+  rating?: number;
   amenities: string[];
   description: string;
   photos: string[];
@@ -128,6 +129,7 @@ export interface FilterOptions {
 
 export type NavigationTab = 
   | 'home'
+  | 'account'
   | 'search'
   | 'detail'
   | 'checkout'

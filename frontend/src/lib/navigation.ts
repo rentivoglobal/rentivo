@@ -2,13 +2,14 @@ import { NavigationTab } from '../types';
 
 export const HASH_TO_PATH: Record<string, string> = {
   home: '/',
+  account: '/account',
   search: '/search',
   detail: '/search',
   checkout: '/account/requests',
   requests: '/account/requests',
   favorites: '/account/favorites',
   how_it_works: '/how-it-works',
-  list_property: '/list-property',
+  list_property: '/lister/listings/new',
   terms: '/terms',
   privacy: '/privacy',
   access_fee_terms: '/access-fee-terms',
@@ -35,13 +36,13 @@ export function pathForTab(
   switch (tab) {
     case 'home':
       return '/';
+    case 'account':
+      return '/account';
     case 'search':
       return '/search';
     case 'detail':
       return extra?.listingId ? `/listings/${extra.listingId}` : '/search';
     case 'checkout':
-      if (extra?.requestId) return `/requests/${extra.requestId}`;
-      if (extra?.listingId) return `/listings/${extra.listingId}/request`;
       return '/account/requests';
     case 'requests':
       return '/account/requests';
@@ -50,7 +51,7 @@ export function pathForTab(
     case 'how_it_works':
       return '/how-it-works';
     case 'list_property':
-      return '/list-property';
+      return '/lister/listings/new';
     case 'terms':
       return '/terms';
     case 'privacy':
@@ -70,7 +71,9 @@ export function pathForTab(
           ? '/lister/requests'
           : extra?.listerTab === 'listings'
             ? '/lister/listings'
-            : '/lister';
+            : extra?.listerTab === 'profile' || extra?.listerTab === 'account'
+              ? '/lister/account'
+              : '/lister';
     case 'listing_editor':
       return extra?.listingId ? `/lister/listings/${extra.listingId}/edit` : '/lister/listings/new';
     case 'admin':
@@ -89,6 +92,7 @@ export function pathForTab(
 
 export function tabFromPathname(pathname: string): NavigationTab {
   if (pathname === '/') return 'home';
+  if (pathname === '/account') return 'account';
   if (pathname.startsWith('/search')) return 'search';
   if (pathname.startsWith('/listings')) {
     return pathname.endsWith('/request') ? 'checkout' : 'detail';
@@ -97,9 +101,9 @@ export function tabFromPathname(pathname: string): NavigationTab {
   if (pathname.startsWith('/account/requests')) return 'requests';
   if (pathname.startsWith('/account/favorites')) return 'favorites';
   if (pathname.startsWith('/account/profile')) return 'profile';
-  if (pathname.startsWith('/account')) return 'profile';
+  if (pathname.startsWith('/account/search')) return 'search';
+  if (pathname.startsWith('/account')) return 'account';
   if (pathname.startsWith('/how-it-works')) return 'how_it_works';
-  if (pathname.startsWith('/list-property') || pathname.startsWith('/post-property') || pathname.startsWith('/for-owners')) return 'list_property';
   if (pathname.startsWith('/terms')) return 'terms';
   if (pathname.startsWith('/privacy')) return 'privacy';
   if (pathname.startsWith('/access-fee-terms')) return 'access_fee_terms';
@@ -118,6 +122,7 @@ export function tabFromPathname(pathname: string): NavigationTab {
 
 export const STANDALONE_TABS: NavigationTab[] = [
   'search',
+  'detail',
   'lister',
   'listing_editor',
   'admin',
@@ -129,14 +134,8 @@ export const STANDALONE_TABS: NavigationTab[] = [
 export const FOOTER_TABS: NavigationTab[] = [
   'home',
   'search',
-  'detail',
-  'checkout',
-  'requests',
-  'favorites',
   'how_it_works',
-  'list_property',
   'terms',
   'privacy',
-  'access_fee_terms',
-  'profile'
+  'access_fee_terms'
 ];

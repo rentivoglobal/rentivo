@@ -43,7 +43,7 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
             Access Fee Policy &amp; Guarantees
           </h1>
           <p style={{ fontSize: '15px', color: 'rgba(255, 255, 255, 0.8)', margin: '0 auto', maxWidth: '640px', lineHeight: 1.6 }}>
-            Understanding Rentivo's flat ₦5,000 direct landlord connection model, our zero-upfront guarantee, and the 100% refund policy.
+            Understanding Rentivo's direct landlord connection model, our zero-upfront guarantee, and the 100% refund policy.
           </p>
         </div>
       </div>
@@ -52,13 +52,13 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
       <div style={{ maxWidth: '840px', margin: '-24px auto 0', padding: '0 20px' }}>
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '36px 32px', boxShadow: '0 4px 20px rgba(0, 0, 82, 0.04)' }}>
 
-          {/* Section 1: What is the ₦5,000 Fee? */}
+          {/* Section 1: What is the Direct Access Fee? */}
           <div style={{ marginBottom: '32px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#000052', marginBottom: '10px' }}>
-              1. What Is the ₦5,000 Direct Access Fee?
+              1. What Is the Direct Access Fee?
             </h2>
             <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px' }}>
-              Rentivo eliminates exploitative agency and legal commissions (traditionally 10% to 50% in Nigerian real estate) by providing a technology-verified direct connection. The <strong>flat ₦5,000 access fee</strong> covers:
+              Rentivo eliminates exploitative agency and legal commissions (traditionally 10% to 50% in Nigerian real estate) by providing a technology-verified direct connection. The <strong>flat access fee</strong> covers:
             </p>
             <ul style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px', paddingLeft: '20px' }}>
               <li><strong>Physical On-Site Inspection Audits:</strong> Our field officers in Ibadan personally verify that the property exists, photos are authentic, and the lister has letting authority.</li>
@@ -79,7 +79,7 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
                   Traditional Street Agents
                 </div>
                 <div style={{ fontSize: '13px', color: '#7F1D1D', lineHeight: 1.6 }}>
-                  <div>• Upfront inspection fee: ₦5,000 – ₦10,000 per viewing</div>
+                  <div>• Upfront inspection fee: varies per viewing</div>
                   <div>• Agency commission: 10% of annual rent</div>
                   <div>• Agreement/Legal fee: 10% of annual rent</div>
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #FCA5A5', fontWeight: 800 }}>
@@ -96,9 +96,9 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
                 <div style={{ fontSize: '13px', color: '#14532D', lineHeight: 1.6 }}>
                   <div>• Browsing &amp; requests: ₦0 (100% Free)</div>
                   <div>• Upfront viewing fees: ₦0</div>
-                  <div>• Post-confirmation fee: ₦5,000 flat (one-time)</div>
+                  <div>• Post-confirmation fee: flat one-time access fee</div>
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #86EFAC', fontWeight: 800, color: '#15803D' }}>
-                    Total on ₦800,000 Flat: <strong>₦5,000 flat</strong> (Save ~₦165,000)
+                    Total on ₦800,000 Flat: <strong>flat access fee</strong> (Save ~₦165,000)
                   </div>
                 </div>
               </div>
@@ -126,7 +126,7 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
                 <span>Automated Refund Conditions</span>
               </div>
               <p style={{ fontSize: '13.5px', color: '#1E3A8A', lineHeight: 1.6, margin: '0 0 8px' }}>
-                Rentivo will refund your full ₦5,000 payment immediately via Paystack if any of the following occur within 24 hours of contact unlock:
+                Rentivo will refund your full payment immediately via Paystack if any of the following occur within 24 hours of contact unlock:
               </p>
               <ul style={{ fontSize: '13px', color: '#1E3A8A', lineHeight: 1.6, margin: 0, paddingLeft: '18px' }}>
                 <li>The landlord or mandated agent is unreachable across phone and WhatsApp for more than 24 hours.</li>
@@ -145,7 +145,7 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
               To maintain complete legal clarity under Nigerian consumer protection standards:
             </p>
             <ul style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px', paddingLeft: '20px' }}>
-              <li><strong>Not Tenancy Rent:</strong> The ₦5,000 fee is an access and verification fee. It does not apply toward annual rent or security deposits paid to the landlord.</li>
+              <li><strong>Not Tenancy Rent:</strong> The access fee is an access and verification fee. It does not apply toward annual rent or security deposits paid to the landlord.</li>
               <li><strong>Landlord Lease Discretion:</strong> Property owners retain final discretion to approve lease applications, verify tenant employment/ID, and execute tenancy contracts.</li>
             </ul>
           </div>

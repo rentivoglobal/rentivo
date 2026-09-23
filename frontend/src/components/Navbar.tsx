@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   ShieldCheck, 
   Plus, 
@@ -12,7 +13,8 @@ import {
   X, 
   Lock,
   ExternalLink,
-  Sparkles
+  Sparkles,
+  Search
 } from 'lucide-react';
 import { NavigationTab, User } from '../types';
 
@@ -57,6 +59,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const isLister = currentUser?.role === 'landlord' || currentUser?.role === 'agent';
   const isAdmin = currentUser?.role === 'admin';
+  const isRenter = Boolean(currentUser && !isLister && !isAdmin);
+  const location = useLocation();
+  const isRenterPortal = location.pathname.startsWith('/account') || isRenter;
 
   return (
     <header 
@@ -82,106 +87,67 @@ export const Navbar: React.FC<NavbarProps> = ({
         }}
       >
         {/* Brand Logo Lockup */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <a 
-            href="/" 
-            onClick={(e) => { e.preventDefault(); handleNav('home'); }}
-            style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+            href={isRenterPortal ? "/account" : "/"} 
+            onClick={(e) => { e.preventDefault(); handleNav(isRenterPortal ? 'account' : 'home'); }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
+            title={isRenterPortal ? "Renter Portal Dashboard" : "Rentivo Home"}
           >
             <img src="/RENTIVO-lockup.svg" alt="Rentivo" style={{ height: '32px' }} />
+            {isRenterPortal && (
+              <span style={{
+                backgroundColor: '#F0E6FF',
+                color: '#000052',
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '3px 8px',
+                borderRadius: '999px',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase'
+              }}>
+                Renter Portal
+              </span>
+            )}
           </a>
+        </div>
 
-          {/* Desktop Navigation Links */}
+        {/* Center: Unified Centralized Navigation */}
+        {isRenterPortal ? (
           <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="desktop-nav-links">
+            {/* Browse Properties Pill */}
             <button
               type="button"
               onClick={() => handleNav('search')}
               style={{
-                background: 'none',
-                border: 'none',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                fontSize: '13.5px',
-                fontWeight: currentTab === 'search' || currentTab === 'detail' ? 800 : 600,
-                color: currentTab === 'search' || currentTab === 'detail' ? '#000052' : '#636377',
-                backgroundColor: currentTab === 'search' || currentTab === 'detail' ? '#F1F5F9' : 'transparent',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              Browse Properties
-            </button>
-            <button
-              type="button"
-              onClick={() => handleNav('how_it_works')}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                fontSize: '13.5px',
-                fontWeight: currentTab === 'how_it_works' ? 800 : 600,
-                color: currentTab === 'how_it_works' ? '#000052' : '#636377',
-                backgroundColor: currentTab === 'how_it_works' ? '#F1F5F9' : 'transparent',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              How It Works
-            </button>
-          </nav>
-        </div>
-
-        {/* Right-Side Actions & Auth Menu */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Saved Properties Pill (Accessible to both guests & authenticated users) */}
-          <button
-            type="button"
-            onClick={() => handleNav('favorites')}
-            style={{
-              background: currentTab === 'favorites' ? '#F1F5F9' : 'transparent',
-              border: '1.5px solid',
-              borderColor: currentTab === 'favorites' ? '#000052' : '#E2E8F0',
-              padding: '6px 14px',
-              borderRadius: '9999px',
-              fontSize: '13px',
-              fontWeight: 700,
-              color: '#000052',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease'
-            }}
-            title="View saved properties"
-          >
-            <Heart size={14} color="#000052" fill={favoritesCount > 0 ? '#000052' : 'none'} />
-            <span className="nav-saved-text">Saved</span>
-            {favoritesCount > 0 && (
-              <span style={{
-                backgroundColor: '#BE89FF',
+                background: (currentTab === 'search' || currentTab === 'detail' || location.pathname.includes('/search')) ? '#F1F5F9' : 'transparent',
+                border: '1.5px solid',
+                borderColor: (currentTab === 'search' || currentTab === 'detail' || location.pathname.includes('/search')) ? '#000052' : '#E2E8F0',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                fontSize: '13px',
+                fontWeight: 700,
                 color: '#000052',
-                fontSize: '11px',
-                fontWeight: 800,
-                borderRadius: '999px',
-                padding: '1px 6px',
-                lineHeight: 1.2
-              }}>
-                {favoritesCount}
-              </span>
-            )}
-          </button>
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+              title="Browse verified properties in Ibadan"
+            >
+              <Search size={14} color="#000052" />
+              <span>Browse Properties</span>
+            </button>
 
-          {/* My Requests Pill (For renters / authenticated tenants) */}
-          {currentUser && !isLister && !isAdmin && (
+            {/* My Requests Pill */}
             <button
               type="button"
-              className="nav-action-pill-desktop"
               onClick={() => handleNav('requests')}
               style={{
-                background: currentTab === 'requests' ? '#F1F5F9' : 'transparent',
+                background: (currentTab === 'requests' || location.pathname.startsWith('/account/requests')) ? '#F1F5F9' : 'transparent',
                 border: '1.5px solid',
-                borderColor: currentTab === 'requests' ? '#000052' : '#E2E8F0',
+                borderColor: (currentTab === 'requests' || location.pathname.startsWith('/account/requests')) ? '#000052' : '#E2E8F0',
                 padding: '6px 14px',
                 borderRadius: '9999px',
                 fontSize: '13px',
@@ -197,19 +163,29 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <FileText size={14} color="#000052" />
               <span>My Requests</span>
+              {activeRequestsCount > 0 && (
+                <span style={{
+                  backgroundColor: '#000052',
+                  color: '#FFFFFF',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  borderRadius: '999px',
+                  padding: '1px 6px',
+                  lineHeight: 1.2
+                }}>
+                  {activeRequestsCount}
+                </span>
+              )}
             </button>
-          )}
 
-          {/* Persistent "List your property" Doorway for Guests & Seekers */}
-          {!isLister && !isAdmin && (
+            {/* Saved Properties Pill */}
             <button
               type="button"
-              className="nav-action-pill-desktop"
-              onClick={() => handleNav('list_property')}
+              onClick={() => handleNav('favorites')}
               style={{
-                background: currentTab === 'list_property' ? '#F8F3FF' : '#FFFFFF',
+                background: (currentTab === 'favorites' || location.pathname.startsWith('/account/favorites')) ? '#F1F5F9' : 'transparent',
                 border: '1.5px solid',
-                borderColor: currentTab === 'list_property' ? '#7E22CE' : '#E2E8F0',
+                borderColor: (currentTab === 'favorites' || location.pathname.startsWith('/account/favorites')) ? '#000052' : '#E2E8F0',
                 padding: '6px 14px',
                 borderRadius: '9999px',
                 fontSize: '13px',
@@ -221,12 +197,55 @@ export const Navbar: React.FC<NavbarProps> = ({
                 gap: '6px',
                 transition: 'all 0.15s ease'
               }}
-              title="Put your property on Rentivo for free"
+              title="View saved properties"
             >
-              <Building size={14} color="#7E22CE" />
-              <span>List your property</span>
+              <Heart size={14} color="#000052" fill={favoritesCount > 0 ? '#000052' : 'none'} />
+              <span>Saved</span>
+              {favoritesCount > 0 && (
+                <span style={{
+                  backgroundColor: '#BE89FF',
+                  color: '#000052',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  borderRadius: '999px',
+                  padding: '1px 6px',
+                  lineHeight: 1.2
+                }}>
+                  {favoritesCount}
+                </span>
+              )}
             </button>
-          )}
+          </nav>
+        ) : (
+          /* Public / Non-Renter Portal Nav */
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="desktop-nav-links">
+            <button
+              type="button"
+              onClick={() => handleNav('search')}
+              style={{
+                background: (currentTab === 'search' || currentTab === 'detail') ? '#F1F5F9' : 'transparent',
+                border: '1.5px solid',
+                borderColor: (currentTab === 'search' || currentTab === 'detail') ? '#000052' : '#E2E8F0',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#000052',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Search size={14} color="#000052" />
+              <span>Browse Properties</span>
+            </button>
+          </nav>
+        )}
+
+        {/* Right-Side Actions & Auth Menu */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
 
           {/* My Properties link for authenticated property owner */}
           {isLister && (
@@ -388,9 +407,31 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <div style={{ fontSize: '11px', color: '#636377' }}>{currentUser.email}</div>
                   </div>
 
-                  {/* Renter Links */}
+                  {/* Renter Specific Navigation Links */}
                   {!isLister && !isAdmin && (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => handleNav('search')}
+                        style={{
+                          textAlign: 'left',
+                          padding: '9px 12px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: currentTab === 'search' ? '#F8F3FF' : 'none',
+                          color: '#000052',
+                          fontSize: '12.5px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        <Search size={14} color="#000052" />
+                        <span>Search Properties</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handleNav('requests')}
@@ -410,7 +451,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         }}
                       >
                         <FileText size={14} color="#000052" />
-                        <span>My Property Requests</span>
+                        <span>My Requests</span>
                       </button>
 
                       <button
@@ -433,28 +474,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                       >
                         <Heart size={14} color="#000052" />
                         <span>Saved Properties</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleNav('list_property')}
-                        style={{
-                          textAlign: 'left',
-                          padding: '9px 12px',
-                          borderRadius: '8px',
-                          border: 'none',
-                          background: currentTab === 'list_property' ? '#F8F3FF' : 'none',
-                          color: '#5B14B8',
-                          fontSize: '12.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}
-                      >
-                        <Building size={14} color="#7E22CE" />
-                        <span>List your property</span>
                       </button>
                     </>
                   )}
@@ -630,23 +649,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             Browse Properties
           </button>
 
-          {/* Saved properties on mobile (visible for all users) */}
-          <button
-            type="button"
-            onClick={() => handleNav('favorites')}
-            style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'favorites' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Heart size={16} color="#000052" fill={favoritesCount > 0 ? '#000052' : 'none'} />
-              <span>Saved Properties</span>
-            </span>
-            {favoritesCount > 0 && (
-              <span style={{ backgroundColor: '#BE89FF', color: '#000052', fontSize: '11px', fontWeight: 800, borderRadius: '999px', padding: '1px 8px' }}>
-                {favoritesCount}
-              </span>
-            )}
-          </button>
-
           {/* Renter requests on mobile */}
           {currentUser && !isLister && !isAdmin && (
             <button
@@ -656,31 +658,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <FileText size={16} color="#000052" />
               <span>My Requests</span>
-            </button>
-          )}
-
-          {/* List your property doorway on mobile for guests & renters */}
-          {!isLister && !isAdmin && (
-            <button
-              type="button"
-              onClick={() => handleNav('list_property')}
-              style={{
-                textAlign: 'left',
-                minHeight: '46px',
-                padding: '10px 14px',
-                background: currentTab === 'list_property' ? '#F8F3FF' : '#FAF5FF',
-                border: '1.5px solid #E9D5FF',
-                borderRadius: '8px',
-                fontWeight: 800,
-                color: '#5B14B8',
-                fontSize: '14.5px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}
-            >
-              <Building size={17} color="#7E22CE" />
-              <span>List your property for free</span>
             </button>
           )}
 

@@ -59,16 +59,16 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack, onNavigateToTab })
           {/* Section 2 */}
           <div style={{ marginBottom: '32px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#000052', marginBottom: '10px' }}>
-              2. The ₦5,000 Direct Access Fee
+              2. The Direct Access Fee
             </h2>
             <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px' }}>
-              Rentivo charges a flat, one-time direct access fee of <strong>₦5,000</strong> per confirmed property. This fee is:
+              Rentivo charges a flat, one-time direct access fee per confirmed property. This fee is:
             </p>
             <ul style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px', paddingLeft: '20px' }}>
               <li><strong>Zero Upfront Cost:</strong> It is 100% free to browse listings and submit access requests. You will never be asked to pay before availability is verified.</li>
               <li><strong>Post-Confirmation Only:</strong> The fee is payable strictly after the property owner has confirmed the property is currently vacant and ready for physical inspection.</li>
               <li><strong>Direct Contact Access:</strong> Payment unlocks the landlord's direct phone number, WhatsApp link, physical landmark address, and delivers a duplicate dossier to your email.</li>
-              <li><strong>Not a Tenancy Deposit:</strong> The ₦5,000 fee covers information verification and platform connection. It does not constitute annual rent, caution deposit, or a guarantee of tenancy approval.</li>
+              <li><strong>Not a Tenancy Deposit:</strong> The access fee covers information verification and platform connection. It does not constitute annual rent, caution deposit, or a guarantee of tenancy approval.</li>
             </ul>
           </div>
 
@@ -99,7 +99,7 @@ export const TermsPage: React.FC<TermsPageProps> = ({ onBack, onNavigateToTab })
                 <span>Verified Refund Commitment</span>
               </div>
               <p style={{ fontSize: '13.5px', color: '#065F46', lineHeight: 1.6, margin: 0 }}>
-                If you pay the ₦5,000 fee and discover within 24 hours that the landlord is completely unreachable or the property was already leased prior to confirmation, Rentivo will issue a full 100% refund or provide an immediate free replacement credit.
+                If you pay the access fee and discover within 24 hours that the landlord is completely unreachable or the property was already leased prior to confirmation, Rentivo will issue a full 100% refund or provide an immediate free replacement credit.
               </p>
             </div>
           </div>

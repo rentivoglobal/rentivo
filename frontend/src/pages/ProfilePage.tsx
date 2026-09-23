@@ -31,12 +31,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   onBack,
   onNavigateToTab
 }) => {
-  const [name, setName] = useState(currentUser?.name || 'Renter Account');
+  const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [preferredArea, setPreferredArea] = useState('Bodija');
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  React.useEffect(() => {
+    if (currentUser) {
+      setName(currentUser.name || '');
+      setEmail(currentUser.email || '');
+      setPhone(currentUser.phone || '');
+    }
+  }, [currentUser]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +60,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const isLister = currentUser?.role === 'landlord' || currentUser?.role === 'agent';
 
   return (
-    <div style={{ backgroundColor: '#F8FAFC', minHeight: '100vh', paddingBottom: '80px' }}>
+    <div className="renter-page-container" style={{ backgroundColor: '#F8FAFC', minHeight: '100vh', paddingBottom: '80px' }}>
       {/* Top Header Bar */}
       <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E2E8F0', padding: '16px 0', position: 'sticky', top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -288,105 +296,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </button>
           </form>
         </div>
-
-        {/* Lister Portal Transition / Discovery Card */}
-        {!isLister ? (
-          <div style={{
-            backgroundColor: '#F0E6FF',
-            border: '1.5px solid #E9D5FF',
-            borderRadius: '16px',
-            padding: '24px 28px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '16px'
-          }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 800, color: '#000052', marginBottom: '4px' }}>
-                <Building size={18} color="#7E22CE" />
-                <span>Own or Manage Property in Ibadan?</span>
-              </div>
-              <p style={{ fontSize: '13px', color: '#6B21A8', margin: 0, maxWidth: '480px', lineHeight: 1.5 }}>
-                Post your verified apartments, houses, or commercial units for free. Zero listing fees, pre-screened seekers, and structured in-person inspection bookings.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigateToTab('lister')}
-              style={{
-                backgroundColor: '#7E22CE',
-                color: '#FFFFFF',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '9999px',
-                fontSize: '13px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <span>Go to Lister Portal</span>
-              <Building size={14} />
-            </button>
-          </div>
-        ) : (
-          <div style={{
-            backgroundColor: '#F8FAFC',
-            border: '1.5px solid #E2E8F0',
-            borderRadius: '16px',
-            padding: '20px 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '16px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '10px',
-                backgroundColor: '#EFF6FF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Building size={20} color="#000052" />
-              </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: 800, color: '#000052' }}>
-                  Verified Lister Account
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748B' }}>
-                  Manage your active listings, renter inquiries, and scheduled inspections.
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigateToTab('lister')}
-              style={{
-                backgroundColor: '#000052',
-                color: '#FFFFFF',
-                border: 'none',
-                padding: '9px 18px',
-                borderRadius: '9999px',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <span>Open Lister Dashboard</span>
-            </button>
-          </div>
-        )}
-
       </div>
     </div>
   );

@@ -19,13 +19,18 @@ import {
   Sparkles,
   Camera,
   Phone,
-  LayoutGrid
+  LayoutGrid,
+  Lock,
+  Bell,
+  Save,
+  ExternalLink
 } from 'lucide-react';
 import '../styles/lister.css';
 import { Listing } from '../types';
 import { formatNaira, formatPriceWithPeriod } from '../utils/formatters';
 import { listingsService } from '../services/listingsService';
 import { requestsService } from '../services/requestsService';
+import { authService } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
 import { ListerVerificationPage } from './ListerVerificationPage';
 
@@ -41,7 +46,7 @@ interface ListerDashboardPageProps {
   onOpenRequests?: () => void;
   onNavigateToProfile?: () => void;
   onSignOut?: () => void;
-  forcedTab?: 'home' | 'listings' | 'inquiries' | 'verification' | 'profile' | 'stats';
+  forcedTab?: 'home' | 'listings' | 'inquiries' | 'verification' | 'profile' | 'account' | 'stats';
 }
 
 interface ListerInquiry {
@@ -75,7 +80,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
   onSignOut,
   forcedTab
 }) => {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const listerName = user?.name || 'Adebayo Okonkwo';
   const listerFirstName = listerName.split(' ')[0] || 'Lister';
   const listerInitials = listerName
@@ -90,6 +95,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
   // Active Tab state
   const normalizeTab = (t?: string): 'home' | 'listings' | 'inquiries' | 'verification' | 'profile' => {
     if (t === 'stats') return 'home';
+    if (t === 'account') return 'profile';
     if (t === 'home' || t === 'listings' || t === 'inquiries' || t === 'verification' || t === 'profile') return t;
     return 'home';
   };
@@ -103,6 +109,88 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
       setActiveTab(normalizeTab(forcedTab));
     }
   }, [forcedTab]);
+
+  // Account & Profile Management State
+  const [accName, setAccName] = useState(user?.name || '');
+  const [accPhone, setAccPhone] = useState(user?.phone || '');
+  const [accEmail, setAccEmail] = useState(user?.email || '');
+  const [accPreferredArea, setAccPreferredArea] = useState('Bodija, Ibadan');
+  const [accWhatsappAlerts, setAccWhatsappAlerts] = useState(true);
+  const [accSmsAlerts, setAccSmsAlerts] = useState(true);
+  const [accEmailAlerts, setAccEmailAlerts] = useState(true);
+  const [accSaving, setAccSaving] = useState(false);
+  const [accSavedSuccess, setAccSavedSuccess] = useState(false);
+
+  // Security / Password update state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setAccName(user.name || '');
+      setAccPhone(user.phone || '');
+      setAccEmail(user.email || '');
+    }
+  }, [user]);
+
+  const handleSaveAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setAccSaving(true);
+    try {
+      const updated = await authService.updateProfile(accName, accPhone, accEmail, {
+        preferredArea: accPreferredArea,
+        emailAlerts: accEmailAlerts
+      });
+      if (updated) {
+        await refresh();
+        setAccSavedSuccess(true);
+        showToast('Account details saved successfully.');
+        setTimeout(() => setAccSavedSuccess(false), 3000);
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update account.');
+    } finally {
+      setAccSaving(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword) {
+      setPasswordError('Please enter a new password.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordError('');
+    try {
+      const res = await authService.updatePassword(newPassword);
+      if (res.success) {
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordSuccess(true);
+        showToast('Password updated successfully.');
+        setTimeout(() => setPasswordSuccess(false), 3000);
+      } else {
+        setPasswordError(res.error || 'Failed to update password.');
+      }
+    } catch (err: any) {
+      setPasswordError(err?.message || 'Failed to update password.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   // Listings State
   const [dashboardListings, setDashboardListings] = useState<Listing[]>([]);
@@ -449,7 +537,12 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
               type="button"
               className={`lister-tab ${activeTab === 'home' ? 'active' : ''}`}
               aria-current={activeTab === 'home' ? 'page' : undefined}
-              onClick={() => setActiveTab('home')}
+              onClick={() => {
+                setActiveTab('home');
+                if (window.location.pathname.startsWith('/lister')) {
+                  window.history.pushState(null, '', '/lister/home');
+                }
+              }}
             >
               <Home />
               <span>Home</span>
@@ -459,7 +552,12 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
               type="button"
               className={`lister-tab ${activeTab === 'listings' ? 'active' : ''}`}
               aria-current={activeTab === 'listings' ? 'page' : undefined}
-              onClick={() => setActiveTab('listings')}
+              onClick={() => {
+                setActiveTab('listings');
+                if (window.location.pathname.startsWith('/lister')) {
+                  window.history.pushState(null, '', '/lister/listings');
+                }
+              }}
             >
               <LayoutGrid />
               <span>Listings</span>
@@ -469,7 +567,12 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
               type="button"
               className={`lister-tab ${activeTab === 'inquiries' ? 'active' : ''}`}
               aria-current={activeTab === 'inquiries' ? 'page' : undefined}
-              onClick={() => setActiveTab('inquiries')}
+              onClick={() => {
+                setActiveTab('inquiries');
+                if (window.location.pathname.startsWith('/lister')) {
+                  window.history.pushState(null, '', '/lister/requests');
+                }
+              }}
             >
               <Mail />
               <span>Requests</span>
@@ -484,7 +587,12 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
               type="button"
               className={`lister-tab ${activeTab === 'verification' ? 'active' : ''}`}
               aria-current={activeTab === 'verification' ? 'page' : undefined}
-              onClick={() => setActiveTab('verification')}
+              onClick={() => {
+                setActiveTab('verification');
+                if (window.location.pathname.startsWith('/lister')) {
+                  window.history.pushState(null, '', '/lister/verification');
+                }
+              }}
             >
               <ShieldCheck />
               <span>Verification</span>
@@ -495,12 +603,14 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
               className={`lister-tab ${activeTab === 'profile' ? 'active' : ''}`}
               aria-current={activeTab === 'profile' ? 'page' : undefined}
               onClick={() => {
-                if (onNavigateToProfile) onNavigateToProfile();
-                else setActiveTab('profile');
+                setActiveTab('profile');
+                if (window.location.pathname.startsWith('/lister')) {
+                  window.history.pushState(null, '', '/lister/account');
+                }
               }}
             >
               <User />
-              <span>Profile</span>
+              <span>Account</span>
             </button>
           </nav>
 
@@ -618,28 +728,69 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                   <div className="reply-list">
                     {pendingRequests.map((r) => {
                       const isEscalated = r.status === 'escalated';
+                      const matchingListing = dashboardListings.find((l) => l.id === r.listingId);
+                      const photoUrl = r.listingPhoto || matchingListing?.photos?.[0];
+
                       return (
                         <div key={r.id} className="req-card">
-                          <div className="req-top">
-                            <div>
-                              <div className="req-tenant">
-                                {r.renterName}
-                                {r.renterType === 'business' && (
-                                  <span className="pill pill-muted" style={{ marginLeft: 8, fontSize: '0.75rem' }}>
-                                    Business
-                                  </span>
-                                )}
+                          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 10 }}>
+                            <div
+                              style={{
+                                width: 56,
+                                height: 44,
+                                borderRadius: 8,
+                                overflow: 'hidden',
+                                background: 'var(--surface-2)',
+                                flexShrink: 0,
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => {
+                                if (matchingListing && onSelectListingToView) onSelectListingToView(matchingListing);
+                                else window.open(`/listings/${r.listingId}`, '_blank');
+                              }}
+                              title="View listing details"
+                            >
+                              {photoUrl ? (
+                                <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: 'var(--ink-3)' }}>
+                                  <Camera size={18} />
+                                </div>
+                              )}
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                                <div className="req-tenant">
+                                  {r.renterName}
+                                  {r.renterType === 'business' && (
+                                    <span className="pill pill-muted" style={{ marginLeft: 8, fontSize: '0.75rem' }}>
+                                      Business
+                                    </span>
+                                  )}
+                                </div>
+                                <span
+                                  className="timer-chip"
+                                  style={isEscalated ? { color: 'var(--bad)', background: 'var(--bad-bg)' } : undefined}
+                                >
+                                  <Clock /> {r.since || 'Just now'}
+                                </span>
                               </div>
-                              <div className="req-for">
-                                Wants access to <strong style={{ color: 'var(--ink)' }}>{r.listingTitle}</strong>
+
+                              <div className="req-for" style={{ marginTop: 2, marginBottom: 0 }}>
+                                Wants access to{' '}
+                                <strong
+                                  style={{ color: 'var(--ink)', cursor: 'pointer', textDecoration: 'underline' }}
+                                  onClick={() => {
+                                    if (matchingListing && onSelectListingToView) onSelectListingToView(matchingListing);
+                                    else window.open(`/listings/${r.listingId}`, '_blank');
+                                  }}
+                                  title="Open property page"
+                                >
+                                  {r.listingTitle}
+                                </strong>
                               </div>
                             </div>
-                            <span
-                              className="timer-chip"
-                              style={isEscalated ? { color: 'var(--bad)', background: 'var(--bad-bg)' } : undefined}
-                            >
-                              <Clock /> {r.since || 'Just now'}
-                            </span>
                           </div>
 
                           {isEscalated && (
@@ -665,6 +816,14 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                               onClick={() => handleOpenDenyModal(r)}
                             >
                               <X /> No longer
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              onClick={() => setActiveTab('inquiries')}
+                              title="Go to requests page"
+                            >
+                              See all requests
                             </button>
                           </div>
                         </div>
@@ -839,7 +998,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                   <div className="howit-item">
                     <span className="howit-num">3</span>
                     <p>
-                      Once you confirm, the renter pays a flat ₦5,000 access fee and{' '}
+                      Once you confirm, the renter pays a flat access fee and{' '}
                       <strong>your contact is shared</strong> with them.
                     </p>
                   </div>
@@ -1072,7 +1231,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
             <div>
               <h1 className="lister-page-title">Requests</h1>
               <p className="lister-page-sub">
-                Confirm property availability within 30 minutes so prospective renters can proceed to pay the ₦5,000 verified access fee.
+                Confirm property availability within 30 minutes so prospective renters can proceed to pay the verified access fee.
               </p>
             </div>
           </div>
@@ -1098,6 +1257,9 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                 <tbody>
                   {inquiries.map((inq) => {
                     const isNeedsResponse = inq.status === 'needs_response' || inq.status === 'escalated';
+                    const matchingListing = dashboardListings.find((l) => l.id === inq.listingId);
+                    const photoUrl = inq.listingPhoto || matchingListing?.photos?.[0];
+
                     return (
                       <tr key={inq.id} style={{ borderBottom: '1px solid var(--line)' }}>
                         <td style={{ padding: '14px 18px' }}>
@@ -1106,8 +1268,50 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                             {inq.submittedAt} · {inq.renterType === 'business' ? 'Business tenant' : 'Residential'}
                           </span>
                         </td>
-                        <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--ink)' }}>
-                          {inq.listingTitle}
+                        <td style={{ padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div
+                              style={{
+                                width: 44,
+                                height: 36,
+                                borderRadius: 6,
+                                overflow: 'hidden',
+                                background: 'var(--surface-2)',
+                                flexShrink: 0,
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => {
+                                if (matchingListing && onSelectListingToView) onSelectListingToView(matchingListing);
+                                else window.open(`/listings/${inq.listingId}`, '_blank');
+                              }}
+                              title="View listing details"
+                            >
+                              {photoUrl ? (
+                                <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: 'var(--ink-3)' }}>
+                                  <Camera size={14} />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <strong
+                                style={{
+                                  color: 'var(--ink)',
+                                  display: 'block',
+                                  cursor: 'pointer',
+                                  textDecoration: 'underline'
+                                }}
+                                onClick={() => {
+                                  if (matchingListing && onSelectListingToView) onSelectListingToView(matchingListing);
+                                  else window.open(`/listings/${inq.listingId}`, '_blank');
+                                }}
+                                title="Open property details"
+                              >
+                                {inq.listingTitle}
+                              </strong>
+                            </div>
+                          </div>
                         </td>
                         <td style={{ padding: '14px 16px' }}>
                           <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{formatNaira(inq.listingPrice)}/yr</span>
@@ -1179,68 +1383,375 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
       )}
 
       {/* -------------------------------------------------------------
-          TAB 5: PROFILE TAB (LANDLORD CREDENTIALS & ACCOUNT SUMMARY)
+          TAB 5: ACCOUNT TAB (LANDLORD IDENTITY, PORTAL CONNECTIONS & SETTINGS)
          ------------------------------------------------------------- */}
       {activeTab === 'profile' && (
         <main className="lister-page">
           <div className="lister-page-head">
             <div>
-              <h1 className="lister-page-title">Profile & Credentials</h1>
+              <h1 className="lister-page-title">Account &amp; Settings</h1>
               <p className="lister-page-sub">
-                Manage your landlord identity, contact preferences, and portfolio verification accreditation.
+                Manage your landlord identity, contact info for tenant requests, notification preferences, and verification status.
               </p>
             </div>
           </div>
 
-          <div className="panel" style={{ maxWidth: 640 }}>
-            <div className="member-card" style={{ marginBottom: 20 }}>
-              <span className="profile-avatar" style={{ width: 64, height: 64, fontSize: '1.5rem' }}>
-                {listerInitials}
-              </span>
-              <div className="member-meta">
-                <strong style={{ fontSize: '1.2rem' }}>{listerName}</strong>
-                <span>{listerRole} · {user?.email || 'lister@rentivo.ng'}</span>
-                <span style={{ color: 'var(--ok)', fontWeight: 600, fontSize: 'var(--fs-sm)', marginTop: 4 }}>
-                  Verified Landlord Account
-                </span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'start' }}>
+            {/* Column 1: Profile & Contact Details + Security */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+              
+              {/* Profile Card */}
+              <div className="panel panel-pad">
+                <div className="member-card" style={{ marginBottom: 20 }}>
+                  <span className="profile-avatar" style={{ width: 60, height: 60, fontSize: '1.4rem' }}>
+                    {listerInitials}
+                  </span>
+                  <div className="member-meta">
+                    <strong style={{ fontSize: '1.15rem' }}>{user?.name || listerName}</strong>
+                    <span>{listerRole} · {user?.email || 'No email set'}</span>
+                    <span style={{ color: 'var(--ok)', fontWeight: 600, fontSize: 'var(--fs-sm)', marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <CheckCircle2 size={14} /> Verified Lister Account
+                    </span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSaveAccount}>
+                  <div className="field">
+                    <label htmlFor="accName">Full Name</label>
+                    <input
+                      id="accName"
+                      type="text"
+                      className="input"
+                      value={accName}
+                      onChange={(e) => setAccName(e.target.value)}
+                      placeholder="e.g. Adebayo Okonkwo"
+                      required
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="accPhone">Phone Number</label>
+                    <input
+                      id="accPhone"
+                      type="tel"
+                      className="input"
+                      value={accPhone}
+                      onChange={(e) => setAccPhone(e.target.value)}
+                      placeholder="e.g. 08012345678"
+                      required
+                    />
+                    <small style={{ color: 'var(--ink-3)', fontSize: '0.8125rem', marginTop: 4, display: 'block' }}>
+                      Prospective tenants and Rentivo verification inspectors will reach you through this number.
+                    </small>
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="accEmail">Email Address</label>
+                    <input
+                      id="accEmail"
+                      type="email"
+                      className="input"
+                      value={accEmail}
+                      onChange={(e) => setAccEmail(e.target.value)}
+                      placeholder="e.g. landlord@example.com"
+                      required
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="accArea">Primary Operating City / Area</label>
+                    <input
+                      id="accArea"
+                      type="text"
+                      className="input"
+                      value={accPreferredArea}
+                      onChange={(e) => setAccPreferredArea(e.target.value)}
+                      placeholder="e.g. Bodija, Ibadan"
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20 }}>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={accSaving}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                    >
+                      <Save size={16} />
+                      <span>{accSaving ? 'Saving…' : 'Save account changes'}</span>
+                    </button>
+                    {accSavedSuccess && (
+                      <span style={{ color: 'var(--ok)', fontSize: 'var(--fs-sm)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Check size={14} /> Saved!
+                      </span>
+                    )}
+                  </div>
+                </form>
               </div>
+
+              {/* Password & Security Card */}
+              <div className="panel panel-pad">
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Lock size={18} /> Password &amp; Security
+                </h3>
+                <p style={{ color: 'var(--ink-2)', fontSize: '0.875rem', marginBottom: 16 }}>
+                  Update your login password to keep your property portfolio secure.
+                </p>
+
+                <form onSubmit={handleUpdatePassword}>
+                  <div className="field">
+                    <label htmlFor="accNewPw">New Password</label>
+                    <input
+                      id="accNewPw"
+                      type="password"
+                      className="input"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 6 characters"
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="accConfPw">Confirm Password</label>
+                    <input
+                      id="accConfPw"
+                      type="password"
+                      className="input"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                    />
+                  </div>
+
+                  {passwordError && (
+                    <div style={{ color: 'var(--bad)', fontSize: '0.85rem', marginBottom: 12, fontWeight: 500 }}>
+                      {passwordError}
+                    </div>
+                  )}
+
+                  {passwordSuccess && (
+                    <div style={{ color: 'var(--ok)', fontSize: '0.85rem', marginBottom: 12, fontWeight: 600 }}>
+                      Password updated successfully!
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="btn btn-outline"
+                    disabled={passwordLoading || !newPassword}
+                    style={{ minHeight: 38 }}
+                  >
+                    {passwordLoading ? 'Updating…' : 'Update password'}
+                  </button>
+                </form>
+              </div>
+
             </div>
 
-            <div style={{ borderTop: '1px solid var(--line)', paddingTop: 16, display: 'grid', gap: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-base)' }}>
-                <span style={{ color: 'var(--ink-2)' }}>Registered Phone:</span>
-                <strong>+234 803 452 8819</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-base)' }}>
-                <span style={{ color: 'var(--ink-2)' }}>Preferred Notification:</span>
-                <strong>WhatsApp & SMS</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-base)' }}>
-                <span style={{ color: 'var(--ink-2)' }}>Operating City:</span>
-                <strong>Ibadan, Oyo State</strong>
-              </div>
-            </div>
+            {/* Column 2: Portal Quick-Hub & Preferences */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-            <div style={{ marginTop: 24, display: 'flex', gap: 10 }}>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => {
-                  if (onNavigateToProfile) onNavigateToProfile();
-                }}
-              >
-                Edit full profile
-              </button>
-              {onSignOut && (
-                <button
-                  type="button"
-                  className="btn btn-danger-quiet"
-                  style={{ border: '1px solid var(--bad-solid)' }}
-                  onClick={onSignOut}
-                >
-                  Sign out
-                </button>
-              )}
+              {/* Verification Accreditation Hub Card */}
+              <div className="panel panel-pad" style={{ background: 'var(--surface)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--ok-bg)', color: 'var(--ok)', display: 'grid', placeItems: 'center' }}>
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>Property Verification</h3>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--ok)', fontWeight: 600 }}>
+                      {verifiedCount} of {dashboardListings.length} properties verified
+                    </span>
+                  </div>
+                </div>
+                <p style={{ color: 'var(--ink-2)', fontSize: '0.875rem', lineHeight: 1.5, marginBottom: 16 }}>
+                  Verified listings receive our trusted badge, get 3× higher renter inquiries, and rank higher in Ibadan search results.
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => {
+                      setActiveTab('verification');
+                      if (window.location.pathname.startsWith('/lister')) {
+                        window.history.pushState(null, '', '/lister/verification');
+                      }
+                    }}
+                  >
+                    <ShieldCheck size={15} />
+                    <span>Open Verification Hub</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      setActiveTab('verification');
+                      if (window.location.pathname.startsWith('/lister')) {
+                        window.history.pushState(null, '', '/lister/verification/request');
+                      }
+                    }}
+                  >
+                    <span>Request verification</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Connected Portal Sections Card */}
+              <div className="panel panel-pad">
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 14 }}>
+                  Lister Portal Connections
+                </h3>
+                <div style={{ display: 'grid', gap: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 10 }}>
+                    <div>
+                      <b style={{ display: 'block', fontSize: '0.9375rem' }}>Active Listings</b>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--ink-2)' }}>{dashboardListings.length} properties in portfolio</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => {
+                          setActiveTab('listings');
+                          if (window.location.pathname.startsWith('/lister')) {
+                            window.history.pushState(null, '', '/lister/listings');
+                          }
+                        }}
+                      >
+                        Manage
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-accent btn-sm"
+                        onClick={onOpenCreateListing}
+                      >
+                        + Post
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 10 }}>
+                    <div>
+                      <b style={{ display: 'block', fontSize: '0.9375rem' }}>Tenant Requests</b>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--ink-2)' }}>
+                        {pendingRequests.length > 0 ? `${pendingRequests.length} pending replies` : 'All caught up'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => {
+                        setActiveTab('inquiries');
+                        if (window.location.pathname.startsWith('/lister')) {
+                          window.history.pushState(null, '', '/lister/requests');
+                        }
+                      }}
+                    >
+                      View ({inquiries.length})
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notification Toggles Card */}
+              <div className="panel panel-pad">
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Bell size={18} /> Notification Preferences
+                </h3>
+                <p style={{ color: 'var(--ink-2)', fontSize: '0.875rem', marginBottom: 16 }}>
+                  Choose how Rentivo notifies you when a tenant checks availability or sends a request.
+                </p>
+
+                <div style={{ display: 'grid', gap: 14 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                    <div>
+                      <b style={{ display: 'block', fontSize: '0.9375rem' }}>WhatsApp Alerts</b>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--ink-2)' }}>Instant message when a tenant requests your listing</span>
+                    </div>
+                    <span className="switch">
+                      <input
+                        type="checkbox"
+                        checked={accWhatsappAlerts}
+                        onChange={(e) => {
+                          setAccWhatsappAlerts(e.target.checked);
+                          showToast('Notification preference saved.');
+                        }}
+                      />
+                      <span className="track" />
+                      <span className="thumb" />
+                    </span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                    <div>
+                      <b style={{ display: 'block', fontSize: '0.9375rem' }}>SMS Notifications</b>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--ink-2)' }}>Urgent availability SMS reminders</span>
+                    </div>
+                    <span className="switch">
+                      <input
+                        type="checkbox"
+                        checked={accSmsAlerts}
+                        onChange={(e) => {
+                          setAccSmsAlerts(e.target.checked);
+                          showToast('Notification preference saved.');
+                        }}
+                      />
+                      <span className="track" />
+                      <span className="thumb" />
+                    </span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                    <div>
+                      <b style={{ display: 'block', fontSize: '0.9375rem' }}>Email Activity Summaries</b>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--ink-2)' }}>Weekly report on views and inquiries</span>
+                    </div>
+                    <span className="switch">
+                      <input
+                        type="checkbox"
+                        checked={accEmailAlerts}
+                        onChange={(e) => {
+                          setAccEmailAlerts(e.target.checked);
+                          showToast('Notification preference saved.');
+                        }}
+                      />
+                      <span className="track" />
+                      <span className="thumb" />
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Renter Switch & Sign Out */}
+              <div className="panel panel-pad" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <b style={{ display: 'block', fontSize: '0.9375rem' }}>Renter Marketplace</b>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--ink-2)' }}>Explore listings as a home seeker</span>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {onNavigateToMarketplace && (
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={onNavigateToMarketplace}
+                    >
+                      <ExternalLink size={14} />
+                      <span>Browse marketplace</span>
+                    </button>
+                  )}
+                  {onSignOut && (
+                    <button
+                      type="button"
+                      className="btn btn-danger-quiet btn-sm"
+                      style={{ border: '1px solid var(--bad-solid)' }}
+                      onClick={onSignOut}
+                    >
+                      Sign out
+                    </button>
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
         </main>

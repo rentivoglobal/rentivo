@@ -111,8 +111,8 @@ export const ListerVerificationPage: React.FC<ListerVerificationPageProps> = ({
 
   // Request Form State
   const currentUser = authService.getCurrentUser();
-  const [contactName, setContactName] = useState(currentUser?.name || 'Adebayo Okonkwo');
-  const [contactPhone, setContactPhone] = useState('+234 803 452 8819');
+  const [contactName, setContactName] = useState(currentUser?.name || '');
+  const [contactPhone, setContactPhone] = useState(currentUser?.phone || '');
   const [contactMethod, setContactMethod] = useState<'whatsapp' | 'call' | 'sms'>('whatsapp');
   const [address, setAddress] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -404,6 +404,22 @@ export const ListerVerificationPage: React.FC<ListerVerificationPageProps> = ({
                 later removed.
               </p>
             </div>
+            <div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setMode('request');
+                  if (window.location.pathname.startsWith('/lister')) {
+                    window.history.pushState(null, '', '/lister/verification/request');
+                  }
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}
+              >
+                <ShieldCheck size={18} />
+                <span>Request verification</span>
+              </button>
+            </div>
           </div>
 
           {/* Stats Panel */}
@@ -547,6 +563,20 @@ export const ListerVerificationPage: React.FC<ListerVerificationPageProps> = ({
                 <ShieldCheck />
                 <h2>All caught up</h2>
                 <p>Every listing is verified, or already in progress.</p>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                  onClick={() => {
+                    setMode('request');
+                    if (window.location.pathname.startsWith('/lister')) {
+                      window.history.pushState(null, '', '/lister/verification/request');
+                    }
+                  }}
+                >
+                  <ShieldCheck size={16} />
+                  <span>Request verification for a property</span>
+                </button>
               </div>
             </div>
           )}
@@ -599,6 +629,9 @@ export const ListerVerificationPage: React.FC<ListerVerificationPageProps> = ({
             onClick={() => {
               setSubmittedReceipt(null);
               setMode('dashboard');
+              if (window.location.pathname.startsWith('/lister')) {
+                window.history.pushState(null, '', '/lister/verification');
+              }
             }}
           >
             <ArrowLeft size={16} /> Back to verification

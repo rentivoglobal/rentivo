@@ -110,7 +110,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
   });
 
   return (
-    <div style={{ backgroundColor: '#F8FAFC', minHeight: 'calc(100vh - 72px)', padding: '36px 20px 72px' }}>
+    <div className="renter-page-container" style={{ backgroundColor: '#F8FAFC', minHeight: 'calc(100vh - 72px)', padding: '36px 20px 72px' }}>
       <div style={{ maxWidth: '980px', margin: '0 auto' }}>
         
         {/* Clean Modern Page Header */}
@@ -125,7 +125,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
             My Property Requests
           </h1>
           <p style={{ fontSize: '14px', color: '#636377', margin: 0, lineHeight: 1.5 }}>
-            Track free physical vacancy checks with Ibadan landlords, pay flat ₦5,000 only when confirmed vacant, and view direct unlocked contact dossiers.
+            Track free physical vacancy checks with Ibadan landlords, pay a flat access fee only when confirmed vacant, and view direct unlocked contact dossiers.
           </p>
         </div>
 
@@ -304,6 +304,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
               return (
                 <div
                   key={req.id}
+                  className="renter-request-card"
                   style={{
                     backgroundColor: '#FFFFFF',
                     borderRadius: '20px',
@@ -314,7 +315,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                   }}
                 >
                   {/* Card Header: Property photo + details + status badge */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '16px', marginBottom: '16px' }}>
+                  <div className="renter-request-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '16px', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                       <img 
                         src={req.listingPhoto || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80'} 
@@ -412,7 +413,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                             <span>Great news! Landlord confirmed this property is vacant.</span>
                           </div>
                           <div style={{ fontSize: '13.5px', color: '#17172B', marginTop: '4px', lineHeight: 1.4 }}>
-                            Pay the flat <strong>₦5,000 access fee</strong> via Paystack to unlock the landlord's direct phone number, WhatsApp, and schedule a physical inspection.
+                            Pay the flat <strong>access fee</strong> via Paystack to unlock the landlord's direct phone number, WhatsApp, and schedule a physical inspection.
                           </div>
                           {promoStats.remaining > 0 && (
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#7E22CE', fontWeight: 700, marginTop: '4px' }}>
@@ -422,7 +423,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                           )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <div className="renter-request-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {promoStats.remaining > 0 && (
                             <button
                               type="button"
@@ -464,7 +465,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                               boxShadow: '0 4px 12px rgba(0,0,82,0.18)'
                             }}
                           >
-                            <span>Pay ₦5,000 via Paystack</span>
+                            <span>Pay via Paystack</span>
                             <ArrowRight size={14} />
                           </button>
                         </div>
@@ -510,7 +511,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                         </div>
 
                         {/* Direct Contact Buttons */}
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <div className="renter-request-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           <a
                             href={`tel:${req.unlockedListerContact?.phone || '+234 803 890 0122'}`}
                             style={{

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Search, 
   ArrowRight, 
+  ArrowLeft,
   Plus, 
   ChevronDown, 
   ChevronLeft,
@@ -55,6 +56,7 @@ interface SearchPageProps {
   currentUser?: User | null;
   onSignOut?: () => void;
   onOpenAuth?: (mode?: 'signin' | 'signup', role?: 'renter' | 'lister') => void;
+  isPortalMode?: boolean;
 }
 
 function getPageNumbers(current: number, total: number): (number | string)[] {
@@ -97,7 +99,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   onNavigateToProfile,
   currentUser,
   onSignOut,
-  onOpenAuth
+  onOpenAuth,
+  isPortalMode = false
 }) => {
   const [selectedCat, setSelectedCat] = useState<string>('all');
   const [activeChip, setActiveChip] = useState<string>('all');
@@ -338,29 +341,97 @@ export const SearchPage: React.FC<SearchPageProps> = ({
          ----------------------------------------------------------------- */}
       <header className="marketplace-topbar" id="topbar">
         <div className="marketplace-topbar-inner">
-          {/* Left: Rentivo Brand Logo Lockup */}
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault();
-              if (onNavigateHome) onNavigateHome();
-            }}
-            style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}
-            title="Return to Rentivo Home"
-          >
-            <img src="/RENTIVO-lockup.svg" alt="Rentivo" style={{ height: '32px' }} />
-          </a>
+          {/* Left: Rentivo Brand Logo Lockup & Portal Mode Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+            <a
+              href={isPortalMode ? '/account/search' : '/'}
+              onClick={(e) => {
+                e.preventDefault();
+                if (isPortalMode) {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else if (onNavigateHome) {
+                  onNavigateHome();
+                }
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}
+              title={isPortalMode ? 'Rentivo Renter Portal' : 'Return to Rentivo Home'}
+            >
+              <img src="/RENTIVO-lockup.svg" alt="Rentivo" style={{ height: '32px' }} />
+              {isPortalMode && (
+                <span style={{
+                  backgroundColor: '#F0E6FF',
+                  color: '#000052',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '3px 8px',
+                  borderRadius: '999px',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase'
+                }}>
+                  Renter Portal
+                </span>
+              )}
+            </a>
+          </div>
 
-          {/* Right: Saved, My Requests & Profile/Auth */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            {/* Saved Button */}
+
+          {/* Center: Unified Centralized Navigation */}
+          <div className="desktop-nav-links" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              style={{
+                background: '#F1F5F9',
+                border: '1.5px solid #000052',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#000052',
+                cursor: 'default',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Currently browsing verified properties"
+            >
+              <Search size={14} color="#000052" />
+              <span>Browse Properties</span>
+            </button>
+
+            {/* My Requests (Visible for renters / portal mode) */}
+            {(isPortalMode || (currentUser && currentUser.role !== 'landlord' && currentUser.role !== 'agent' && currentUser.role !== 'admin')) && onNavigateToRequests && (
+              <button
+                type="button"
+                onClick={onNavigateToRequests}
+                style={{
+                  background: 'transparent',
+                  border: '1.5px solid #E2E8F0',
+                  padding: '6px 14px',
+                  borderRadius: '9999px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: '#000052',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+                title="View your inspection and booking requests"
+              >
+                <FileText size={14} color="#000052" />
+                <span>My Requests</span>
+              </button>
+            )}
+
+            {/* Saved Properties */}
             <button
               type="button"
               onClick={() => { if (onNavigateToFavorites) onNavigateToFavorites(); }}
               style={{
                 background: 'transparent',
                 border: '1.5px solid #E2E8F0',
-                padding: '7px 14px',
+                padding: '6px 14px',
                 borderRadius: '9999px',
                 fontSize: '13px',
                 fontWeight: 700,
@@ -374,7 +445,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               title="View saved properties"
             >
               <Heart size={14} color="#000052" fill={favorites.length > 0 ? '#000052' : 'none'} />
-              <span className="nav-saved-text">Saved</span>
+              <span>Saved</span>
               {favorites.length > 0 && (
                 <span style={{
                   backgroundColor: '#BE89FF',
@@ -389,34 +460,12 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 </span>
               )}
             </button>
+          </div>
 
-            {/* My Requests Button */}
-            <button
-              type="button"
-              className="hide-on-mobile"
-              onClick={() => { if (onNavigateToRequests) onNavigateToRequests(); }}
-              style={{
-                background: 'transparent',
-                border: '1.5px solid #E2E8F0',
-                padding: '7px 16px',
-                borderRadius: '9999px',
-                fontSize: '13px',
-                fontWeight: 700,
-                color: '#000052',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease'
-              }}
-              title="View your inspection and booking requests"
-            >
-              <FileText size={14} color="#000052" />
-              <span>My Requests</span>
-            </button>
-
-            {/* Persistent List your property Doorway */}
-            {onPostListing && (
+          {/* Right: Auth Profile & Sign In */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            {/* List your property doorway (Public mode and non-renter only - NEVER on Renter Portal) */}
+            {!isPortalMode && onPostListing && (!currentUser || currentUser.role === 'landlord' || currentUser.role === 'agent') && (
               <button
                 type="button"
                 className="hide-on-mobile"

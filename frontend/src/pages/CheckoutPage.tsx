@@ -279,7 +279,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
           </span>
           <ChevronRight size={13} color="#94A3B8" />
           <span style={{ color: step === 'confirmed' || step === 'paying' ? '#000052' : step === 'unlocked' ? '#16794A' : '#94A3B8', fontWeight: step === 'confirmed' || step === 'paying' ? 800 : 600 }}>
-            4. Paystack ₦5,000
+            4. Paystack Payment
           </span>
           <ChevronRight size={13} color="#94A3B8" />
           <span style={{ color: step === 'unlocked' ? '#16794A' : '#94A3B8', fontWeight: step === 'unlocked' ? 800 : 600 }}>
@@ -293,7 +293,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
             <span style={{ fontWeight: 800, color: '#000052' }}>
               {step === 'form' && 'Step 2 of 5: Renter Information'}
               {step === 'checking' && 'Step 3 of 5: Vacancy Check'}
-              {(step === 'confirmed' || step === 'paying') && 'Step 4 of 5: Paystack ₦5,000'}
+              {(step === 'confirmed' || step === 'paying') && 'Step 4 of 5: Paystack Payment'}
               {step === 'unlocked' && 'Step 5 of 5: Access Unlocked'}
               {step === 'unavailable' && 'Listing Unavailable'}
             </span>
@@ -356,7 +356,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     <div style={{ fontSize: '12.5px', color: '#1E293B', lineHeight: 1.5 }}>
                       • <b>100% Free to submit:</b> No payment card needed today.<br />
                       • <b>Automated verification:</b> We email the landlord a one-click YES / NO link to confirm vacancy.<br />
-                      • <b>Flat ₦5,000 fee:</b> Payable only if the landlord confirms the property is unoccupied.
+                      • <b>Flat access fee:</b> Payable only if the landlord confirms the property is unoccupied.
                     </div>
                   </div>
                 </div>
@@ -652,7 +652,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         </span>
                       </div>
                       <p style={{ fontSize: '12.5px', color: '#581C87', margin: '4px 0 0', lineHeight: 1.45 }}>
-                        As part of Rentivo's Ibadan pilot launch, the flat ₦5,000 access fee is <b>100% waived</b> for the first 100 qualifying renters. Unlock verified direct contact at <b>₦0</b>.
+                        As part of Rentivo's Ibadan pilot launch, the flat access fee is <b>100% waived</b> for the first 100 qualifying renters. Unlock verified direct contact at <b>₦0</b>.
                       </p>
                     </div>
                   </div>
@@ -675,7 +675,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       textDecoration: promoStats.isActive ? 'line-through' : 'none',
                       fontFamily: 'monospace'
                     }}>
-                      ₦5,000.00
+                      Standard Access Fee
                     </span>
                   </div>
 
@@ -685,7 +685,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                         <Gift size={14} />
                         <span>First-100-Users Promotion Waiver:</span>
                       </span>
-                      <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'monospace' }}>-₦5,000.00</span>
+                      <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'monospace' }}>-Access Fee Waived</span>
                     </div>
                   )}
 
@@ -699,7 +699,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   }}>
                     <span style={{ fontSize: '14.5px', fontWeight: 800, color: '#000052' }}>Total Due Today:</span>
                     <span style={{ fontSize: '22px', fontWeight: 800, color: promoStats.isActive ? '#16794A' : '#000052', fontFamily: 'monospace' }}>
-                      {promoStats.isActive ? '₦0.00 (FREE)' : '₦5,000.00'}
+                      {promoStats.isActive ? '₦0.00 (FREE)' : 'Access Fee'}
                     </span>
                   </div>
 
@@ -776,7 +776,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     }}
                   >
                     <CreditCard size={20} />
-                    <span>Pay ₦5,000 with Paystack</span>
+                    <span>Pay Access Fee with Paystack</span>
                     <ArrowRight size={18} />
                   </button>
                 )}
@@ -805,7 +805,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <CreditCard size={32} className="animate-spin" />
                 </div>
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#000052', marginBottom: '8px' }}>
-                  Processing ₦5,000 Payment via Paystack...
+                  Processing Payment via Paystack...
                 </h3>
                 <p style={{ fontSize: '13.5px', color: '#64748B', maxWidth: '380px', margin: '0 auto' }}>
                   Connecting with Paystack secure gateway. Unlocking landlord contact dossier and generating transactional email receipt.
@@ -841,7 +841,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <p style={{ fontSize: '13px', color: '#64748B' }}>
                     {createdRequest?.isPromotionWaiverApplied 
                       ? 'First-100-Users Launch Waiver applied (₦0 Access Fee). You can now contact the verified lister directly.'
-                      : 'Payment of ₦5,000 verified. You can now contact the verified lister directly.'}
+                      : 'Payment verified. You can now contact the verified lister directly.'}
                   </p>
                 </div>
 
@@ -1195,7 +1195,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', fontSize: '13px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
                   <span>Direct Access Pass:</span>
-                  <span style={{ fontWeight: 700, color: '#0F172A' }}>₦5,000.00</span>
+                  <span style={{ fontWeight: 700, color: '#0F172A' }}>Access Fee</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16794A' }}>
                   <span>Traditional Agent Fee Saved:</span>
@@ -1212,7 +1212,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       ? '₦0.00 (Pending Check)'
                       : createdRequest?.isPromotionWaiverApplied || (promoStats.isActive && step === 'confirmed')
                         ? '₦0.00'
-                        : '₦5,000.00'}
+                        : 'Access Fee'}
                   </span>
                 </div>
               </div>

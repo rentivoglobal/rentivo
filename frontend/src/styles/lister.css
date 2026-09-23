@@ -1192,13 +1192,13 @@
   color: var(--ink-2);
 }
 
-.search {
+.toolbar-tools .search {
   position: relative;
   flex: 1 1 220px;
   max-width: 320px;
 }
 
-.search svg {
+.toolbar-tools .search svg {
   position: absolute;
   left: 12px;
   top: 50%;
@@ -1209,7 +1209,7 @@
   pointer-events: none;
 }
 
-.search input {
+.toolbar-tools .search input {
   width: 100%;
   min-height: 40px;
   padding: 0 12px 0 38px;
@@ -1220,7 +1220,7 @@
   font-size: 0.9375rem;
 }
 
-.search input:focus {
+.toolbar-tools .search input:focus {
   outline: 2.5px solid var(--violet);
   outline-offset: 1px;
   border-color: var(--violet);
@@ -1230,7 +1230,7 @@
   .toolbar-tools {
     flex-basis: 100%;
   }
-  .search {
+  .toolbar-tools .search {
     max-width: none;
   }
 }

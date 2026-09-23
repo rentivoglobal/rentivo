@@ -17,6 +17,7 @@ import { Listing, PropertyCategory, PropertyType } from '../types';
 import { IBADAN_AREAS } from '../data/mockData';
 import { formatNaira } from '../utils/formatters';
 import { listingsService } from '../services/listingsService';
+import { authService } from '../services/authService';
 import '../styles/listing-editor-v2.css';
 
 interface ListingEditorPageProps {
@@ -240,13 +241,13 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
           photos: photos.length > 0 ? photos : SAMPLE_FALLBACK_PHOTOS.slice(0, 3),
           description: description.trim(),
           lister: {
-            fullName: 'Adeola Balogun',
-            phone: '+234 803 452 8819',
-            whatsapp: '+234 803 452 8819',
-            agencyName: 'Bodija Homes',
-            memberSince: 'May 2025',
-            activeListingsCount: 4,
-            responseRate: '98%'
+            fullName: authService.getCurrentUser()?.name || 'Verified Lister',
+            phone: authService.getCurrentUser()?.phone || '',
+            whatsapp: authService.getCurrentUser()?.phone || '',
+            agencyName: 'Rentivo Host',
+            memberSince: '2026',
+            activeListingsCount: 1,
+            responseRate: '100%'
           },
           accessRequestsCount: 0
         });
