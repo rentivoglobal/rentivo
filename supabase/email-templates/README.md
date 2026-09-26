@@ -26,7 +26,7 @@ All templates feature:
 - **Tab**: `Confirm signup`
 - **Subject line**:
   ```text
-  Confirm your Rentivo account
+  {{ .Token }} is your Rentivo verification code
   ```
 - **Source file**: [`confirm-signup.html`](./confirm-signup.html)
 - **Supported variables**: `{{ .ConfirmationURL }}`, `{{ .Token }}`, `{{ .SiteURL }}`, `{{ .Email }}`
@@ -37,7 +37,7 @@ All templates feature:
 - **Tab**: `Magic Link`
 - **Subject line**:
   ```text
-  Your Rentivo sign-in link
+  {{ .Token }} is your Rentivo sign-in code
   ```
 - **Source file**: [`magic-link.html`](./magic-link.html)
 - **Supported variables**: `{{ .ConfirmationURL }}`, `{{ .Token }}`, `{{ .SiteURL }}`, `{{ .Email }}`
