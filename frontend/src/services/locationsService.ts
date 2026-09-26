@@ -1,29 +1,46 @@
-import { CityLocation } from '../types';
+import { CityLocation, IBADAN_AREAS } from '../types';
 import { isLiveBackend } from '../lib/config';
 import { supabase } from '../lib/supabase';
-import { localStore } from './localStore';
 import { slugify } from '../lib/mappers';
+
+let cachedCities: CityLocation[] = [
+  {
+    id: 'city-ibadan',
+    name: 'Ibadan',
+    state: 'Oyo State',
+    isActive: true,
+    isPilot: true,
+    areas: IBADAN_AREAS.filter((a) => a !== 'All Ibadan areas') as unknown as string[]
+  }
+];
 
 export const locationsService = {
   getCities(): CityLocation[] {
-    return localStore.getCities();
+    return cachedCities;
   },
 
   async loadCities(): Promise<CityLocation[]> {
-    if (!isLiveBackend || !supabase) return localStore.getCities();
-    const { data: cities, error } = await supabase.from('cities').select('*').order('name');
-    if (error) throw error;
-    const { data: areas } = await supabase.from('areas').select('*').order('name');
-    const mapped: CityLocation[] = (cities || []).map((city) => ({
-      id: city.id,
-      name: city.name,
-      state: city.state || '',
-      isActive: city.is_active,
-      isPilot: city.is_pilot,
-      areas: (areas || []).filter((a) => a.city_id === city.id).map((a) => a.name)
-    }));
-    localStore.saveCities(mapped);
-    return mapped;
+    if (!isLiveBackend || !supabase) return cachedCities;
+    try {
+      const { data: cities, error } = await supabase.from('cities').select('*').order('name');
+      if (error) throw error;
+      const { data: areas } = await supabase.from('areas').select('*').order('name');
+      const mapped: CityLocation[] = (cities || []).map((city) => ({
+        id: city.id,
+        name: city.name,
+        state: city.state || '',
+        isActive: city.is_active,
+        isPilot: city.is_pilot,
+        areas: (areas || []).filter((a) => a.city_id === city.id).map((a) => a.name)
+      }));
+      if (mapped.length > 0) {
+        cachedCities = mapped;
+      }
+      return cachedCities;
+    } catch (err) {
+      console.warn('Failed to load cities from Supabase, using cache:', err);
+      return cachedCities;
+    }
   },
 
   getActiveCities(): CityLocation[] {
@@ -37,47 +54,49 @@ export const locationsService = {
   getAreasForCity(cityName: string = 'Ibadan'): string[] {
     const city = this.getCityByName(cityName);
     if (city && city.areas.length > 0) return city.areas;
-    const ibadan = this.getCities().find((c) => c.name === 'Ibadan');
-    return ibadan ? ibadan.areas : [];
+    const ibadan = this.getCities().find((c) => c.name.toLowerCase() === 'ibadan');
+    return ibadan ? ibadan.areas : (IBADAN_AREAS.filter((a) => a !== 'All Ibadan areas') as unknown as string[]);
   },
 
-  addCity(cityData: { name: string; state: string; isActive?: boolean; areas?: string[] }): CityLocation {
-    const cities = localStore.getCities();
-    const existing = cities.find((c) => c.name.toLowerCase() === cityData.name.toLowerCase());
+  async addCity(cityData: { name: string; state: string; isActive?: boolean; areas?: string[] }): Promise<CityLocation> {
+    const existing = cachedCities.find((c) => c.name.toLowerCase() === cityData.name.toLowerCase());
     if (existing) return existing;
+
+    let cityId = `city-${Date.now()}`;
+    if (isLiveBackend && supabase) {
+      const { data, error } = await supabase.from('cities').insert({
+        name: cityData.name,
+        slug: slugify(cityData.name),
+        state: cityData.state,
+        is_active: cityData.isActive ?? true,
+        is_pilot: false
+      }).select('id').single();
+      if (!error && data) {
+        cityId = data.id;
+      }
+    }
+
     const newCity: CityLocation = {
-      id: localStore.createId('city'),
+      id: cityId,
       name: cityData.name,
       state: cityData.state,
       isActive: cityData.isActive ?? true,
       isPilot: false,
       areas: cityData.areas || []
     };
-    cities.push(newCity);
-    localStore.saveCities(cities);
-    if (isLiveBackend && supabase) {
-      void supabase.from('cities').insert({
-        name: newCity.name,
-        slug: slugify(newCity.name),
-        state: newCity.state,
-        is_active: newCity.isActive,
-        is_pilot: false
-      });
-    }
+    cachedCities.push(newCity);
     return newCity;
   },
 
-  addAreaToCity(cityName: string, areaName: string): boolean {
-    const cities = localStore.getCities();
-    const city = cities.find((c) => c.name.toLowerCase() === cityName.toLowerCase());
+  async addAreaToCity(cityName: string, areaName: string): Promise<boolean> {
+    const city = cachedCities.find((c) => c.name.toLowerCase() === cityName.toLowerCase());
     if (!city) return false;
     const trimmed = areaName.trim();
     if (!city.areas.includes(trimmed)) {
       city.areas.push(trimmed);
-      localStore.saveCities(cities);
     }
     if (isLiveBackend && supabase) {
-      void supabase.from('areas').insert({
+      await supabase.from('areas').insert({
         city_id: city.id,
         name: trimmed,
         slug: slugify(trimmed)

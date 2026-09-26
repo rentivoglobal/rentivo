@@ -21,3 +21,34 @@ export function requireSupabase(): SupabaseClient {
   }
   return supabase;
 }
+
+/**
+ * Extracts a human-friendly error message from an Edge Function error,
+ * resolving the underlying JSON or text response body if present.
+ */
+export async function extractEdgeFunctionError(error: unknown, fallback = 'Operation failed.'): Promise<string> {
+  if (!error) return fallback;
+  if (typeof error === 'object' && error !== null) {
+    const errObj = error as Record<string, any>;
+    // Check if error has a Response context (FunctionsHttpError)
+    if (errObj.context && typeof errObj.context.json === 'function') {
+      try {
+        const body = await errObj.context.json();
+        if (body?.error) return body.error;
+        if (body?.message) return body.message;
+      } catch {
+        try {
+          const text = await errObj.context.text();
+          if (text) return text;
+        } catch {
+          // ignore
+        }
+      }
+    }
+    if (errObj.message && errObj.message !== 'Edge Function returned a non-2xx status code') {
+      return errObj.message;
+    }
+  }
+  return fallback;
+}
+

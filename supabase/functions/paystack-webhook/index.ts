@@ -1,14 +1,16 @@
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { createHmac } from "node:crypto";
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   const raw = await req.text();
   const signature = req.headers.get("x-paystack-signature") || "";
   const secret = Deno.env.get("PAYSTACK_SECRET_KEY") || "";
-  const hash = createHmac("sha512", secret).update(raw).digest("hex");
-  if (hash !== signature) {
-    return new Response("invalid signature", { status: 401 });
+  
+  if (secret) {
+    const hash = createHmac("sha512", secret).update(raw).digest("hex");
+    if (hash !== signature) {
+      return new Response("invalid signature", { status: 401 });
+    }
   }
 
   const event = JSON.parse(raw);

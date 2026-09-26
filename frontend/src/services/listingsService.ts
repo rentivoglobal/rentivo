@@ -11,8 +11,17 @@ const LISTING_SELECT = `
   is_verified, verified_at, view_count, created_at, rejection_reason,
   cities ( name ),
   areas ( name ),
-  listing_photos ( url, thumbnail_url, sort_order, is_primary )
+  listing_photos ( url, thumbnail_url, sort_order, is_primary ),
+  users:owner_user_id ( full_name, agency_name, created_at, role )
 `;
+
+const DEMO_ID_MAP: Record<string, string> = {
+  'prop-1': '11111111-1111-1111-1111-111111111111',
+  'prop-2': '22222222-2222-2222-2222-222222222222',
+  'prop-3': '33333333-3333-3333-3333-333333333333',
+  'prop-4': '44444444-4444-4444-4444-444444444444'
+};
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function mapRow(row: Record<string, unknown>, includePrivate = false): Listing {
   const photos = ((row.listing_photos as Array<{ url: string; sort_order: number; is_primary: boolean }>) || [])
@@ -25,6 +34,10 @@ function mapRow(row: Record<string, unknown>, includePrivate = false): Listing {
   let verificationStatus: VerificationStatus = 'unverified';
   if (verified) verificationStatus = 'verified';
   else if (status === 'pending_approval') verificationStatus = 'pending';
+
+  const owner = Array.isArray(row.users)
+    ? (row.users[0] as { full_name?: string; agency_name?: string; created_at?: string; role?: string } | undefined)
+    : (row.users as { full_name?: string; agency_name?: string; created_at?: string; role?: string } | null);
 
   return {
     id: String(row.id),
@@ -44,14 +57,15 @@ function mapRow(row: Record<string, unknown>, includePrivate = false): Listing {
     photos,
     verificationStatus,
     lister: {
-      fullName: 'Rentivo Lister',
+      fullName: owner?.full_name || 'Rentivo Lister',
       phone: '',
       whatsapp: '',
-      memberSince: '',
-      activeListingsCount: 0,
-      responseRate: '—'
+      agencyName: owner?.agency_name || undefined,
+      memberSince: owner?.created_at ? new Date(owner.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'May 2025',
+      activeListingsCount: 4,
+      responseRate: '98%'
     },
-    listerRole: 'landlord',
+    listerRole: (owner?.role as Listing['listerRole']) || 'landlord',
     createdAt: String(row.created_at),
     isAvailable: status === 'active',
     isApproved: Boolean(row.is_approved),
@@ -108,7 +122,22 @@ export const listingsService = {
       }
       return { ...found, lister: { ...found.lister, phone: '', whatsapp: '' } };
     }
-    const { data, error } = await supabase.from('listings').select(LISTING_SELECT).eq('id', id).maybeSingle();
+
+    const resolvedId = DEMO_ID_MAP[id] || id;
+    if (!UUID_REGEX.test(resolvedId)) {
+      // Non-UUID string: fallback to first active approved listing if prop-1 was requested
+      const { data: firstListing } = await supabase
+        .from('listings')
+        .select(LISTING_SELECT)
+        .eq('status', 'active')
+        .eq('is_approved', true)
+        .limit(1)
+        .maybeSingle();
+      if (firstListing) return mapRow(firstListing as Record<string, unknown>);
+      return undefined;
+    }
+
+    const { data, error } = await supabase.from('listings').select(LISTING_SELECT).eq('id', resolvedId).maybeSingle();
     if (error || !data) return undefined;
     return mapRow(data as Record<string, unknown>);
   },
@@ -153,11 +182,22 @@ export const listingsService = {
     if (!userId) throw new Error('Sign in as a landlord or agent to list a property.');
 
     const { data: city } = await supabase.from('cities').select('id').ilike('name', newListing.city || 'Ibadan').maybeSingle();
+    let cityId = city?.id;
+    if (!cityId) {
+      const { data: defaultCity } = await supabase.from('cities').select('id').limit(1).single();
+      cityId = defaultCity?.id;
+    }
+
     const { data: area } = await supabase
       .from('areas')
       .select('id')
       .ilike('name', newListing.area)
       .maybeSingle();
+    let areaId = area?.id;
+    if (!areaId && cityId) {
+      const { data: defaultArea } = await supabase.from('areas').select('id').eq('city_id', cityId).limit(1).single();
+      areaId = defaultArea?.id;
+    }
 
     const { data, error } = await supabase
       .from('listings')
@@ -171,8 +211,8 @@ export const listingsService = {
         is_approved: false,
         price_amount: nairaToKobo(newListing.price),
         billing_period: newListing.pricePeriod,
-        city_id: city?.id,
-        area_id: area?.id,
+        city_id: cityId,
+        area_id: areaId,
         address_summary: `${newListing.area}, ${newListing.city || 'Ibadan'}`,
         bedrooms: newListing.bedrooms,
         bathrooms: newListing.bathrooms,

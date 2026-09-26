@@ -1,5 +1,5 @@
 import { imagekitPublicKey, isLiveBackend } from './config';
-import { supabase } from './supabase';
+import { supabase, extractEdgeFunctionError } from './supabase';
 
 export interface UploadedPhoto {
   url: string;
@@ -13,7 +13,10 @@ export async function getImageKitAuth(): Promise<{ signature: string; token: str
     throw new Error('ImageKit authentication requires a configured Supabase project.');
   }
   const { data, error } = await supabase.functions.invoke('imagekit-auth');
-  if (error) throw error;
+  if (error) {
+    const errMsg = await extractEdgeFunctionError(error, 'ImageKit authentication failed.');
+    throw new Error(errMsg);
+  }
   return data as { signature: string; token: string; expire: number };
 }
 
@@ -46,7 +49,8 @@ export async function uploadToImageKit(file: File, folder = '/rentivo/listings')
     body
   });
   if (!response.ok) {
-    throw new Error('Photo upload failed. Please try again.');
+    const errorJson = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(errorJson?.message || 'Photo upload failed. Please try again.');
   }
   const json = await response.json();
   return {

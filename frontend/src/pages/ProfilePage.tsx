@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   User as UserIcon, 
   Mail, 
@@ -13,10 +14,13 @@ import {
   Bell, 
   Lock, 
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  ArrowRight,
+  Gift
 } from 'lucide-react';
-import { User, NavigationTab } from '../types';
+import { User, NavigationTab, RenterProfile } from '../types';
 import { authService } from '../services/authService';
+import { renterProfileService } from '../services/renterProfileService';
 
 interface ProfilePageProps {
   currentUser: User | null;
@@ -31,18 +35,21 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   onBack,
   onNavigateToTab
 }) => {
+  const navigate = useNavigate();
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [preferredArea, setPreferredArea] = useState('Bodija');
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [renterProfile, setRenterProfile] = useState<RenterProfile | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentUser) {
       setName(currentUser.name || '');
       setEmail(currentUser.email || '');
       setPhone(currentUser.phone || '');
+      void renterProfileService.getProfile(currentUser.id).then(setRenterProfile);
     }
   }, [currentUser]);
 
@@ -173,6 +180,85 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Renter Blueprint & ₦5,000 Waiver Settings Card */}
+        {!isLister && (
+          <div style={{
+            background: renterProfile?.onboardingCompleted 
+              ? 'linear-gradient(135deg, #FAF5FF 0%, #FFFFFF 100%)' 
+              : 'linear-gradient(135deg, #000052 0%, #20206E 100%)',
+            color: renterProfile?.onboardingCompleted ? '#000052' : '#FFFFFF',
+            border: renterProfile?.onboardingCompleted ? '1.5px solid #E9D5FF' : '1px solid rgba(190, 137, 255, 0.4)',
+            borderRadius: '16px',
+            padding: '24px 28px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '16px',
+            boxShadow: '0 4px 18px rgba(0, 0, 82, 0.05)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', maxWidth: '520px' }}>
+              <div style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                background: renterProfile?.onboardingCompleted ? '#F3E8FF' : 'rgba(255, 255, 255, 0.12)',
+                color: renterProfile?.onboardingCompleted ? '#7C3AED' : '#BE89FF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                {renterProfile?.onboardingCompleted ? <ShieldCheck size={24} /> : <Gift size={24} />}
+              </div>
+              <div>
+                <h3 style={{
+                  fontSize: '16px',
+                  fontWeight: 800,
+                  margin: '0 0 4px',
+                  color: renterProfile?.onboardingCompleted ? '#000052' : '#FFFFFF'
+                }}>
+                  {renterProfile?.onboardingCompleted
+                    ? 'Rental Search Blueprint & Waiver Active'
+                    : 'Earn Your ₦5,000 Inspection Waiver'}
+                </h3>
+                <p style={{
+                  fontSize: '13px',
+                  margin: 0,
+                  color: renterProfile?.onboardingCompleted ? '#5D5D78' : 'rgba(255, 255, 255, 0.8)'
+                }}>
+                  {renterProfile?.onboardingCompleted
+                    ? `Blueprint tailored for ${renterProfile.preferredAreas?.join(', ') || 'Ibadan'} with ₦5,000 free access waiver locked in.`
+                    : 'Complete your 2-minute Renter Blueprint to lock in your First 100 free viewing access fee waiver and tailored alerts.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate(renterProfile?.onboardingCompleted ? '/onboarding/renter?edit=true' : '/onboarding/renter')}
+              style={{
+                background: renterProfile?.onboardingCompleted ? '#7C3AED' : '#BE89FF',
+                color: renterProfile?.onboardingCompleted ? '#FFFFFF' : '#000052',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '11px 20px',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span>{renterProfile?.onboardingCompleted ? 'Update Preferences' : 'Complete Onboarding'}</span>
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        )}
 
         {/* Profile Details Form */}
         <div style={{

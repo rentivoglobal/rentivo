@@ -1,5 +1,4 @@
 import { Listing, AccessRequest, User, CityLocation, ReportItem, FilterOptions, UserRole, RequestAccessStatus, VerificationStatus } from '../types';
-import { INITIAL_LISTINGS } from '../data/mockData';
 import { ACCESS_FEE_NAIRA, PROMO_CAP } from '../lib/config';
 import { maskListerContact, slugify } from '../lib/mappers';
 
@@ -53,79 +52,13 @@ function seedCities(): CityLocation[] {
         'Agodi GRA', 'Oluyole', 'Oluyole Estate', 'Samonda', 'Challenge', 'Dugbe',
         'Iwo Road', 'Ikolaba', 'Eleyele', 'Moniya', 'Apata', 'Ologuneru'
       ]
-    },
-    {
-      id: 'city-lagos',
-      name: 'Lagos',
-      state: 'Lagos State',
-      isActive: false,
-      isPilot: false,
-      areas: ['Lekki Phase 1', 'Victoria Island', 'Ikoyi', 'Ikeja GRA', 'Yaba', 'Surulere']
-    },
-    {
-      id: 'city-abeokuta',
-      name: 'Abeokuta',
-      state: 'Ogun State',
-      isActive: false,
-      isPilot: false,
-      areas: ['Ibara GRA', 'Oke-Mosan', 'Kuto']
     }
   ];
 }
 
-function seedListings(): Listing[] {
-  return INITIAL_LISTINGS.map((listing) => ({
-    ...listing,
-    isApproved: true,
-    moderationStatus: 'active' as const,
-    lister: maskListerContact(listing.lister)
-  }));
-}
-
-function seedPrivateAddresses(): Record<string, string> {
-  const map: Record<string, string> = {};
-  INITIAL_LISTINGS.forEach((listing) => {
-    map[listing.id] = listing.addressDescription;
-  });
-  return map;
-}
-
-function seedLocalAccounts(): Record<string, User & { password?: string }> {
-  const users = read<Record<string, User & { password?: string }>>(KEYS.users, {});
-  let changed = false;
-  if (!users['usr-ops']) {
-    users['usr-ops'] = {
-      id: 'usr-ops',
-      name: 'Rentivo Operations',
-      email: 'ops@rentivo.ng',
-      phone: '08000000001',
-      role: 'admin',
-      favorites: [],
-      createdAt: new Date().toISOString(),
-      password: 'RentivoOps1'
-    };
-    changed = true;
-  }
-  if (!users['usr-lister']) {
-    users['usr-lister'] = {
-      id: 'usr-lister',
-      name: 'Kemi Balogun',
-      email: 'lister@rentivo.ng',
-      phone: '08031112222',
-      role: 'landlord',
-      favorites: [],
-      createdAt: new Date().toISOString(),
-      password: 'RentivoLister1'
-    };
-    changed = true;
-  }
-  if (changed) write(KEYS.users, users);
-  return users;
-}
-
 export const localStore = {
   getUsers(): Record<string, User & { password?: string }> {
-    return seedLocalAccounts();
+    return read<Record<string, User & { password?: string }>>(KEYS.users, {});
   },
   saveUsers(users: Record<string, User & { password?: string }>) {
     write(KEYS.users, users);
@@ -138,12 +71,7 @@ export const localStore = {
     else localStorage.removeItem(KEYS.session);
   },
   getListingsRaw(): Listing[] {
-    const existing = read<Listing[] | null>(KEYS.listings, null);
-    if (existing && existing.length) return existing;
-    const seeded = seedListings();
-    write(KEYS.listings, seeded);
-    write(KEYS.private, seedPrivateAddresses());
-    return seeded;
+    return read<Listing[]>(KEYS.listings, []);
   },
   saveListings(listings: Listing[]) {
     write(KEYS.listings, listings);

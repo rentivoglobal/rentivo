@@ -338,42 +338,50 @@ export const HomePage: React.FC<HomePageProps> = ({
             </button>
           </form>
 
-          {/* Property Owner Direct Doorway (P0 Audit Recommendation) */}
+          {/* Property Owner Direct Doorway */}
           <div style={{
-            marginTop: '14px',
-            display: 'inline-flex',
+            marginTop: '16px',
+            display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            backgroundColor: 'rgba(0, 0, 82, 0.45)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(190, 137, 255, 0.35)',
-            borderRadius: '9999px',
-            padding: '6px 16px',
-            fontSize: '12.5px',
-            color: '#FFFFFF'
+            justifyContent: 'center'
           }}>
-            <Building size={14} color="#BE89FF" />
-            <span style={{ fontWeight: 600 }}>Own property in Ibadan?</span>
-            <button
-              type="button"
-              onClick={() => navigate('/lister/listings/new')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#BE89FF',
-                fontWeight: 800,
-                cursor: 'pointer',
-                padding: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <span>List your property for free</span>
-              <ArrowRight size={13} />
-            </button>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(0, 0, 82, 0.45)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(190, 137, 255, 0.35)',
+              borderRadius: '9999px',
+              padding: '6px 16px',
+              fontSize: '12.5px',
+              color: '#FFFFFF'
+            }}>
+              <Building size={14} color="#BE89FF" />
+              <span style={{ fontWeight: 600 }}>Own property?</span>
+              <button
+                type="button"
+                onClick={() => navigate('/lister/listings/new')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#BE89FF',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <span>List for free</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
           </div>
+
         </div>
+
 
         {/* Hero Scene with Live Featured Card & Connectors */}
         <div className="hero-scene">

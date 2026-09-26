@@ -1,6 +1,6 @@
 import { AccessRequest, Listing, ListerContact, RequestAccessStatus } from '../types';
 import { ACCESS_FEE_NAIRA, APP_URL, isDemoSimulator, isLiveBackend } from '../lib/config';
-import { supabase } from '../lib/supabase';
+import { supabase, extractEdgeFunctionError } from '../lib/supabase';
 import { localStore } from './localStore';
 import { authService } from './authService';
 import { listingsService } from './listingsService';
@@ -92,15 +92,24 @@ export const requestsService = {
     const user = await authService.getSessionUser();
     if (!user) throw new Error('Sign in to request access.');
 
-    const { data, error } = await supabase.functions.invoke('request-access', {
-      body: {
-        listingId: listing.id,
-        renterName: renter.name,
-        renterPhone: renter.phone,
-        renterEmail: renter.email
+    let data: any = null;
+    try {
+      const res = await supabase.functions.invoke('request-access', {
+        body: {
+          listingId: listing.id,
+          renterName: renter.name,
+          renterPhone: renter.phone,
+          renterEmail: renter.email
+        }
+      });
+      data = res.data;
+      if (res.error) {
+        const errMsg = await extractEdgeFunctionError(res.error);
+        console.warn('request-access function error, falling back to direct db insert:', errMsg);
       }
-    });
-    if (error) throw error;
+    } catch (invokeErr) {
+      console.warn('request-access function call failed, falling back to direct db insert:', invokeErr);
+    }
     if (data?.request) return data.request as AccessRequest;
 
     const { data: inserted, error: insertError } = await supabase
@@ -272,7 +281,10 @@ export const requestsService = {
       const { data, error } = await supabase.functions.invoke('paystack-initialize', {
         body: { requestId, email }
       });
-      if (error) throw error;
+      if (error) {
+        const errMsg = await extractEdgeFunctionError(error, 'Failed to initialize Paystack payment.');
+        throw new Error(errMsg);
+      }
       return data as { authorizationUrl?: string; reference: string };
     }
     return { reference: `local_${requestId}_${Date.now()}` };

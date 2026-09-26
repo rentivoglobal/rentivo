@@ -13,8 +13,7 @@ import {
   ArrowLeft,
   AlertTriangle
 } from 'lucide-react';
-import { Listing, PropertyCategory, PropertyType } from '../types';
-import { IBADAN_AREAS } from '../data/mockData';
+import { Listing, PropertyCategory, PropertyType, IBADAN_AREAS } from '../types';
 import { formatNaira } from '../utils/formatters';
 import { listingsService } from '../services/listingsService';
 import { authService } from '../services/authService';

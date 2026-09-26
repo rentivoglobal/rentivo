@@ -12,7 +12,10 @@ export const verificationService = {
       .from('verification_requests')
       .select('*')
       .order('created_at', { ascending: false });
-    if (error) throw error;
+    if (error) {
+      console.warn('Failed to load verification requests from Supabase:', error);
+      return localStore.getVerifications();
+    }
     return (data || []).map((row) => ({
       id: row.id,
       listingId: row.listing_id,
@@ -34,13 +37,26 @@ export const verificationService = {
     onSiteContactName: string;
     onSiteContactPhone: string;
   }): Promise<LocalVerification> {
-    const user = authService.getCurrentUser();
+    const user = authService.getCurrentUser() || (await authService.getSessionUser());
+
+    let isoDate = input.scheduledDate;
+    if (isoDate && !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+      const parsed = new Date(isoDate);
+      if (!isNaN(parsed.getTime())) {
+        isoDate = parsed.toISOString().slice(0, 10);
+      } else {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        isoDate = tomorrow.toISOString().slice(0, 10);
+      }
+    }
+
     const record: LocalVerification = {
       id: localStore.createId('ver'),
       listingId: input.listing.id,
       requestedBy: user?.id || 'local',
       status: 'pending',
-      scheduledDate: input.scheduledDate,
+      scheduledDate: isoDate,
       preferredTime: input.preferredTime,
       onSiteContactName: input.onSiteContactName,
       onSiteContactPhone: input.onSiteContactPhone,
@@ -56,7 +72,7 @@ export const verificationService = {
         listing_id: input.listing.id,
         requested_by: user.id,
         status: 'pending',
-        scheduled_date: input.scheduledDate,
+        scheduled_date: isoDate,
         preferred_time: input.preferredTime,
         on_site_contact_name: input.onSiteContactName,
         on_site_contact_phone: input.onSiteContactPhone

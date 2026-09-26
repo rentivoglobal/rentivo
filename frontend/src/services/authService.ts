@@ -1,8 +1,9 @@
 import { User, UserRole } from '../types';
 import { isLiveBackend } from '../lib/config';
-import { supabase } from '../lib/supabase';
+import { supabase, extractEdgeFunctionError } from '../lib/supabase';
 import { APP_URL } from '../lib/config';
 import { localStore, roleFromSignup } from './localStore';
+import { renterProfileService } from './renterProfileService';
 
 function mapProfile(row: {
   id: string;
@@ -25,24 +26,31 @@ function mapProfile(row: {
   };
 }
 
+let cachedUser: User | null = null;
+
 async function fetchProfile(userId: string): Promise<User | null> {
   if (!supabase) return null;
   const { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
   if (error || !data) return null;
-  return mapProfile(data as never);
+  const profile = mapProfile(data as never);
+  cachedUser = profile;
+  return profile;
 }
 
 export const authService = {
   getCurrentUser(): User | null {
     if (!isLiveBackend) return localStore.getSession();
-    return null;
+    return cachedUser;
   },
 
   async getSessionUser(): Promise<User | null> {
     if (!isLiveBackend) return localStore.getSession();
     if (!supabase) return null;
     const { data } = await supabase.auth.getSession();
-    if (!data.session?.user) return null;
+    if (!data.session?.user) {
+      cachedUser = null;
+      return null;
+    }
     return fetchProfile(data.session.user.id);
   },
 
@@ -71,6 +79,9 @@ export const authService = {
     const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error || !data.user) return { success: false, error: error?.message || 'Failed to sign in.' };
     const profile = await fetchProfile(data.user.id);
+    if (profile && (profile.role === 'tenant' || profile.role === 'business_renter')) {
+      void renterProfileService.syncGuestProfile(profile.id);
+    }
     return { success: true, user: profile || undefined };
   },
 
@@ -106,24 +117,39 @@ export const authService = {
       return { success: true, user: sessionUser };
     }
     if (!supabase) return { success: false, error: 'Authentication is not configured.' };
-    const { data, error } = await supabase.auth.signUp({
-      email: input.email.trim(),
-      password: input.password || '',
-      options: {
-        emailRedirectTo: `${APP_URL}/auth/callback`,
-        data: {
-          full_name: input.fullName.trim(),
-          phone: input.phone.trim(),
-          role,
-          agency_name: input.agencyName || ''
-        }
+
+    const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke('auth-signup', {
+      body: {
+        email: input.email.trim(),
+        password: input.password || '',
+        fullName: input.fullName.trim(),
+        phone: input.phone.trim(),
+        role,
+        agencyName: input.agencyName?.trim() || ''
       }
     });
-    if (error) return { success: false, error: error.message };
-    if (!data.session) {
-      return { success: true, needsConfirmation: true };
+
+    if (edgeErr || edgeRes?.error || edgeRes?.success === false) {
+      let errorMsg = edgeRes?.error;
+      if (!errorMsg && edgeErr) {
+        errorMsg = await extractEdgeFunctionError(edgeErr, 'Failed to create account.');
+      }
+      return { success: false, error: errorMsg || 'Failed to create account.' };
     }
-    const profile = data.user ? await fetchProfile(data.user.id) : null;
+
+    // Immediately sign in the newly created user to establish session
+    const loginRes = await this.login(input.email.trim(), input.password || '');
+    if (loginRes.success && loginRes.user) {
+      if (loginRes.user.role === 'tenant' || loginRes.user.role === 'business_renter') {
+        void renterProfileService.syncGuestProfile(loginRes.user.id);
+      }
+      return { success: true, user: loginRes.user };
+    }
+
+    const profile = edgeRes?.user ? await fetchProfile(edgeRes.user.id) : null;
+    if (profile && (profile.role === 'tenant' || profile.role === 'business_renter')) {
+      void renterProfileService.syncGuestProfile(profile.id);
+    }
     return { success: true, user: profile || undefined };
   },
 
@@ -198,7 +224,18 @@ export const authService = {
     return fetchProfile(userId);
   },
 
+  async listUsers(): Promise<User[]> {
+    if (!isLiveBackend || !supabase) return Object.values(localStore.getUsers());
+    const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+    if (error) {
+      console.warn('Failed to list users from Supabase:', error);
+      return [];
+    }
+    return (data || []).map((row) => mapProfile(row as never));
+  },
+
   async logout(): Promise<void> {
+    cachedUser = null;
     if (isLiveBackend && supabase) {
       await supabase.auth.signOut();
     }

@@ -19,6 +19,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { AccountPage } from './pages/AccountPage';
+import { RenterOnboardingPage } from './pages/RenterOnboardingPage';
 import { ListerVerificationPage } from './pages/ListerVerificationPage';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -213,8 +214,9 @@ export const App: React.FC = () => {
   const isPortalRoute = location.pathname.startsWith('/account') || location.pathname.startsWith('/lister') || location.pathname.startsWith('/admin');
   const isRenterPortalSearch = location.pathname.startsWith('/account/search');
   const isBrowsePropertiesSearch = (location.pathname.startsWith('/search') || location.pathname.startsWith('/browse') || location.pathname.startsWith('/properties')) && !isRenterPortalSearch;
-  const showNavbar = !STANDALONE_TABS.includes(currentTab) && !location.pathname.startsWith('/lister') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/account') && !isBrowsePropertiesSearch && !isRenterPortalSearch;
-  const showFooter = !isPortalRoute && (FOOTER_TABS.includes(currentTab) || isBrowsePropertiesSearch);
+  const isOnboarding = location.pathname.startsWith('/onboarding');
+  const showNavbar = !STANDALONE_TABS.includes(currentTab) && !location.pathname.startsWith('/lister') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/account') && !isBrowsePropertiesSearch && !isRenterPortalSearch && !isOnboarding;
+  const showFooter = !isPortalRoute && !isOnboarding && (FOOTER_TABS.includes(currentTab) || isBrowsePropertiesSearch);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -295,10 +297,18 @@ export const App: React.FC = () => {
             path="/account"
             element={
               <ProtectedRoute>
-                <Navigate to="/account/search" replace />
+                <AccountPage
+                  listings={listings}
+                  favorites={favorites}
+                  onNavigateToTab={handleNavigate}
+                  onSelectListing={handleSelectListing}
+                  onOpenRequest={(req) => navigate(`/requests/${req.id}`)}
+                />
               </ProtectedRoute>
             }
           />
+          <Route path="/onboarding/renter" element={<RenterOnboardingPage />} />
+          <Route path="/onboarding" element={<Navigate to="/onboarding/renter" replace />} />
           <Route
             path="/account/search"
             element={

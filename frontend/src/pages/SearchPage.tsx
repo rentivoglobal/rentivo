@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Search, 
   ArrowRight, 
@@ -33,10 +34,10 @@ import {
   LogOut,
   User as UserIcon
 } from 'lucide-react';
-import { MarketplaceListing } from '../data/mockData';
-import { FilterOptions, PropertyType, CityLocation, User } from '../types';
+import { MarketplaceListing, FilterOptions, PropertyType, CityLocation, User, RenterProfile } from '../types';
 import { formatNaira } from '../utils/formatters';
 import { locationsService } from '../services/locationsService';
+import { renterProfileService } from '../services/renterProfileService';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { NairaIcon } from '../components/ui';
 
@@ -112,6 +113,30 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   const [minPriceInput, setMinPriceInput] = useState<string>(filters.minPrice ? String(filters.minPrice) : '');
   const [maxPriceInput, setMaxPriceInput] = useState<string>(filters.maxPrice ? String(filters.maxPrice) : '');
 
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [renterProfile, setRenterProfile] = useState<RenterProfile | null>(null);
+  const [onlyTailoredMatches, setOnlyTailoredMatches] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (currentUser?.id) {
+        const p = await renterProfileService.getProfile(currentUser.id);
+        setRenterProfile(p);
+      } else {
+        const local = renterProfileService.getLocalPreferences();
+        setRenterProfile(local);
+      }
+    };
+    void fetchProfile();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (searchParams.get('personalized') === 'true') {
+      setOnlyTailoredMatches(true);
+    }
+  }, [searchParams]);
+
   const typeDropdownRef = useRef<HTMLDivElement>(null);
   const priceDropdownRef = useRef<HTMLDivElement>(null);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
@@ -179,18 +204,39 @@ export const SearchPage: React.FC<SearchPageProps> = ({
     ];
   }, [currentCategory]);
 
-  // Reset page to 1 whenever filters change
+  // Reset page to 1 whenever filters change or tailored toggle changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, selectedCat, activeChip]);
+  }, [filters, selectedCat, activeChip, onlyTailoredMatches]);
+
+  const displayListings = useMemo(() => {
+    if (!renterProfile) return listings;
+
+    const withScores = listings.map(l => ({
+      listing: l,
+      score: renterProfileService.calculateMatchScore(l, renterProfile)
+    }));
+
+    if (onlyTailoredMatches) {
+      return withScores
+        .filter(item => item.score >= 70)
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.listing);
+    }
+
+    return withScores
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.listing);
+  }, [listings, renterProfile, onlyTailoredMatches]);
 
   // Compute pagination
-  const totalItems = listings.length;
+  const totalItems = displayListings.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
   const startIndex = (validCurrentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + pageSize, totalItems);
-  const paginatedListings = listings.slice(startIndex, endIndex);
+  const paginatedListings = displayListings.slice(startIndex, endIndex);
+
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;
@@ -1179,15 +1225,16 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                 : `${currentCategory === 'residential' ? 'Residential Homes' : currentCategory === 'commercial' ? 'Commercial Spaces' : 'Listed Properties'} in ${filters.city || 'Ibadan'}`}
             </h2>
             <p style={{ fontSize: '12.5px', color: '#636377', margin: '2px 0 0' }}>
-              {listings.length} verified & verified-in-progress properties available
+              {displayListings.length} {onlyTailoredMatches ? 'tailored matches' : 'verified & verified-in-progress properties'} available
             </p>
           </div>
-          {listings.length > 0 && (
+          {displayListings.length > 0 && (
             <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 600 }}>
               Page {validCurrentPage} of {totalPages}
             </div>
           )}
         </div>
+
 
         {/* Empty State */}
         {listings.length === 0 ? (
@@ -1250,6 +1297,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               const isFav = favorites.includes(item.id);
               const isPopping = poppedId === item.id;
               const photoCount = item.photos?.length || 1;
+              const matchScore = renterProfile ? renterProfileService.calculateMatchScore(item, renterProfile) : null;
 
               return (
                 <div 
@@ -1319,6 +1367,22 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                       {/* Badges */}
                       <div className="card-badges" style={{ margin: '0 0 8px' }}>
                         <span className="b b-type">{item.type}</span>
+                        {matchScore && (
+                          <span
+                            className="b"
+                            style={{
+                              backgroundColor: '#FAF5FF',
+                              color: '#6B21A8',
+                              borderColor: '#E9D5FF',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Sparkles size={11} /> {matchScore}% Match
+                          </span>
+                        )}
                         <span className="b b-status" style={{ backgroundColor: item.isAvailable ? '#EFF6FF' : '#FEF3C7', color: item.isAvailable ? '#1D4ED8' : '#B45309' }}>
                           {item.isAvailable ? 'Available' : 'Under Check'}
                         </span>

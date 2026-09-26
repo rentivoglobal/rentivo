@@ -1,5 +1,5 @@
 import { isLiveBackend } from '../lib/config';
-import { supabase } from '../lib/supabase';
+import { supabase, extractEdgeFunctionError } from '../lib/supabase';
 import { localStore, LocalPayment } from './localStore';
 
 export const paymentsService = {
@@ -30,7 +30,10 @@ export const paymentsService = {
       const { error } = await supabase.functions.invoke('paystack-refund', {
         body: { paymentId, reason }
       });
-      if (error) throw error;
+      if (error) {
+        const errMsg = await extractEdgeFunctionError(error, 'Failed to process refund.');
+        throw new Error(errMsg);
+      }
       return;
     }
     const payments = localStore.getPayments().map((p) =>

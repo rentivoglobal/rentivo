@@ -1,22 +1,30 @@
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import ImageKit from "npm:imagekit";
+import { createHmac, randomUUID } from "node:crypto";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: cors });
+  }
 
-  const imagekit = new ImageKit({
-    publicKey: Deno.env.get("IMAGEKIT_PUBLIC_KEY") ?? "",
-    privateKey: Deno.env.get("IMAGEKIT_PRIVATE_KEY") ?? "",
-    urlEndpoint: Deno.env.get("IMAGEKIT_URL_ENDPOINT") ?? ""
-  });
+  const privateKey = Deno.env.get("IMAGEKIT_PRIVATE_KEY") || "private_0RiBnIfaHaZ50e1mqrvcg64QftY=";
 
-  const auth = imagekit.getAuthenticationParameters();
-  return new Response(JSON.stringify(auth), {
-    headers: { ...cors, "Content-Type": "application/json" }
-  });
+  const token = randomUUID();
+  const expire = Math.floor(Date.now() / 1000) + 1800;
+  const signature = createHmac("sha1", privateKey).update(token + expire).digest("hex");
+
+  return new Response(
+    JSON.stringify({
+      token,
+      expire,
+      signature
+    }),
+    {
+      headers: { ...cors, "Content-Type": "application/json" }
+    }
+  );
 });

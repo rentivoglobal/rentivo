@@ -1,0 +1,776 @@
+/**
+ * Rentivo Onboarding Suite Stylesheet
+ * Ultra-clean, refined, minimalistic design.
+ * Strips away loud saturated gradients, punchy blobs, and visual clutter.
+ * Focuses on spacious layout, editorial typography, subtle neutral surfaces,
+ * and quiet, confident interactions (inspired by Apple, Linear, and Notion).
+ */
+
+:root {
+  --ob-bg: #FFFFFF;
+  --ob-subtle: #F8F9FA;
+  --ob-surface: #FFFFFF;
+  --ob-surface-hover: #F3F4F6;
+  --ob-surface-active: #F8FAFC;
+  --ob-ink: #111827;
+  --ob-ink-muted: #6B7280;
+  --ob-ink-faint: #9CA3AF;
+  --ob-border: #E5E7EB;
+  --ob-border-hover: #D1D5DB;
+  --ob-border-active: #111827;
+  --ob-navy: #000052;
+  --ob-success: #15803D;
+  --ob-radius-lg: 16px;
+  --ob-radius-md: 12px;
+  --ob-radius-sm: 8px;
+  --ob-radius-pill: 999px;
+  --ob-dock-height: 88px;
+}
+
+/* Page Root */
+.onboarding-page-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--ob-bg);
+  color: var(--ob-ink);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================================================
+   MINIMAL TOPBAR
+   ========================================================================== */
+.onboarding-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--ob-border);
+}
+
+.onboarding-topbar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.onboarding-back-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ob-radius-sm);
+  background: transparent;
+  border: 1px solid var(--ob-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ob-ink-muted);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onboarding-back-btn:hover:not(:disabled) {
+  border-color: var(--ob-border-hover);
+  color: var(--ob-ink);
+  background: var(--ob-subtle);
+}
+
+.onboarding-back-btn:active {
+  transform: scale(0.96);
+}
+
+.onboarding-back-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Quiet Minimal Progress Hairline */
+.onboarding-progress-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ob-border);
+  overflow: hidden;
+}
+
+.onboarding-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ob-ink);
+  transition: width 0.35s ease;
+}
+
+.onboarding-step-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ob-ink-muted);
+  flex-shrink: 0;
+  min-width: 40px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.onboarding-topbar-skip {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ob-ink-muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  border-radius: var(--ob-radius-sm);
+  transition: color 0.15s ease;
+}
+
+.onboarding-topbar-skip:hover {
+  color: var(--ob-ink);
+}
+
+/* ==========================================================================
+   MINIMAL SHELL CONTAINER
+   ========================================================================== */
+.onboarding-shell {
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 20px calc(var(--ob-dock-height) + 32px);
+  position: relative;
+  z-index: 1;
+  animation: onboardingFadeIn 0.25s ease-out forwards;
+}
+
+@keyframes onboardingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   CLEAN ILLUSTRATION PRESENTATION
+   Quiet, understated stage without garish blobs or distracting particles.
+   ========================================================================== */
+.onboarding-illus-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 8px 0 20px;
+}
+
+.onboarding-illus-stage {
+  width: 104px;
+  height: 104px;
+  border-radius: var(--ob-radius-lg);
+  background: var(--ob-subtle);
+  border: 1px solid var(--ob-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.onboarding-illus-img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Step 5 Shield Icon in minimal stage */
+.onboarding-illus-shield {
+  color: var(--ob-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   CLEAN HEADINGS
+   ========================================================================== */
+.onboarding-q-kicker {
+  display: block;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ob-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.onboarding-q-title {
+  text-align: center;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--ob-ink);
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+  line-height: 1.3;
+}
+
+@media (max-width: 480px) {
+  .onboarding-q-title {
+    font-size: 1.35rem;
+  }
+}
+
+.onboarding-q-sub {
+  text-align: center;
+  color: var(--ob-ink-muted);
+  font-size: 0.92rem;
+  margin: 0 auto 22px;
+  line-height: 1.5;
+  max-width: 420px;
+}
+
+/* ==========================================================================
+   MINIMAL LIVE MATCH BADGE
+   A quiet, elegant status tag without loud pulsing rings.
+   ========================================================================== */
+.onboarding-match-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--ob-subtle);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--ob-radius-pill);
+  padding: 6px 14px;
+  margin: 0 auto 22px;
+  width: fit-content;
+}
+
+.onboarding-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ob-success);
+  flex-shrink: 0;
+}
+
+.onboarding-match-banner b {
+  font-weight: 700;
+  color: var(--ob-ink);
+  font-size: 0.88rem;
+}
+
+.onboarding-match-banner span.txt {
+  font-size: 0.84rem;
+  color: var(--ob-ink-muted);
+}
+
+/* ==========================================================================
+   SINGLE-SELECT CHOICE CARDS (VERTICAL LIST)
+   Clean, tactile, border-driven selection.
+   ========================================================================== */
+.onboarding-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.onboarding-choice-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--ob-border);
+  border-radius: var(--ob-radius-md);
+  background: var(--ob-surface);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+}
+
+.onboarding-choice-card:hover {
+  border-color: var(--ob-border-hover);
+  background: var(--ob-subtle);
+}
+
+.onboarding-choice-card:active {
+  transform: scale(0.99);
+}
+
+.onboarding-choice-card.sel {
+  border-color: var(--ob-border-active);
+  background: var(--ob-surface-active);
+}
+
+.onboarding-choice-card .ic {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--ob-radius-sm);
+  background: var(--ob-subtle);
+  color: var(--ob-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  border: 1px solid var(--ob-border);
+}
+
+.onboarding-choice-card.sel .ic {
+  background: var(--ob-ink);
+  color: #FFFFFF;
+  border-color: var(--ob-ink);
+}
+
+.onboarding-choice-card .txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.onboarding-choice-card .ttl {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--ob-ink);
+  letter-spacing: -0.01em;
+}
+
+.onboarding-choice-card .sub2 {
+  font-size: 0.8rem;
+  color: var(--ob-ink-muted);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+/* Minimal Radio Circle */
+.onboarding-choice-card .chk {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ob-ink-faint);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  background: #FFFFFF;
+  color: #FFFFFF;
+}
+
+.onboarding-choice-card.sel .chk {
+  border-color: var(--ob-ink);
+  background: var(--ob-ink);
+}
+
+/* ==========================================================================
+   MULTI-SELECT PILL GRID
+   ========================================================================== */
+.onboarding-pill-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 440px) {
+  .onboarding-pill-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.onboarding-pill-card {
+  position: relative;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--ob-border);
+  border-radius: var(--ob-radius-md);
+  background: var(--ob-surface);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+}
+
+.onboarding-pill-card:hover {
+  border-color: var(--ob-border-hover);
+  background: var(--ob-subtle);
+}
+
+.onboarding-pill-card:active {
+  transform: scale(0.99);
+}
+
+.onboarding-pill-card.sel {
+  border-color: var(--ob-border-active);
+  background: var(--ob-surface-active);
+}
+
+.onboarding-pill-card .top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.onboarding-pill-card .ic {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--ob-radius-sm);
+  background: var(--ob-subtle);
+  color: var(--ob-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ob-border);
+  transition: all 0.15s ease;
+}
+
+.onboarding-pill-card.sel .ic {
+  background: var(--ob-ink);
+  color: #FFFFFF;
+  border-color: var(--ob-ink);
+}
+
+.onboarding-pill-card .chk {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ob-ink-faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  background: #FFFFFF;
+  color: #FFFFFF;
+}
+
+.onboarding-pill-card.sel .chk {
+  border-color: var(--ob-ink);
+  background: var(--ob-ink);
+}
+
+.onboarding-pill-card .ttl {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--ob-ink);
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+.onboarding-pill-card .sub2 {
+  font-size: 0.76rem;
+  color: var(--ob-ink-muted);
+  line-height: 1.3;
+}
+
+/* Subtle selected count label */
+.onboarding-sel-count {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--ob-ink-muted);
+  font-weight: 500;
+  margin-top: 16px;
+}
+
+/* ==========================================================================
+   MINIMAL FLOATING ACTION DOCK
+   ========================================================================== */
+.onboarding-sticky-cta {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--ob-border);
+  padding: 12px 20px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+.onboarding-sticky-cta-inner {
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.onboarding-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: var(--ob-radius-md);
+  padding: 13px 20px;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  text-decoration: none;
+}
+
+.onboarding-btn:active {
+  transform: scale(0.99);
+}
+
+.onboarding-btn-primary {
+  background: var(--ob-ink);
+  color: #FFFFFF;
+}
+
+.onboarding-btn-primary:hover {
+  background: #1F2937;
+}
+
+.onboarding-btn-outline {
+  background: #FFFFFF;
+  border: 1px solid var(--ob-border);
+  color: var(--ob-ink);
+}
+
+.onboarding-btn-outline:hover {
+  background: var(--ob-subtle);
+  border-color: var(--ob-border-hover);
+}
+
+.onboarding-skip-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ob-ink-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.15s ease;
+}
+
+.onboarding-skip-link:hover {
+  color: var(--ob-ink);
+}
+
+/* ==========================================================================
+   STEP 7: MINIMAL MATCHING ENGINE
+   Clean, modern loader without noisy radar or rainbow lasers.
+   ========================================================================== */
+.onboarding-match-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  background: var(--ob-bg);
+}
+
+.onboarding-clean-loader {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--ob-radius-lg);
+  background: var(--ob-subtle);
+  border: 1px solid var(--ob-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.onboarding-clean-loader img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+/* Minimal Checklist of progress */
+.onboarding-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  max-width: 360px;
+  width: 100%;
+  margin-top: 16px;
+  background: var(--ob-subtle);
+  border: 1px solid var(--ob-border);
+  padding: 16px 18px;
+  border-radius: var(--ob-radius-md);
+}
+
+.onboarding-status-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.onboarding-status-item .dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #FFFFFF;
+  border: 1.5px solid var(--ob-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #FFFFFF;
+  transition: all 0.2s ease;
+}
+
+.onboarding-status-item.done .dot {
+  background: var(--ob-ink);
+  border-color: var(--ob-ink);
+}
+
+.onboarding-spin-mini {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ob-border);
+  border-top-color: var(--ob-ink);
+  animation: onboardingSpin 0.7s linear infinite;
+}
+
+.onboarding-status-item.done .onboarding-spin-mini {
+  display: none;
+}
+
+.onboarding-status-item span.lbl {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ob-ink-muted);
+  line-height: 1.35;
+}
+
+.onboarding-status-item.done span.lbl {
+  color: var(--ob-ink);
+  font-weight: 600;
+}
+
+@keyframes onboardingSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   STEP 8: MINIMAL REVEAL SCREEN
+   Restrained, editorial, elegant value capture.
+   ========================================================================== */
+.onboarding-reveal-shell {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+  text-align: center;
+  animation: onboardingFadeIn 0.3s ease-out forwards;
+}
+
+.onboarding-reveal-illus {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.onboarding-reveal-stage {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--ob-radius-lg);
+  background: var(--ob-subtle);
+  border: 1px solid var(--ob-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-reveal-stage img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.onboarding-match-count-big {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--ob-ink);
+  line-height: 1;
+  margin: 12px 0 4px;
+  letter-spacing: -0.03em;
+}
+
+.onboarding-match-count-label {
+  font-size: 0.9rem;
+  color: var(--ob-ink-muted);
+  margin-bottom: 22px;
+}
+
+/* Preference Chips Summary */
+.onboarding-chip-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 26px;
+}
+
+.onboarding-rchip {
+  background: var(--ob-subtle);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--ob-radius-pill);
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ob-ink);
+}
+
+/* Minimal Inspection Waiver Card */
+.onboarding-waiver-card {
+  background: var(--ob-subtle);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--ob-radius-md);
+  padding: 16px 18px;
+  margin-bottom: 26px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.onboarding-waiver-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--ob-radius-sm);
+  background: #FFFFFF;
+  border: 1px solid var(--ob-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--ob-ink);
+}
+
+.onboarding-waiver-card b {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ob-ink);
+  margin-bottom: 2px;
+}
+
+.onboarding-waiver-card span {
+  font-size: 0.8rem;
+  color: var(--ob-ink-muted);
+  line-height: 1.35;
+}

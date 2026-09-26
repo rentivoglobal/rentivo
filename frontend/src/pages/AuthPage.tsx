@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useId } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, 
   Lock, 
@@ -35,6 +36,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   onAuthSuccess,
   onNavigateHome
 }) => {
+  const navigate = useNavigate();
   const [view, setView] = useState<'signin' | 'signup' | 'forgot'>(initialMode);
   const [signupRole, setSignupRole] = useState<'renter' | 'lister'>(initialRole);
   
@@ -218,6 +220,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     if (res.success) {
       setSignupSuccess(true);
       setTimeout(() => {
+        if (signupRole === 'renter') {
+          navigate('/onboarding/renter');
+          return;
+        }
         const target = redirectTab || (role === 'landlord' || role === 'agent' ? 'lister' : 'search');
         onAuthSuccess(target);
       }, 750);
@@ -411,6 +417,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               <form onSubmit={handleSignIn} noValidate>
                 {/* Identifier Input */}
                 <div className={`auth-field ${signinIdentifier ? 'filled' : ''} ${signinShake && !signinIdentifier ? 'error shake' : ''}`}>
+                  <label htmlFor={signinIdInputId} className="auth-field-label">Email or phone number</label>
                   <div className="auth-input-wrap">
                     <Mail size={16} className="li" />
                     <input 
@@ -418,16 +425,17 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       type="text" 
                       value={signinIdentifier}
                       onChange={(e) => setSigninIdentifier(e.target.value)}
+                      placeholder="e.g. name@example.com or 080..."
                       required 
                       autoComplete="username"
                     />
                   </div>
-                  <label htmlFor={signinIdInputId}>Email or phone number</label>
                   <div className="auth-field-error">Enter your email or phone number.</div>
                 </div>
 
                 {/* Password Input */}
                 <div className={`auth-field ${signinPassword ? 'filled' : ''} ${signinShake && !signinPassword ? 'error shake' : ''}`}>
+                  <label htmlFor={signinPwInputId} className="auth-field-label">Password</label>
                   <div className="auth-input-wrap">
                     <Lock size={16} className="li" />
                     <input 
@@ -435,6 +443,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       type={showSigninPw ? 'text' : 'password'} 
                       value={signinPassword}
                       onChange={(e) => setSigninPassword(e.target.value)}
+                      placeholder="Enter your password"
                       required 
                       autoComplete="current-password"
                     />
@@ -447,7 +456,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       {showSigninPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  <label htmlFor={signinPwInputId}>Password</label>
                   <div className="auth-field-error">Enter your password.</div>
                 </div>
 
@@ -543,6 +551,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 </button>
               </div>
 
+              <div className="auth-role-hint">
+                <ShieldCheck size={14} style={{ color: '#000052', flexShrink: 0 }} />
+                <span>
+                  {signupRole === 'renter' 
+                    ? 'Search, request inspections, and rent verified homes in Ibadan.' 
+                    : 'List properties, manage tenants, and receive direct rental inquiries.'}
+                </span>
+              </div>
+
               {signupError && (
                 <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', marginBottom: '16px' }}>
                   {signupError}
@@ -552,6 +569,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               <form onSubmit={handleSignUp} noValidate>
                 {/* Full Name Input */}
                 <div className={`auth-field ${fullName ? 'filled' : ''} ${signupShake && fullName.trim().length < 2 ? 'error shake' : ''}`}>
+                  <label htmlFor={signupNameId} className="auth-field-label">Full name</label>
                   <div className="auth-input-wrap">
                     <User size={16} className="li" />
                     <input 
@@ -559,34 +577,40 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       type="text" 
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
+                      placeholder="e.g. Adeola Balogun"
                       required 
                       autoComplete="name"
                     />
                   </div>
-                  <label htmlFor={signupNameId}>Full name</label>
                   <div className="auth-field-error">Please enter your full name.</div>
                 </div>
 
                 {/* Phone Input */}
                 <div className={`auth-field ${phone ? 'filled' : ''} ${signupShake && phone.trim().length < 7 ? 'error shake' : ''}`}>
+                  <label htmlFor={signupPhoneId} className="auth-field-label">
+                    <span>Phone number</span>
+                    <span className="auth-label-helper">Nigerian mobile</span>
+                  </label>
                   <div className="auth-input-wrap">
                     <Phone size={16} className="li" />
+                    <span className="auth-phone-prefix">+234</span>
+                    <span className="auth-prefix-divider" />
                     <input 
                       id={signupPhoneId}
                       type="tel" 
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
+                      placeholder="801 234 5678"
                       required 
-                      placeholder={phone ? '' : 'e.g. 0801 234 5678'}
                       autoComplete="tel"
                     />
                   </div>
-                  <label htmlFor={signupPhoneId}>Phone number</label>
                   <div className="auth-field-error">Enter a valid Nigerian phone number.</div>
                 </div>
 
                 {/* Email Input with Real-Time Spring Checkmark */}
                 <div className={`auth-field ${email ? 'filled' : ''} ${signupShake && !isEmailValid(email) ? 'error shake' : ''}`}>
+                  <label htmlFor={signupEmailId} className="auth-field-label">Email address</label>
                   <div className="auth-input-wrap">
                     <Mail size={16} className="li" />
                     <input 
@@ -594,6 +618,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       type="email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
                       required 
                       autoComplete="email"
                     />
@@ -602,13 +627,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       className={`auth-status-icon ok ${isEmailValid(email) ? 'show' : ''}`} 
                     />
                   </div>
-                  <label htmlFor={signupEmailId}>Email address</label>
                   <div className="auth-field-error">Enter a valid email address.</div>
                 </div>
 
                 {/* Agency / Company Name (Visible if Lister) */}
                 {signupRole === 'lister' && (
                   <div className={`auth-field ${agencyName ? 'filled' : ''}`} style={{ animation: 'authFieldIn 0.3s ease' }}>
+                    <label htmlFor={signupAgencyId} className="auth-field-label">
+                      <span>Agency or Business name</span>
+                      <span className="auth-optional-chip">Optional for landlords</span>
+                    </label>
                     <div className="auth-input-wrap">
                       <Building size={16} className="li" />
                       <input 
@@ -616,15 +644,19 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                         type="text" 
                         value={agencyName}
                         onChange={(e) => setAgencyName(e.target.value)}
-                        placeholder={agencyName ? '' : 'Optional if individual landlord'}
+                        placeholder="e.g. Bodija Properties Ltd"
                       />
                     </div>
-                    <label htmlFor={signupAgencyId}>Agency or Business name (optional)</label>
+                    <div className="auth-field-subtext">Individual landlords letting personal property can leave this empty.</div>
                   </div>
                 )}
 
                 {/* Password Input with Dynamic Strength Meter */}
                 <div className={`auth-field ${signupPassword ? 'filled' : ''} ${signupShake && signupPassword.length < 8 ? 'error shake' : ''}`}>
+                  <label htmlFor={signupPwId} className="auth-field-label">
+                    <span>Create a password</span>
+                    <span className="auth-label-helper">Min. 8 characters</span>
+                  </label>
                   <div className="auth-input-wrap">
                     <Lock size={16} className="li" />
                     <input 
@@ -632,6 +664,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       type={showSignupPw ? 'text' : 'password'} 
                       value={signupPassword}
                       onChange={(e) => setSignupPassword(e.target.value)}
+                      placeholder="Enter at least 8 characters"
                       required 
                       autoComplete="new-password"
                     />
@@ -644,7 +677,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                       {showSignupPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  <label htmlFor={signupPwId}>Create a password</label>
 
                   {/* 4-Segment Strength Meter */}
                   <div className="auth-strength-wrap">
@@ -737,6 +769,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
                   <form onSubmit={handleForgotSubmit} noValidate>
                     <div className={`auth-field ${forgotEmail ? 'filled' : ''} ${forgotShake ? 'error shake' : ''}`}>
+                      <label htmlFor={forgotEmailId} className="auth-field-label">Email address</label>
                       <div className="auth-input-wrap">
                         <Mail size={16} className="li" />
                         <input 
@@ -744,6 +777,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                           type="email" 
                           value={forgotEmail}
                           onChange={(e) => setForgotEmail(e.target.value)}
+                          placeholder="name@example.com"
                           required 
                         />
                         <CheckCircle2 
@@ -751,7 +785,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                           className={`auth-status-icon ok ${isEmailValid(forgotEmail) ? 'show' : ''}`} 
                         />
                       </div>
-                      <label htmlFor={forgotEmailId}>Email address</label>
                       <div className="auth-field-error">Enter a valid registered email address.</div>
                     </div>
 

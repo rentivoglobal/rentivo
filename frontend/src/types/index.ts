@@ -185,3 +185,60 @@ export interface ReportItem {
   reportedAt: string;
   status: 'pending' | 'investigating' | 'resolved' | 'dismissed';
 }
+
+export interface MarketplaceListing extends Listing {
+  isNew?: boolean;
+}
+
+export const PROPERTY_TYPES = [
+  'All Types',
+  'Self-Contain',
+  'Flat',
+  'Duplex',
+  'Bungalow',
+  'Shop',
+  'Office',
+  'Warehouse',
+  'Land'
+] as const;
+
+export const IBADAN_AREAS = [
+  'All Ibadan areas',
+  'Bodija',
+  'Akobo',
+  'Jericho',
+  'Ring Road',
+  'UI area',
+  'Agodi',
+  'Iwo Road',
+  'Dugbe',
+  'Oluyole',
+  'Samonda',
+  'Challenge',
+  'Ikolaba',
+  'Eleyele',
+  'Moniya',
+  'Apata',
+  'Ologuneru'
+] as const;
+
+export type RentalGoal = 'relocating' | 'upgrading' | 'work_proximity' | 'student' | 'family';
+export type MoveInTimeline = 'immediate' | 'within_2_weeks' | 'this_month' | 'exploring';
+
+export interface RenterProfile {
+  id?: string;
+  userId?: string;
+  rentalGoal: RentalGoal | string;
+  preferredAreas: string[];
+  propertyTypes: string[];
+  budgetMin: number;
+  budgetMax: number;
+  bedrooms?: number | null;
+  moveInTimeline: MoveInTimeline | string;
+  mustHaves: string[];
+  onboardingCompleted: boolean;
+  onboardingSkipped?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+

@@ -81,7 +81,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
   forcedTab
 }) => {
   const { user, refresh } = useAuth();
-  const listerName = user?.name || 'Adebayo Okonkwo';
+  const listerName = user?.name || (user?.email ? user.email.split('@')[0] : 'Property Lister');
   const listerFirstName = listerName.split(' ')[0] || 'Lister';
   const listerInitials = listerName
     .split(' ')
@@ -217,7 +217,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
     if (propListings && propListings.length > 0) {
       setDashboardListings(propListings);
     } else {
-      void listingsService.getListings().then((items) => {
+      void listingsService.getMyListings().then((items) => {
         setDashboardListings(items);
       });
     }
@@ -231,6 +231,11 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
           const isAwaiting =
             r.status === 'availability_pending' || r.status === 'submitted';
           const isEscalated = r.status === 'manual_escalation';
+          const elapsedMs = Date.now() - new Date(r.createdAt).getTime();
+          const elapsedMins = Math.floor(elapsedMs / (1000 * 60));
+          const elapsedHours = Math.floor(elapsedMins / 60);
+          const sinceText = elapsedHours > 0 ? `${elapsedHours}h ${elapsedMins % 60}m ago` : `${Math.max(1, elapsedMins)}m ago`;
+          const minsLeft = Math.max(0, 30 - elapsedMins);
           return {
             id: r.id,
             listingId: r.listingId,
@@ -254,8 +259,8 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
               ? 'needs_response'
               : (r.status as ListerInquiry['status']),
             submittedAt: new Date(r.createdAt).toLocaleString(),
-            since: `${Math.max(8, (idx + 1) * 12)} min ago`,
-            minutesRemaining: Math.max(5, 30 - (idx + 1) * 8)
+            since: sinceText,
+            minutesRemaining: minsLeft
           };
         })
       );

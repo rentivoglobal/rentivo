@@ -1,7 +1,6 @@
 import React from 'react';
 import { Search, SlidersHorizontal, ShieldCheck } from 'lucide-react';
-import { FilterOptions, PropertyType } from '../types';
-import { IBADAN_AREAS, PROPERTY_TYPES } from '../data/mockData';
+import { FilterOptions, PropertyType, IBADAN_AREAS, PROPERTY_TYPES } from '../types';
 
 interface FilterBarProps {
   filters: FilterOptions;

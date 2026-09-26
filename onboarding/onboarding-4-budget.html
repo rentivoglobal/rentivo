@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>What's a comfortable annual budget? — Rentivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+html,body{height:100%;}
+img,svg{display:block;max-width:100%;}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;}
+input{font:inherit;color:inherit;}
+a{color:inherit;text-decoration:none;}
+
+:root{
+  --navy:#000052; --navy-soft:#20206e;
+  --lavender:#be89ff; --lavender-deep:#7c3fd6;
+  --gold:#c9852e; --gold-bg:#f6e6cc;
+  --success:#1e8e5a; --success-bg:#e2f5ec;
+  --coral:#d6455b; --coral-bg:#fbe6e9;
+  --paper:#f5f3fb; --surface:#ffffff; --surface-2:#eeeaf9;
+  --ink:#16163a; --ink-soft:#5c5c7d; --ink-faint:#8d8da8;
+  --border:#e2ddf2; --border-strong:#cfc7ea;
+  --font-head:'Outfit',system-ui,sans-serif; --font-body:'Plus Jakarta Sans',system-ui,sans-serif;
+  --r-l:24px; --r-m:16px; --r-s:12px;
+  --shadow:0 1px 2px rgba(22,22,58,.06), 0 8px 24px -12px rgba(22,22,58,.14);
+  --shadow-pop:0 12px 32px -8px rgba(22,22,58,.28);
+  --bar-h:92px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme:dark){
+    --paper:#0c0c1f; --surface:#15152f; --surface-2:#1d1d3d;
+    --ink:#f1f0fb; --ink-soft:#b3b1d4; --ink-faint:#7a7a9c;
+    --border:#2a2a4d; --border-strong:#38386a;
+    --lavender:#c79bff; --gold-bg:#3a2c14; --gold:#e0ac54;
+    --success-bg:#0f3324; --coral-bg:#3a1620;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0c0c1f; --surface:#15152f; --surface-2:#1d1d3d;
+  --ink:#f1f0fb; --ink-soft:#b3b1d4; --ink-faint:#7a7a9c;
+  --border:#2a2a4d; --border-strong:#38386a;
+  --lavender:#c79bff; --gold-bg:#3a2c14; --gold:#e0ac54;
+  --success-bg:#0f3324; --coral-bg:#3a1620;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.5);
+}
+body{font-family:var(--font-body);background:var(--paper);color:var(--ink);line-height:1.5;opacity:0;transition:opacity .4s ease;}
+body.loaded{opacity:1;}
+h1,h2,h3{font-family:var(--font-head);color:var(--ink);letter-spacing:-0.01em;}
+:focus-visible{outline:2.5px solid var(--lavender-deep);outline-offset:2px;border-radius:4px;}
+
+/* ---- top bar / progress ---- */
+.topbar{position:sticky;top:0;z-index:40;background:var(--paper);padding:14px 18px 10px;padding-top:calc(14px + env(safe-area-inset-top,0px));}
+.topbar-row{display:flex;align-items:center;gap:12px;max-width:560px;margin:0 auto;}
+.back-btn{width:38px;height:38px;border-radius:99px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--ink-soft);flex-shrink:0;transition:transform .15s;}
+.back-btn:active{transform:scale(.9);}
+.back-btn svg{width:17px;height:17px;}
+.progress-track{flex:1;height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden;}
+.progress-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--navy),var(--lavender-deep));width:0%;transition:width .6s cubic-bezier(.34,1.2,.4,1);}
+.step-count{font-family:var(--font-head);font-weight:700;font-size:.76rem;color:var(--ink-faint);flex-shrink:0;min-width:44px;text-align:right;}
+
+/* ---- shell ---- */
+.shell{max-width:560px;margin:0 auto;padding:8px 20px calc(var(--bar-h) + 28px);}
+
+/* ---- illustration blob ---- */
+.illus-wrap{display:flex;justify-content:center;margin:14px 0 22px;opacity:0;transform:translateY(14px) scale(.96);animation:popIn .6s .05s cubic-bezier(.34,1.4,.4,1) forwards;}
+@keyframes popIn{to{opacity:1;transform:translateY(0) scale(1);}}
+.illus-blob{position:relative;width:150px;height:150px;border-radius:44% 56% 58% 42% / 48% 44% 56% 52%;background:linear-gradient(135deg,var(--lavender),var(--navy));display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px -14px rgba(124,63,214,.45);animation:blobMove 7s ease-in-out infinite;}
+@keyframes blobMove{0%,100%{border-radius:44% 56% 58% 42% / 48% 44% 56% 52%;}50%{border-radius:58% 42% 44% 56% / 52% 58% 42% 48%;}}
+.illus-blob svg{width:60px;height:60px;color:#fff;position:relative;z-index:2;}
+.illus-dot{position:absolute;border-radius:99px;background:var(--gold);opacity:.85;}
+.illus-dot.d1{width:14px;height:14px;top:6px;right:2px;animation:floaty 5s ease-in-out infinite;}
+.illus-dot.d2{width:9px;height:9px;bottom:10px;left:0;background:var(--success);animation:floaty 6s .5s ease-in-out infinite;}
+@keyframes floaty{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+
+/* ---- headings ---- */
+.q-kicker{text-align:center;font-size:.76rem;font-weight:700;color:var(--lavender-deep);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;opacity:0;animation:fadeUp .5s .1s ease forwards;}
+h1.q-title{text-align:center;font-size:1.5rem;margin-bottom:8px;opacity:0;animation:fadeUp .55s .16s ease forwards;}
+p.q-sub{text-align:center;color:var(--ink-soft);font-size:.9rem;margin-bottom:26px;opacity:0;animation:fadeUp .55s .22s ease forwards;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ---- match banner ---- */
+.match-banner{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:99px;padding:10px 16px;margin-bottom:22px;opacity:0;animation:fadeUp .5s .3s ease forwards;}
+.match-banner .pulse-dot{width:8px;height:8px;border-radius:99px;background:var(--success);flex-shrink:0;position:relative;}
+.match-banner .pulse-dot::after{content:'';position:absolute;inset:-4px;border-radius:99px;border:1.5px solid var(--success);animation:pulseRing 1.8s ease-out infinite;}
+@keyframes pulseRing{0%{transform:scale(.6);opacity:1;}100%{transform:scale(1.9);opacity:0;}}
+.match-banner b{font-family:var(--font-head);color:var(--ink);}
+.match-banner span.txt{font-size:.83rem;color:var(--ink-soft);}
+
+/* ---- choice cards (single-select, vertical list) ---- */
+.choice-list{display:flex;flex-direction:column;gap:12px;}
+.choice-card{display:flex;align-items:center;gap:14px;padding:16px;border:1.5px solid var(--border-strong);border-radius:var(--r-m);background:var(--surface);text-align:left;transition:border-color .18s,background .18s,transform .12s;opacity:0;transform:translateY(12px);animation:fadeUp .5s ease forwards;}
+.choice-card:active{transform:scale(.98);}
+.choice-card.sel{border-color:var(--lavender-deep);background:var(--surface-2);box-shadow:0 0 0 3px rgba(124,63,214,.12);}
+.choice-card .ic{width:44px;height:44px;border-radius:13px;background:var(--surface-2);color:var(--lavender-deep);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.choice-card.sel .ic{background:var(--navy);color:var(--lavender);}
+.choice-card .ic svg{width:21px;height:21px;}
+.choice-card .txt{flex:1;min-width:0;}
+.choice-card .ttl{font-weight:700;font-size:.94rem;}
+.choice-card .sub2{font-size:.78rem;color:var(--ink-soft);margin-top:2px;}
+.choice-card .chk{width:22px;height:22px;border-radius:99px;border:2px solid var(--border-strong);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .18s,border-color .18s;}
+.choice-card.sel .chk{background:var(--lavender-deep);border-color:var(--lavender-deep);}
+.choice-card .chk svg{width:12px;height:12px;color:#fff;opacity:0;transition:opacity .15s;}
+.choice-card.sel .chk svg{opacity:1;}
+
+/* ---- pill grid (multi-select) ---- */
+.pill-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media (max-width:380px){.pill-grid{grid-template-columns:1fr;}}
+.pill-card{position:relative;padding:16px 14px;border:1.5px solid var(--border-strong);border-radius:var(--r-m);background:var(--surface);text-align:left;transition:border-color .18s,background .18s,transform .12s;opacity:0;transform:translateY(12px);animation:fadeUp .5s ease forwards;}
+.pill-card:active{transform:scale(.97);}
+.pill-card.sel{border-color:var(--lavender-deep);background:var(--surface-2);box-shadow:0 0 0 3px rgba(124,63,214,.12);}
+.pill-card .ic{width:36px;height:36px;border-radius:11px;background:var(--surface-2);color:var(--lavender-deep);display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.pill-card.sel .ic{background:var(--navy);color:var(--lavender);}
+.pill-card .ic svg{width:18px;height:18px;}
+.pill-card .ttl{font-weight:700;font-size:.88rem;margin-bottom:2px;}
+.pill-card .sub2{font-size:.74rem;color:var(--ink-soft);}
+.pill-card .chk{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:99px;border:2px solid var(--border-strong);display:flex;align-items:center;justify-content:center;transition:background .18s,border-color .18s;}
+.pill-card.sel .chk{background:var(--lavender-deep);border-color:var(--lavender-deep);}
+.pill-card .chk svg{width:11px;height:11px;color:#fff;opacity:0;transition:opacity .15s;}
+.pill-card.sel .chk svg{opacity:1;}
+.sel-count{text-align:center;font-size:.78rem;color:var(--ink-faint);font-weight:600;margin-top:16px;}
+
+/* ---- sticky CTA ---- */
+.sticky-cta{position:fixed;left:0;right:0;bottom:0;z-index:45;background:var(--surface);border-top:1px solid var(--border);padding:14px 20px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));}
+.sticky-cta-inner{max-width:560px;margin:0 auto;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-head);font-weight:700;font-size:.94rem;border-radius:14px;padding:15px 20px;width:100%;transition:transform .12s,filter .15s,opacity .2s;}
+.btn:active{transform:scale(.97);}
+.btn svg{width:17px;height:17px;}
+.btn-accent{background:var(--lavender);color:var(--navy);}
+.btn-accent:hover{filter:brightness(1.06);}
+.btn-primary{background:var(--navy);color:#fff;}
+.btn-primary:hover{filter:brightness(1.15);}
+.btn-outline{border:1.5px solid var(--border-strong);color:var(--ink);}
+.btn-ghost{background:var(--surface-2);color:var(--ink);}
+.btn[disabled]{opacity:.4;pointer-events:none;}
+.skip-link{display:block;text-align:center;margin-top:10px;font-size:.8rem;font-weight:600;color:var(--ink-faint);}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}}
+
+
+</style>
+</head>
+<body>
+
+
+<div class="topbar">
+  <div class="topbar-row">
+    <a class="back-btn" href="onboarding-3-property-type.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M15 18l-6-6 6-6"/></svg></a>
+    <div class="progress-track"><div class="progress-fill" id="progFill" data-pct="67"></div></div>
+    <div class="step-count">4 / 6</div>
+  </div>
+</div>
+<div class="shell">
+  
+<div class="illus-wrap">
+  <div class="illus-blob">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:60px;height:60px;"><circle cx="12" cy="12" r="9"/><path d="M9.5 15.5c.6.6 1.5 1 2.5 1 1.9 0 3-1 3-2.2 0-3-5.5-1.3-5.5-4.3 0-1.2 1.1-2.2 3-2.2 1 0 1.9.4 2.5 1M12 6.5v11"/></svg>
+    <span class="illus-dot d1"></span>
+    <span class="illus-dot d2"></span>
+  </div>
+</div>
+  <div class="q-kicker">Budget</div>
+  <h1 class="q-title">What's a comfortable annual budget?</h1>
+  <p class="q-sub">We'll only show homes that fit.</p>
+  
+<div class="match-banner" id="matchBanner">
+  <span class="pulse-dot"></span>
+  <span class="txt"><b id="matchNum">--</b> verified homes match so far</span>
+</div>
+  <div class="choice-list" id="optWrap"><button class="choice-card" data-id="under600" style="animation-delay:0.36s">
+  <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="9"/><path d="M9.5 15.5c.6.6 1.5 1 2.5 1 1.9 0 3-1 3-2.2 0-3-5.5-1.3-5.5-4.3 0-1.2 1.1-2.2 3-2.2 1 0 1.9.4 2.5 1M12 6.5v11"/></svg></span>
+  <span class="txt"><span class="ttl">Under ₦600,000</span><span class="sub2">Per year</span></span>
+  <span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M20 6L9 17l-5-5"/></svg></span>
+</button>
+<button class="choice-card" data-id="600to1200" style="animation-delay:0.42s">
+  <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="9"/><path d="M9.5 15.5c.6.6 1.5 1 2.5 1 1.9 0 3-1 3-2.2 0-3-5.5-1.3-5.5-4.3 0-1.2 1.1-2.2 3-2.2 1 0 1.9.4 2.5 1M12 6.5v11"/></svg></span>
+  <span class="txt"><span class="ttl">₦600,000 – ₦1.2M</span><span class="sub2">Per year</span></span>
+  <span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M20 6L9 17l-5-5"/></svg></span>
+</button>
+<button class="choice-card" data-id="1200to2500" style="animation-delay:0.48s">
+  <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="9"/><path d="M9.5 15.5c.6.6 1.5 1 2.5 1 1.9 0 3-1 3-2.2 0-3-5.5-1.3-5.5-4.3 0-1.2 1.1-2.2 3-2.2 1 0 1.9.4 2.5 1M12 6.5v11"/></svg></span>
+  <span class="txt"><span class="ttl">₦1.2M – ₦2.5M</span><span class="sub2">Per year</span></span>
+  <span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M20 6L9 17l-5-5"/></svg></span>
+</button>
+<button class="choice-card" data-id="2500plus" style="animation-delay:0.54s">
+  <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><circle cx="12" cy="12" r="9"/><path d="M9.5 15.5c.6.6 1.5 1 2.5 1 1.9 0 3-1 3-2.2 0-3-5.5-1.3-5.5-4.3 0-1.2 1.1-2.2 3-2.2 1 0 1.9.4 2.5 1M12 6.5v11"/></svg></span>
+  <span class="txt"><span class="ttl">₦2.5M+</span><span class="sub2">Per year</span></span>
+  <span class="chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ><path d="M20 6L9 17l-5-5"/></svg></span>
+</button></div>
+</div>
+
+<div class="sticky-cta">
+  <div class="sticky-cta-inner">
+    <button class="btn btn-accent" id="continueBtn" disabled>Continue <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+
+<script>
+window.addEventListener('load', ()=>document.body.classList.add('loaded'));
+const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const STATE_KEY = 'rentivo_onboarding_v1';
+function loadState(){ try{ return JSON.parse(localStorage.getItem(STATE_KEY))||{}; }catch(e){ return {}; } }
+function saveState(patch){
+  const merged = Object.assign({}, loadState(), patch);
+  try{ localStorage.setItem(STATE_KEY, JSON.stringify(merged)); }catch(e){}
+  return merged;
+}
+function estimateMatches(state){
+  let base = 64;
+  const areas = (state.preferredAreas||[]).length;
+  const types = (state.propertyTypes||[]).length;
+  const musts = (state.mustHaves||[]).length;
+  base -= areas*8;
+  base -= Math.max(0,(3-types))*4;
+  base -= musts*4;
+  if(state.budgetTier==='under600') base -= 20;
+  if(state.budgetTier==='2500plus') base -= 5;
+  if(state.budgetTier==='600to1200') base -= 4;
+  return Math.max(3, Math.round(base));
+}
+</script>
+
+<script>
+const OPTIONS = [{"id": "under600", "icon": "coin", "title": "Under \u20a6600,000", "sub": "Per year"}, {"id": "600to1200", "icon": "coin", "title": "\u20a6600,000 \u2013 \u20a61.2M", "sub": "Per year"}, {"id": "1200to2500", "icon": "coin", "title": "\u20a61.2M \u2013 \u20a62.5M", "sub": "Per year"}, {"id": "2500plus", "icon": "coin", "title": "\u20a62.5M+", "sub": "Per year"}];
+const STATE_KEY_FIELD = 'budgetTier';
+const IS_MULTI = false;
+const MIN_SELECT = 1;
+const NEXT_FILE = 'onboarding-5-musthaves.html';
+const SHOW_COUNTER = true;
+
+let selected = IS_MULTI ? [] : null;
+(function restore(){
+  const s = loadState();
+  const existing = s[STATE_KEY_FIELD];
+  if(IS_MULTI && Array.isArray(existing)) selected = existing.slice();
+  if(!IS_MULTI && existing) selected = existing;
+  syncUI();
+})();
+
+function syncUI(){
+  document.querySelectorAll('.choice-card,.pill-card').forEach(el=>{
+    const id = el.dataset.id;
+    const isSel = IS_MULTI ? selected.includes(id) : selected===id;
+    el.classList.toggle('sel', isSel);
+  });
+  const valid = IS_MULTI ? selected.length>=MIN_SELECT : !!selected;
+  document.getElementById('continueBtn').disabled = !valid;
+  if(IS_MULTI){
+    const c = document.getElementById('selCount');
+    if(c) c.textContent = selected.length ? selected.length+' selected' : 'Select at least one';
+  }
+  if(SHOW_COUNTER) updateMatchBanner();
+}
+function updateMatchBanner(){
+  const tempState = Object.assign({}, loadState(), {[STATE_KEY_FIELD]: selected});
+  const n = estimateMatches(tempState);
+  const el = document.getElementById('matchNum');
+  if(el) el.textContent = n;
+}
+document.getElementById('optWrap').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-id]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  if(IS_MULTI){
+    const i = selected.indexOf(id);
+    if(i>-1) selected.splice(i,1); else selected.push(id);
+  } else {
+    selected = id;
+  }
+  syncUI();
+});
+document.getElementById('continueBtn').addEventListener('click', ()=>{
+  saveState({[STATE_KEY_FIELD]: selected});
+  window.location.href = NEXT_FILE;
+});
+requestAnimationFrame(()=>{
+  const f = document.getElementById('progFill');
+  f.style.width = f.dataset.pct + '%';
+});
+</script>
+
+</body>
+</html>

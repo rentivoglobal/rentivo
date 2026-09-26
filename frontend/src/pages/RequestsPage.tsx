@@ -60,29 +60,17 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
 
   const promoStats = requestsService.getPromotionStats();
 
-  const defaultListerContact = {
-    fullName: 'Alhaji Ganiyu Bello',
-    phone: '+234 802 345 6789',
-    whatsapp: '+234 802 345 6789',
-    agencyName: 'Property Owner',
-    memberSince: 'June 2026',
-    activeListingsCount: 3,
-    responseRate: '95%'
-  };
-
   const handlePayNow = async (req: AccessRequest, matchedListing?: Listing) => {
     if (matchedListing && onProceedToCheckout) {
       onProceedToCheckout(matchedListing);
     } else {
-      const lister = matchedListing?.lister || defaultListerContact;
-      await requestsService.completePayment(req.id, lister);
+      await requestsService.completePayment(req.id, matchedListing?.lister);
       await loadRequests();
     }
   };
 
   const handleClaimWaiver = async (req: AccessRequest, matchedListing?: Listing) => {
-    const lister = matchedListing?.lister || defaultListerContact;
-    await requestsService.claimPromotionWaiver(req.id, lister);
+    await requestsService.claimPromotionWaiver(req.id, matchedListing?.lister);
     await loadRequests();
   };
 

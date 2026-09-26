@@ -37,13 +37,15 @@ import {
   Map,
   Plus
 } from 'lucide-react';
-import { Listing, VerificationStatus, ReportItem } from '../types';
+import { Listing, VerificationStatus, ReportItem, User } from '../types';
 import { formatNaira } from '../utils/formatters';
 import { reportsService } from '../services/reportsService';
 import { requestsService } from '../services/requestsService';
 import { locationsService } from '../services/locationsService';
 import { listingsService } from '../services/listingsService';
 import { paymentsService } from '../services/paymentsService';
+import { verificationService } from '../services/verificationService';
+import { authService } from '../services/authService';
 import { LocalPayment } from '../services/localStore';
 
 type AdminSection = 'overview' | 'listings' | 'verification' | 'escalations' | 'users' | 'reports' | 'payments' | 'locations';
@@ -137,10 +139,54 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
   // Reports State (FR-6.4 & FR-7.1)
   const [reports, setReports] = useState<ReportItem[]>(reportsService.getReports());
 
+  // Live Users Directory State
+  const [liveUsers, setLiveUsers] = useState<User[]>([]);
+
   useEffect(() => {
     void paymentsService.listPayments().then(setPayments);
     void reportsService.loadReports().then(setReports).catch(() => undefined);
-  }, []);
+    void locationsService.loadCities().then(() => setLocationsVersion((v) => v + 1)).catch(() => undefined);
+    void authService.listUsers().then(setLiveUsers).catch(() => undefined);
+
+    void verificationService.list().then((items) => {
+      setVerificationItems(items.map((v) => {
+        const matched = listings.find((l) => l.id === v.listingId);
+        return {
+          id: v.id,
+          listingId: v.listingId,
+          title: matched?.title || 'Property Verification',
+          area: matched?.area || 'Ibadan',
+          category: matched?.category === 'commercial' ? 'Commercial' : 'Residential',
+          listerName: matched?.lister.fullName || 'Landlord',
+          listerPhone: v.onSiteContactPhone || matched?.lister.phone || '',
+          listerInitials: (matched?.lister.fullName || 'LL').slice(0, 2).toUpperCase(),
+          submittedDate: new Date(v.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          status: v.status === 'verified' ? 'completed' : v.status === 'scheduled' ? 'scheduled' : 'pending',
+          inspector: v.inspector || 'Unassigned',
+          daysInQueue: Math.max(1, Math.floor((Date.now() - new Date(v.createdAt).getTime()) / (1000 * 60 * 60 * 24))),
+          isOverdue: (Date.now() - new Date(v.createdAt).getTime()) > 48 * 60 * 60 * 1000,
+          photo: matched?.photos?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80',
+          price: matched?.price || 0
+        };
+      }));
+    }).catch(() => undefined);
+
+    void requestsService.getAllRequests().then((reqs) => {
+      const esc = reqs.filter((r) => r.status === 'manual_escalation' || r.status === 'availability_pending');
+      setEscalations(esc.map((r) => ({
+        id: r.id,
+        listingTitle: r.listingTitle,
+        area: r.listingArea,
+        listerName: 'Property Lister',
+        listerPhone: '',
+        renterName: r.renterName,
+        timeSinceRequest: new Date(r.createdAt).toLocaleDateString(),
+        automatedStatus: r.status === 'manual_escalation' ? 'No response' : 'Delivered',
+        isOverdue: r.status === 'manual_escalation',
+        photo: r.listingPhoto || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=400&q=80'
+      })));
+    }).catch(() => undefined);
+  }, [listings]);
 
   // Promotion Stats State (FR-5.3 & FR-5.4 First 100 users waiver)
   const promoStats = useMemo(() => requestsService.getPromotionStats(), []);
@@ -227,151 +273,11 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
     }
   };
 
-  // Verification Items synced with mock & listings
-  const [verificationItems, setVerificationItems] = useState<VerificationItem[]>([
-    {
-      id: 'verif-1',
-      listingId: 'prop-1',
-      title: 'Tidy self-contain near Bodija market',
-      area: 'Bodija',
-      category: 'Residential',
-      listerName: 'Adeola B.',
-      listerPhone: '+234 803 123 4567',
-      listerInitials: 'AB',
-      submittedDate: 'Sep 15',
-      status: 'pending',
-      inspector: 'Unassigned',
-      daysInQueue: 3,
-      isOverdue: true,
-      photo: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80',
-      price: 450000
-    },
-    {
-      id: 'verif-2',
-      listingId: 'prop-4',
-      title: 'Commercial shop facing Ring Road',
-      area: 'Ring Road',
-      category: 'Commercial',
-      listerName: 'Femi O.',
-      listerPhone: '+234 809 778 9900',
-      listerInitials: 'FO',
-      submittedDate: 'Sep 13',
-      status: 'scheduled',
-      inspector: 'Tayo A.',
-      daysInQueue: 5,
-      isOverdue: true,
-      photo: 'https://images.unsplash.com/photo-1582037928769-181f2644ecb7?auto=format&fit=crop&w=400&q=80',
-      price: 1200000
-    },
-    {
-      id: 'verif-3',
-      listingId: 'prop-3',
-      title: 'Serviced 3-bedroom duplex with prepaid meter',
-      area: 'UI area',
-      category: 'Residential',
-      listerName: 'Chidi J.',
-      listerPhone: '+234 802 334 1122',
-      listerInitials: 'CJ',
-      submittedDate: 'Sep 13',
-      status: 'progress',
-      inspector: 'Tayo A.',
-      daysInQueue: 2,
-      isOverdue: false,
-      photo: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=400&q=80',
-      price: 2200000
-    },
-    {
-      id: 'verif-4',
-      listingId: 'prop-2',
-      title: '2-bedroom flat, off General Gas',
-      area: 'Bodija',
-      category: 'Residential',
-      listerName: 'Bimbo K.',
-      listerPhone: '+234 805 678 1234',
-      listerInitials: 'BK',
-      submittedDate: 'Sep 10',
-      status: 'completed',
-      inspector: 'Musa I.',
-      daysInQueue: 0,
-      isOverdue: false,
-      photo: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=400&q=80',
-      price: 850000
-    },
-    {
-      id: 'verif-5',
-      listingId: 'prop-5',
-      title: 'Large Commercial Storage Warehouse',
-      area: 'Iwo Road',
-      category: 'Commercial',
-      listerName: 'Tobi O.',
-      listerPhone: '+234 807 555 4321',
-      listerInitials: 'TO',
-      submittedDate: 'Sep 12',
-      status: 'pending',
-      inspector: 'Unassigned',
-      daysInQueue: 6,
-      isOverdue: true,
-      photo: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=400&q=80',
-      price: 3500000
-    },
-    {
-      id: 'verif-6',
-      listingId: 'prop-6',
-      title: 'Contemporary 4-Bedroom Villa with Borehole',
-      area: 'Jericho',
-      category: 'Residential',
-      listerName: 'Folake S.',
-      listerPhone: '+234 803 888 9911',
-      listerInitials: 'FS',
-      submittedDate: 'Sep 16',
-      status: 'scheduled',
-      inspector: 'Musa I.',
-      daysInQueue: 1,
-      isOverdue: false,
-      photo: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=400&q=80',
-      price: 4200000
-    }
-  ]);
+  // Verification Items loaded from live backend
+  const [verificationItems, setVerificationItems] = useState<VerificationItem[]>([]);
 
-  // Escalations List matching rentivo-admin.html
-  const [escalations, setEscalations] = useState<EscalationItem[]>([
-    {
-      id: 'esc-1',
-      listingTitle: '2-Bed Flat, Bodija',
-      area: 'Bodija',
-      listerName: 'Adeola B.',
-      listerPhone: '+234 803 123 4567',
-      renterName: 'Tunde A.',
-      timeSinceRequest: '2h 14m',
-      automatedStatus: 'No response',
-      isOverdue: true,
-      photo: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=400&q=80'
-    },
-    {
-      id: 'esc-2',
-      listingTitle: 'Self-Contain, Ring Road',
-      area: 'Ring Road',
-      listerName: 'Femi O.',
-      listerPhone: '+234 809 778 9900',
-      renterName: 'Bimbo K.',
-      timeSinceRequest: '1h 48m',
-      automatedStatus: 'Delivered, unread',
-      isOverdue: true,
-      photo: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80'
-    },
-    {
-      id: 'esc-3',
-      listingTitle: 'Retail shop, Sango',
-      area: 'Sango',
-      listerName: 'Femi O.',
-      listerPhone: '+234 809 778 9900',
-      renterName: 'Ola F.',
-      timeSinceRequest: '22m',
-      automatedStatus: 'Delivered',
-      isOverdue: false,
-      photo: 'https://images.unsplash.com/photo-1582037928769-181f2644ecb7?auto=format&fit=crop&w=400&q=80'
-    }
-  ]);
+  // Escalations List loaded from live backend
+  const [escalations, setEscalations] = useState<EscalationItem[]>([]);
 
   // Filtered Verification Items
   const filteredVerificationItems = useMemo(() => {
@@ -2142,30 +2048,52 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { name: 'Abdul Rahman Adebambo', role: 'Landlord', location: 'Bodija, Ibadan', status: 'Active', initials: 'AR' },
-                    { name: 'Tayo Adeyemi', role: 'Field Inspector', location: 'Agodi GRA, Ibadan', status: 'Active', initials: 'TA' },
-                    { name: 'Musa Ibrahim', role: 'Field Inspector', location: 'Ring Road, Ibadan', status: 'Active', initials: 'MI' },
-                    { name: 'Olawale Balogun', role: 'Seeker', location: 'Akobo, Ibadan', status: 'Active', initials: 'OB' }
-                  ].map((u, i) => (
-                    <tr key={i} style={{ borderTop: '1px solid #E6E3EE' }}>
-                      <td style={{ padding: '12px 18px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#000052', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700 }}>
-                            {u.initials}
-                          </div>
-                          <span style={{ fontWeight: 600, fontSize: '13px' }}>{u.name}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 18px', fontSize: '12px', fontWeight: 700, color: '#000052' }}>{u.role}</td>
-                      <td style={{ padding: '12px 18px', fontSize: '13px', color: '#636377' }}>{u.location}</td>
-                      <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#047857', backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: '999px' }}>
-                          {u.status}
-                        </span>
+                  {liveUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#636377', fontSize: '13px' }}>
+                        Loading users from database...
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    liveUsers.map((u) => {
+                      const initials = (u.name || 'User')
+                        .split(' ')
+                        .map((p) => p[0])
+                        .slice(0, 2)
+                        .join('')
+                        .toUpperCase();
+                      const roleLabel =
+                        u.role === 'admin'
+                          ? 'Administrator'
+                          : u.role === 'landlord'
+                          ? 'Landlord'
+                          : u.role === 'agent'
+                          ? 'Agent'
+                          : 'Renter';
+                      return (
+                        <tr key={u.id} style={{ borderTop: '1px solid #E6E3EE' }}>
+                          <td style={{ padding: '12px 18px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#000052', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700 }}>
+                                {initials}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 600, fontSize: '13px' }}>{u.name}</div>
+                                <div style={{ fontSize: '11.5px', color: '#636377' }}>{u.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 18px', fontSize: '12px', fontWeight: 700, color: '#000052' }}>{roleLabel}</td>
+                          <td style={{ padding: '12px 18px', fontSize: '13px', color: '#636377' }}>{u.agencyName || u.phone || 'Ibadan'}</td>
+                          <td style={{ padding: '12px 18px', textAlign: 'center' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: '#047857', backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: '999px' }}>
+                              Active
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
