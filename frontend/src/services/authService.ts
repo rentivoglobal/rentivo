@@ -94,15 +94,17 @@ export const authService = {
     password?: string;
   }): Promise<{ success: boolean; user?: User; error?: string; needsConfirmation?: boolean }> {
     const role = roleFromSignup(input.role);
+    const cleanEmail = input.email.trim().toLowerCase();
+
     if (!isLiveBackend) {
       const users = localStore.getUsers();
-      if (Object.values(users).some((u) => u.email.toLowerCase() === input.email.trim().toLowerCase())) {
+      if (Object.values(users).some((u) => u.email.toLowerCase() === cleanEmail)) {
         return { success: false, error: 'An account with this email already exists. Sign in instead.' };
       }
       const user: User & { password?: string } = {
         id: localStore.createId('usr'),
         name: input.fullName.trim(),
-        email: input.email.trim().toLowerCase(),
+        email: cleanEmail,
         phone: input.phone.trim(),
         role,
         agencyName: input.agencyName?.trim(),
@@ -112,45 +114,240 @@ export const authService = {
       };
       users[user.id] = user;
       localStore.saveUsers(users);
-      const { password: _pw, ...sessionUser } = user;
-      localStore.setSession(sessionUser);
-      return { success: true, user: sessionUser };
+      return { success: true, needsConfirmation: true };
     }
     if (!supabase) return { success: false, error: 'Authentication is not configured.' };
 
-    const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke('auth-signup', {
-      body: {
-        email: input.email.trim(),
-        password: input.password || '',
-        fullName: input.fullName.trim(),
-        phone: input.phone.trim(),
-        role,
-        agencyName: input.agencyName?.trim() || ''
+    // 1. Native Supabase Auth Sign Up (triggers confirm-signup email with 6-digit OTP code)
+    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password: input.password || '',
+      options: {
+        data: {
+          full_name: input.fullName.trim(),
+          phone: input.phone.trim(),
+          role,
+          agency_name: input.agencyName?.trim() || ''
+        }
       }
     });
 
-    if (edgeErr || edgeRes?.error || edgeRes?.success === false) {
-      let errorMsg = edgeRes?.error;
-      if (!errorMsg && edgeErr) {
-        errorMsg = await extractEdgeFunctionError(edgeErr, 'Failed to create account.');
+    if (signUpErr) {
+      const msg = signUpErr.message || '';
+      if (
+        msg.toLowerCase().includes('already registered') ||
+        msg.toLowerCase().includes('already exists') ||
+        msg.toLowerCase().includes('user already exists') ||
+        (signUpErr as any).status === 422
+      ) {
+        return { success: false, error: 'An account with this email already exists. Please sign in instead.' };
       }
-      return { success: false, error: errorMsg || 'Failed to create account.' };
+
+      // Fallback: If client signup is disabled or restricted, invoke auth-signup edge function
+      const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke('auth-signup', {
+        body: {
+          email: cleanEmail,
+          password: input.password || '',
+          fullName: input.fullName.trim(),
+          phone: input.phone.trim(),
+          role,
+          agencyName: input.agencyName?.trim() || ''
+        }
+      });
+
+      if (edgeErr || edgeRes?.error || edgeRes?.success === false) {
+        let errorMsg = edgeRes?.error;
+        if (!errorMsg && edgeErr) {
+          errorMsg = await extractEdgeFunctionError(edgeErr, 'Failed to create account.');
+        }
+        return { success: false, error: errorMsg || signUpErr.message || 'Failed to create account.' };
+      }
+
+      return { success: true, needsConfirmation: true };
     }
 
-    // Immediately sign in the newly created user to establish session
-    const loginRes = await this.login(input.email.trim(), input.password || '');
-    if (loginRes.success && loginRes.user) {
-      if (loginRes.user.role === 'tenant' || loginRes.user.role === 'business_renter') {
-        void renterProfileService.syncGuestProfile(loginRes.user.id);
-      }
-      return { success: true, user: loginRes.user };
+    // If email confirmation is required (Supabase returns session: null)
+    if (signUpData?.user && !signUpData.session) {
+      return { success: true, needsConfirmation: true };
     }
 
-    const profile = edgeRes?.user ? await fetchProfile(edgeRes.user.id) : null;
+    // If confirmation was disabled or session was established immediately
+    if (signUpData?.session?.user) {
+      const profile = await fetchProfile(signUpData.session.user.id);
+      if (profile && (profile.role === 'tenant' || profile.role === 'business_renter')) {
+        void renterProfileService.syncGuestProfile(profile.id);
+      }
+      return { success: true, needsConfirmation: false, user: profile || undefined };
+    }
+
+    return { success: true, needsConfirmation: true };
+  },
+
+  async verifySignupCode(email: string, token: string): Promise<{ success: boolean; user?: User; error?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanToken = token.trim();
+
+    if (!isLiveBackend || !supabase) {
+      const users = localStore.getUsers();
+      const matched = Object.values(users).find(u => u.email.toLowerCase() === cleanEmail);
+      const user: User = matched ? {
+        id: matched.id,
+        name: matched.name,
+        email: matched.email,
+        phone: matched.phone,
+        role: matched.role,
+        agencyName: matched.agencyName,
+        favorites: matched.favorites || [],
+        createdAt: matched.createdAt
+      } : {
+        id: localStore.createId('usr'),
+        name: 'Rentivo Member',
+        email: cleanEmail,
+        phone: '',
+        role: 'tenant',
+        favorites: [],
+        createdAt: new Date().toISOString()
+      };
+      localStore.setSession(user);
+      return { success: true, user };
+    }
+
+    // Try type: 'signup'
+    let { data, error } = await supabase.auth.verifyOtp({
+      email: cleanEmail,
+      token: cleanToken,
+      type: 'signup'
+    });
+
+    // If 'signup' fails, fallback try 'email' (some Supabase email configs use 'email' OTP)
+    if (error) {
+      const retry = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: 'email'
+      });
+      if (!retry.error && retry.data?.user) {
+        data = retry.data;
+        error = null;
+      }
+    }
+
+    if (error || !data?.user) {
+      return {
+        success: false,
+        error: error?.message || 'Invalid or expired verification code. Please check your email or request a new code.'
+      };
+    }
+
+    const profile = await fetchProfile(data.user.id);
     if (profile && (profile.role === 'tenant' || profile.role === 'business_renter')) {
       void renterProfileService.syncGuestProfile(profile.id);
     }
+
     return { success: true, user: profile || undefined };
+  },
+
+  async verifyLoginCode(email: string, token: string): Promise<{ success: boolean; user?: User; error?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanToken = token.trim();
+
+    if (!isLiveBackend || !supabase) {
+      const users = localStore.getUsers();
+      const matched = Object.values(users).find(u => u.email.toLowerCase() === cleanEmail);
+      const user: User = matched ? {
+        id: matched.id,
+        name: matched.name,
+        email: matched.email,
+        phone: matched.phone,
+        role: matched.role,
+        agencyName: matched.agencyName,
+        favorites: matched.favorites || [],
+        createdAt: matched.createdAt
+      } : {
+        id: localStore.createId('usr'),
+        name: 'Rentivo Member',
+        email: cleanEmail,
+        phone: '',
+        role: 'tenant',
+        favorites: [],
+        createdAt: new Date().toISOString()
+      };
+      localStore.setSession(user);
+      return { success: true, user };
+    }
+
+    // Try type: 'email'
+    let { data, error } = await supabase.auth.verifyOtp({
+      email: cleanEmail,
+      token: cleanToken,
+      type: 'email'
+    });
+
+    // Fallback try type: 'magiclink'
+    if (error) {
+      const retry = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: 'magiclink'
+      });
+      if (!retry.error && retry.data?.user) {
+        data = retry.data;
+        error = null;
+      }
+    }
+
+    if (error || !data?.user) {
+      return {
+        success: false,
+        error: error?.message || 'Invalid or expired login code. Please request a new code.'
+      };
+    }
+
+    const profile = await fetchProfile(data.user.id);
+    if (profile && (profile.role === 'tenant' || profile.role === 'business_renter')) {
+      void renterProfileService.syncGuestProfile(profile.id);
+    }
+
+    return { success: true, user: profile || undefined };
+  },
+
+  async sendLoginCode(email: string): Promise<{ success: boolean; error?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!isLiveBackend || !supabase) {
+      return { success: true };
+    }
+    const { error } = await supabase.auth.signInWithOtp({
+      email: cleanEmail,
+      options: {
+        emailRedirectTo: `${APP_URL}/auth/callback`
+      }
+    });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  },
+
+  async resendVerificationCode(email: string, type: 'signup' | 'login'): Promise<{ success: boolean; error?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!isLiveBackend || !supabase) {
+      return { success: true };
+    }
+    if (type === 'signup') {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanEmail
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } else {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: cleanEmail,
+        options: {
+          emailRedirectTo: `${APP_URL}/auth/callback`
+        }
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    }
   },
 
   async sendMagicLink(email: string): Promise<{ success: boolean; error?: string }> {

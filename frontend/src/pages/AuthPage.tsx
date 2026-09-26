@@ -220,6 +220,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     if (res.success) {
       setSignupSuccess(true);
       setTimeout(() => {
+        if (res.needsConfirmation) {
+          navigate(`/verify?email=${encodeURIComponent(email.trim().toLowerCase())}&type=signup&role=${signupRole}`);
+          return;
+        }
         if (signupRole === 'renter') {
           navigate('/onboarding/renter');
           return;
@@ -253,6 +257,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
     setForgotSubmitted(true);
     setResendTimer(30);
+  };
+
+  const handleSendLoginCode = async () => {
+    const targetEmail = (signinIdentifier || email).trim();
+    if (!isEmailValid(targetEmail)) {
+      setSigninError('Enter your email address above to receive a 6-digit login code.');
+      setSigninShake(true);
+      setTimeout(() => setSigninShake(false), 400);
+      return;
+    }
+    setIsSigningIn(true);
+    const res = await authService.sendLoginCode(targetEmail);
+    setIsSigningIn(false);
+    if (!res.success) {
+      setSigninError(res.error || 'Could not send verification code.');
+      setSigninShake(true);
+      setTimeout(() => setSigninShake(false), 400);
+      return;
+    }
+    navigate(`/verify?email=${encodeURIComponent(targetEmail)}&type=login`);
   };
 
   const handleMagicLink = async () => {
@@ -501,16 +525,35 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                 </button>
               </form>
 
-              <div className="auth-divider">or continue with</div>
+              <div className="auth-divider">or sign in with code</div>
 
               <button 
                 type="button" 
                 className="auth-btn-social"
-                onClick={() => void handleMagicLink()}
+                onClick={() => void handleSendLoginCode()}
+                style={{ marginBottom: '10px' }}
               >
                 <MailCheck size={18} />
-                <span>Email me a magic link</span>
+                <span>Send 6-digit login code to email</span>
               </button>
+
+              <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => navigate('/verify')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#000052',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Already have a verification code? Enter code &rarr;
+                </button>
+              </div>
 
               <p className="auth-switch-line">
                 New to Rentivo?{' '}

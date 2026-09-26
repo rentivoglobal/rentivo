@@ -21,6 +21,7 @@ import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { AccountPage } from './pages/AccountPage';
 import { RenterOnboardingPage } from './pages/RenterOnboardingPage';
 import { ListerVerificationPage } from './pages/ListerVerificationPage';
+import { VerifyPage } from './pages/VerifyPage';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -128,6 +129,8 @@ export const App: React.FC = () => {
       pageTitle = 'Sign In — Rentivo';
     } else if (path === '/signup') {
       pageTitle = 'Create an Account — Rentivo';
+    } else if (path === '/verify' || path === '/auth/verify') {
+      pageTitle = 'Verify Code — Rentivo';
     } else if (path === '/forgot-password' || path === '/reset-password') {
       pageTitle = 'Reset Password — Rentivo';
     } else if (path === '/account/favorites') {
@@ -215,8 +218,9 @@ export const App: React.FC = () => {
   const isRenterPortalSearch = location.pathname.startsWith('/account/search');
   const isBrowsePropertiesSearch = (location.pathname.startsWith('/search') || location.pathname.startsWith('/browse') || location.pathname.startsWith('/properties')) && !isRenterPortalSearch;
   const isOnboarding = location.pathname.startsWith('/onboarding');
-  const showNavbar = !STANDALONE_TABS.includes(currentTab) && !location.pathname.startsWith('/lister') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/account') && !isBrowsePropertiesSearch && !isRenterPortalSearch && !isOnboarding;
-  const showFooter = !isPortalRoute && !isOnboarding && (FOOTER_TABS.includes(currentTab) || isBrowsePropertiesSearch);
+  const isVerify = location.pathname.startsWith('/verify') || location.pathname.startsWith('/auth/verify');
+  const showNavbar = !STANDALONE_TABS.includes(currentTab) && !location.pathname.startsWith('/lister') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/account') && !isBrowsePropertiesSearch && !isRenterPortalSearch && !isOnboarding && !isVerify;
+  const showFooter = !isPortalRoute && !isOnboarding && !isVerify && (FOOTER_TABS.includes(currentTab) || isBrowsePropertiesSearch);
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -290,6 +294,8 @@ export const App: React.FC = () => {
           <Route path="/access-fee-terms" element={<AccessFeeTermsPage onBack={() => navigate(-1)} onBrowseListings={() => navigate('/search')} onNavigateToTab={handleNavigate} />} />
           <Route path="/login" element={<AuthRoute mode="signin" onSuccess={handleAuthSuccess} />} />
           <Route path="/signup" element={<AuthRoute mode="signup" onSuccess={handleAuthSuccess} />} />
+          <Route path="/verify" element={<VerifyPage onSuccess={handleAuthSuccess} onNavigateHome={() => navigate('/')} />} />
+          <Route path="/auth/verify" element={<Navigate to="/verify" replace />} />
           <Route path="/forgot-password" element={<AuthRoute mode="forgot" onSuccess={handleAuthSuccess} />} />
           <Route path="/reset-password" element={<ResetPasswordPage onSuccess={() => { showToast('Password updated. Sign in with your new password.'); navigate('/login'); }} onNavigateHome={() => navigate('/')} />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
