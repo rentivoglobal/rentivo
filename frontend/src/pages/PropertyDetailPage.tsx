@@ -19,6 +19,7 @@ import { listingsService } from '../services/listingsService';
 import { authService } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
 import { RequestConfirmationModal } from '../components/RequestConfirmationModal';
+import { RequestAccessModalFlow } from '../components/RequestAccessModalFlow';
 import '../styles/property-detail.css';
 
 interface PropertyDetailPageProps {
@@ -175,13 +176,8 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
   // Request Confirmation Modal State
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
 
-  // Request Access Multi-step Sheet State
-  const [isRequestSheetOpen, setIsRequestSheetOpen] = useState(false);
-  const [guestName, setGuestName] = useState(user?.name || '');
-  const [guestEmail, setGuestEmail] = useState(user?.email || '');
-  const [guestPhone, setGuestPhone] = useState(user?.phone || '');
-  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
-  const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
+  // Request Access Multi-step Modal Flow State
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   // Report Modal State
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -196,15 +192,6 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2600);
   };
-
-  // Sync guest inputs with user changes
-  useEffect(() => {
-    if (user) {
-      if (!guestName) setGuestName(user.name);
-      if (!guestEmail) setGuestEmail(user.email);
-      if (!guestPhone && user.phone) setGuestPhone(user.phone);
-    }
-  }, [user, guestName, guestEmail, guestPhone]);
 
   // Load similar listings
   useEffect(() => {
@@ -336,52 +323,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
       setIsConfirmationModalOpen(true);
       return;
     }
-    setIsRequestSheetOpen(true);
-  };
-
-  const handleGuestSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const name = guestName.trim();
-    const email = guestEmail.trim();
-    const phone = guestPhone.trim();
-    if (!name || !email || !phone) return;
-    setIsSubmittingRequest(true);
-    await executeCreateRequest(name, email, phone);
-    setIsSubmittingRequest(false);
-  };
-
-  const handleLoggedInSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    const phone = guestPhone.trim() || user.phone || '08000000000';
-    setIsSubmittingRequest(true);
-    await executeCreateRequest(user.name, user.email, phone);
-    setIsSubmittingRequest(false);
-  };
-
-  const executeCreateRequest = async (name: string, email: string, phone: string) => {
-    try {
-      if (!user) {
-        try {
-          await authService.signup({
-            fullName: name,
-            email,
-            phone,
-            role: 'tenant'
-          });
-          await refresh();
-        } catch (signupErr) {
-          console.warn('Signup note:', signupErr);
-        }
-      }
-      const created = await requestsService.createRequest(listing, { name, email, phone });
-      setCreatedRequestId(created.id);
-      setExistingRequest(created);
-      setIsRequestSheetOpen(false);
-      setIsConfirmationModalOpen(true);
-    } catch (err) {
-      console.error('Request creation error:', err);
-    }
+    setIsRequestModalOpen(true);
   };
 
   // Report Submission
@@ -404,9 +346,8 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
 
   const isListerOwner = Boolean(
     user && (
-      user.name === listing.lister?.fullName ||
-      (user.phone && user.phone === listing.lister?.phone) ||
-      ((user.role === 'landlord' || user.role === 'agent') && user.name === listing.lister?.fullName)
+      (user.role === 'landlord' || user.role === 'agent') &&
+      ((listing.ownerUserId && user.id === listing.ownerUserId) || user.name === listing.lister?.fullName)
     )
   );
 
@@ -452,7 +393,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
             id="acctBtn"
             onClick={() => {
               if (user) {
-                navigate(user.role === 'landlord' || user.role === 'agent' ? '/lister' : '/account/profile');
+                navigate(user.role === 'landlord' || user.role === 'agent' ? '/lister' : '/account/search');
               } else {
                 navigate(`/login?next=${encodeURIComponent(window.location.pathname)}`);
               }
@@ -768,7 +709,9 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
                     : `On Rentivo since ${listing.lister?.memberSince || 'Feb 2026'}`}
                 </div>
                 <div className="lister-meta">
-                  {listing.lister?.activeListingsCount || 4} active listings · usually responds within a few hours
+                  {(listing.lister?.activeListingsCount ?? 1) > 1
+                    ? `${listing.lister.activeListingsCount} active listings`
+                    : 'Active property lister'} · usually responds within a few hours
                 </div>
               </div>
             </div>
@@ -973,163 +916,17 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
       </div>
 
       {/* -------------------------------------------------------------
-          REQUEST ACCESS MULTI-STEP SHEET
+          REQUEST ACCESS MULTI-STEP MODAL FLOW (Sign Up -> 6-Digit Verify -> Access Granted)
          ------------------------------------------------------------- */}
-      {isRequestSheetOpen && (
-        <div className="overlay show" id="ovl" onClick={() => setIsRequestSheetOpen(false)}>
-          <div className="sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-handle" />
-
-
-
-            {!user ? (
-              <div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: 'var(--surface-2)', padding: '3px 10px', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700, color: 'var(--violet)', marginBottom: 8 }}>
-                  <ShieldCheck size={14} />
-                  <span>Free Renter Account</span>
-                </div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 4 }}>Request access &amp; sign up</h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--ink-2)', marginBottom: 16 }}>
-                  Enter your details to create your free account. Your request will be saved to your <strong>My Requests</strong> portal and we will notify you once confirmed.
-                </p>
-
-                {/* Property summary mini-pill */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10, marginBottom: 16 }}>
-                  <img
-                    src={listing.photos?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80'}
-                    alt=""
-                    style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }}
-                  />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {listing.title}
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--ink-2)' }}>
-                      {listing.area}, Ibadan · {formatNaira(listing.price)}/yr
-                    </div>
-                  </div>
-                </div>
-
-                <form onSubmit={handleGuestSubmit}>
-                  <div className="field">
-                    <label>Full name</label>
-                    <input
-                      className="input"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      placeholder="e.g. Adeola Johnson"
-                      required
-                      autoFocus
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label>Email address</label>
-                    <input
-                      className="input"
-                      type="email"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      required
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label>Phone number</label>
-                    <input
-                      className="input"
-                      type="tel"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="0803 123 4567"
-                      required
-                    />
-                  </div>
-
-                  <div className="sheet-actions" style={{ marginTop: 18 }}>
-                    <button
-                      type="submit"
-                      className="btn btn-accent"
-                      disabled={isSubmittingRequest || !guestName.trim() || !guestEmail.trim() || !guestPhone.trim()}
-                      style={{ width: '100%' }}
-                    >
-                      {isSubmittingRequest ? 'Creating account & sending…' : 'Sign up & request access (Free)'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      onClick={() => setIsRequestSheetOpen(false)}
-                      style={{ width: '100%' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            ) : (
-              <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 4 }}>Request property access</h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--ink-2)', marginBottom: 16 }}>
-                  Submitting as <strong>{user.name}</strong> ({user.email}). This request will be saved to your <strong>My Requests</strong> portal.
-                </p>
-
-                {/* Property summary mini-pill */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10, marginBottom: 16 }}>
-                  <img
-                    src={listing.photos?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80'}
-                    alt=""
-                    style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }}
-                  />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {listing.title}
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--ink-2)' }}>
-                      {listing.area}, Ibadan · {formatNaira(listing.price)}/yr
-                    </div>
-                  </div>
-                </div>
-
-                <form onSubmit={handleLoggedInSubmit}>
-                  <div className="field">
-                    <label>Phone number for updates</label>
-                    <input
-                      className="input"
-                      type="tel"
-                      value={guestPhone || user.phone || ''}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="0803 123 4567"
-                      required
-                    />
-                  </div>
-
-                  <div className="sheet-actions" style={{ marginTop: 18 }}>
-                    <button
-                      type="submit"
-                      className="btn btn-accent"
-                      disabled={isSubmittingRequest}
-                      style={{ width: '100%' }}
-                    >
-                      {isSubmittingRequest ? 'Sending request…' : 'Send request (Free)'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      onClick={() => setIsRequestSheetOpen(false)}
-                      style={{ width: '100%' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-
-          </div>
-        </div>
-      )}
+      <RequestAccessModalFlow
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        listing={listing}
+        onSuccess={(req) => {
+          setExistingRequest(req);
+          void checkExistingRequest();
+        }}
+      />
 
       {/* -------------------------------------------------------------
           REPORT MODAL
@@ -1265,11 +1062,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
         request={existingRequest}
         onViewRequests={() => {
           setIsConfirmationModalOpen(false);
-          if (existingRequest?.id) {
-            navigate(`/requests/${existingRequest.id}`);
-          } else {
-            navigate('/account/requests');
-          }
+          navigate('/account/requests');
         }}
         onContinueBrowsing={() => setIsConfirmationModalOpen(false)}
       />

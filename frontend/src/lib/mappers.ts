@@ -1,14 +1,21 @@
 import { PropertyType } from '../types';
 
-export const UI_TO_DB_TYPE: Record<PropertyType, string> = {
-  'Self-Contain': 'self_contain',
-  Flat: 'flat_apartment',
-  Duplex: 'duplex',
-  Bungalow: 'bungalow',
-  Shop: 'shop',
-  Office: 'office_space',
-  Warehouse: 'warehouse',
-  Land: 'land'
+export const UI_TO_DB_TYPE: Record<string, string> = {
+  'self-contain': 'self_contain',
+  'self_contain': 'self_contain',
+  flat: 'flat_apartment',
+  'flat / apartment': 'flat_apartment',
+  apartment: 'flat_apartment',
+  duplex: 'duplex',
+  bungalow: 'bungalow',
+  house: 'house',
+  shop: 'shop',
+  office: 'office_space',
+  'office space': 'office_space',
+  warehouse: 'warehouse',
+  land: 'land',
+  shortlet: 'shortlet',
+  'short-let': 'shortlet'
 };
 
 export const DB_TO_UI_TYPE: Record<string, PropertyType> = {
@@ -16,11 +23,29 @@ export const DB_TO_UI_TYPE: Record<string, PropertyType> = {
   flat_apartment: 'Flat',
   duplex: 'Duplex',
   bungalow: 'Bungalow',
+  house: 'House',
   shop: 'Shop',
   office_space: 'Office',
   warehouse: 'Warehouse',
-  land: 'Land'
+  land: 'Land',
+  shortlet: 'Short-let'
 };
+
+export function mapUiTypeToDb(type: string): string {
+  if (!type) return 'flat_apartment';
+  const clean = type.toLowerCase().trim();
+  if (UI_TO_DB_TYPE[clean]) return UI_TO_DB_TYPE[clean];
+  return clean.replace(/[\s\/-]+/g, '_');
+}
+
+export function mapDbTypeToUi(dbType: string): string {
+  if (!dbType) return 'Flat';
+  if (DB_TO_UI_TYPE[dbType]) return DB_TO_UI_TYPE[dbType];
+  return dbType
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
 
 export function nairaToKobo(naira: number): number {
   return Math.round(naira * 100);

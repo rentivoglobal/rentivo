@@ -1,7 +1,7 @@
 import { Listing, FilterOptions, VerificationStatus } from '../types';
 import { isLiveBackend } from '../lib/config';
 import { supabase } from '../lib/supabase';
-import { DB_TO_UI_TYPE, UI_TO_DB_TYPE, koboToNaira, nairaToKobo } from '../lib/mappers';
+import { DB_TO_UI_TYPE, UI_TO_DB_TYPE, mapDbTypeToUi, mapUiTypeToDb, koboToNaira, nairaToKobo } from '../lib/mappers';
 import { localStore } from './localStore';
 import { authService } from './authService';
 
@@ -12,15 +12,9 @@ const LISTING_SELECT = `
   cities ( name ),
   areas ( name ),
   listing_photos ( url, thumbnail_url, sort_order, is_primary ),
-  users:owner_user_id ( full_name, agency_name, created_at, role )
+  lister
 `;
 
-const DEMO_ID_MAP: Record<string, string> = {
-  'prop-1': '11111111-1111-1111-1111-111111111111',
-  'prop-2': '22222222-2222-2222-2222-222222222222',
-  'prop-3': '33333333-3333-3333-3333-333333333333',
-  'prop-4': '44444444-4444-4444-4444-444444444444'
-};
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function mapRow(row: Record<string, unknown>, includePrivate = false): Listing {
@@ -35,15 +29,14 @@ function mapRow(row: Record<string, unknown>, includePrivate = false): Listing {
   if (verified) verificationStatus = 'verified';
   else if (status === 'pending_approval') verificationStatus = 'pending';
 
-  const owner = Array.isArray(row.users)
-    ? (row.users[0] as { full_name?: string; agency_name?: string; created_at?: string; role?: string } | undefined)
-    : (row.users as { full_name?: string; agency_name?: string; created_at?: string; role?: string } | null);
+  const listerData = (row.lister as { fullName?: string; agencyName?: string; role?: string; memberSince?: string }) || {};
 
   return {
     id: String(row.id),
+    ownerUserId: row.owner_user_id ? String(row.owner_user_id) : undefined,
     title: String(row.title),
     category: row.category as Listing['category'],
-    type: DB_TO_UI_TYPE[String(row.property_type)] || 'Flat',
+    type: mapDbTypeToUi(String(row.property_type)),
     city,
     area,
     addressDescription: includePrivate ? String(row.address_summary) : String(row.address_summary),
@@ -57,17 +50,17 @@ function mapRow(row: Record<string, unknown>, includePrivate = false): Listing {
     photos,
     verificationStatus,
     lister: {
-      fullName: owner?.full_name || 'Rentivo Lister',
-      phone: '',
-      whatsapp: '',
-      agencyName: owner?.agency_name || undefined,
-      memberSince: owner?.created_at ? new Date(owner.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'May 2025',
-      activeListingsCount: 4,
-      responseRate: '98%'
+      fullName: listerData.fullName || 'Verified Lister',
+      phone: '', // Private & locked until payment
+      whatsapp: '', // Private & locked until payment
+      agencyName: listerData.agencyName || undefined,
+      memberSince: listerData.memberSince || 'Verified Lister',
+      activeListingsCount: 1,
+      responseRate: '100%'
     },
-    listerRole: (owner?.role as Listing['listerRole']) || 'landlord',
+    listerRole: (listerData.role as Listing['listerRole']) || 'landlord',
     createdAt: String(row.created_at),
-    isAvailable: status === 'active',
+    isAvailable: status === 'active' || status === 'pending_approval' || status === 'draft',
     isApproved: Boolean(row.is_approved),
     moderationStatus: status as Listing['moderationStatus']
   };
@@ -115,29 +108,14 @@ export const listingsService = {
     if (!isLiveBackend || !supabase) {
       const found = localStore.getListingsRaw().find((l) => l.id === id);
       if (!found) return undefined;
-      if (found.isApproved === false) {
-        const user = authService.getCurrentUser();
-        if (user && (user.role === 'admin' || user.role === 'landlord' || user.role === 'agent')) return found;
-        return undefined;
-      }
       return { ...found, lister: { ...found.lister, phone: '', whatsapp: '' } };
     }
 
-    const resolvedId = DEMO_ID_MAP[id] || id;
-    if (!UUID_REGEX.test(resolvedId)) {
-      // Non-UUID string: fallback to first active approved listing if prop-1 was requested
-      const { data: firstListing } = await supabase
-        .from('listings')
-        .select(LISTING_SELECT)
-        .eq('status', 'active')
-        .eq('is_approved', true)
-        .limit(1)
-        .maybeSingle();
-      if (firstListing) return mapRow(firstListing as Record<string, unknown>);
+    if (!UUID_REGEX.test(id)) {
       return undefined;
     }
 
-    const { data, error } = await supabase.from('listings').select(LISTING_SELECT).eq('id', resolvedId).maybeSingle();
+    const { data, error } = await supabase.from('listings').select(LISTING_SELECT).eq('id', id).maybeSingle();
     if (error || !data) return undefined;
     return mapRow(data as Record<string, unknown>);
   },
@@ -151,12 +129,27 @@ export const listingsService = {
     if (!userId) return [];
     const { data, error } = await supabase
       .from('listings')
-      .select(LISTING_SELECT)
+      .select(`
+        *,
+        cities ( name ),
+        areas ( name ),
+        listing_photos ( url, thumbnail_url, sort_order, is_primary ),
+        listing_private_details ( address_full ),
+        lister
+      `)
       .eq('owner_user_id', userId)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return (data || []).map((row) => mapRow(row as Record<string, unknown>, true));
+    return (data || []).map((row) => {
+      const item = mapRow(row as Record<string, unknown>, true);
+      const priv = (row.listing_private_details as Array<{ address_full?: string }>) || [];
+      if (priv[0]?.address_full) {
+        item.addressDescription = priv[0].address_full;
+      }
+      return item;
+    });
   },
+
 
   async createListing(newListing: Omit<Listing, 'id' | 'createdAt'> & { verificationStatus?: VerificationStatus }): Promise<Listing> {
     if (!isLiveBackend || !supabase) {
@@ -180,6 +173,17 @@ export const listingsService = {
     const { data: session } = await supabase.auth.getSession();
     const userId = session.session?.user.id;
     if (!userId) throw new Error('Sign in as a landlord or agent to list a property.');
+
+    // Enforce role check: renters cannot list property
+    const { data: userProfile, error: profileErr } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileErr || !userProfile || (userProfile.role !== 'landlord' && userProfile.role !== 'agent' && userProfile.role !== 'admin')) {
+      throw new Error('Renter accounts are not permitted to list properties. Please register a landlord or agent account.');
+    }
 
     const { data: city } = await supabase.from('cities').select('id').ilike('name', newListing.city || 'Ibadan').maybeSingle();
     let cityId = city?.id;
@@ -206,7 +210,7 @@ export const listingsService = {
         title: newListing.title,
         description: newListing.description,
         category: newListing.category,
-        property_type: UI_TO_DB_TYPE[newListing.type],
+        property_type: mapUiTypeToDb(newListing.type),
         status: 'pending_approval',
         is_approved: false,
         price_amount: nairaToKobo(newListing.price),
@@ -257,9 +261,25 @@ export const listingsService = {
       return listings[index];
     }
 
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user.id;
+    if (!userId) throw new Error('Sign in as a landlord or agent to update listings.');
+
+    const { data: userProfile, error: profileErr } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileErr || !userProfile || (userProfile.role !== 'landlord' && userProfile.role !== 'agent' && userProfile.role !== 'admin')) {
+      throw new Error('Renter accounts cannot modify property listings.');
+    }
+
     const patch: Record<string, unknown> = {};
     if (updatedData.title) patch.title = updatedData.title;
     if (updatedData.description) patch.description = updatedData.description;
+    if (updatedData.category) patch.category = updatedData.category;
+    if (updatedData.type) patch.property_type = mapUiTypeToDb(updatedData.type);
     if (updatedData.price !== undefined) patch.price_amount = nairaToKobo(updatedData.price);
     if (updatedData.pricePeriod) patch.billing_period = updatedData.pricePeriod;
     if (updatedData.bedrooms !== undefined) patch.bedrooms = updatedData.bedrooms;

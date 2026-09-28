@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, SlidersHorizontal, ShieldCheck } from 'lucide-react';
-import { FilterOptions, PropertyType, IBADAN_AREAS, PROPERTY_TYPES } from '../types';
+import { FilterOptions, PropertyType, PROPERTY_TYPES } from '../types';
+import { locationsService } from '../services/locationsService';
 
 interface FilterBarProps {
   filters: FilterOptions;
@@ -11,6 +12,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   filters,
   onFilterChange
 }) => {
+  const targetCity = filters.city || 'Ibadan';
+  const dynamicAreas = React.useMemo(() => {
+    const list = locationsService.getAreasForCity(targetCity, true);
+    return [`All ${targetCity} areas`, ...list];
+  }, [targetCity]);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', margin: '24px 0' }}>
       {/* Top Search and Select Controls */}
@@ -50,7 +56,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         {/* Location Selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
           <select 
-            value={filters.area || 'All Ibadan areas'}
+            value={filters.area || `All ${targetCity} areas`}
             onChange={(e) => onFilterChange({ area: e.target.value })}
             style={{
               border: '1px solid var(--color-border)',
@@ -63,7 +69,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               outline: 'none'
             }}
           >
-            {IBADAN_AREAS.map(area => (
+            {dynamicAreas.map(area => (
               <option key={area} value={area}>{area}</option>
             ))}
           </select>

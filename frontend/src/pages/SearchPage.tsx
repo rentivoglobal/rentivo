@@ -1237,15 +1237,16 @@ export const SearchPage: React.FC<SearchPageProps> = ({
 
 
         {/* Empty State */}
-        {listings.length === 0 ? (
+        {displayListings.length === 0 ? (
           <div 
             style={{
               textAlign: 'center',
-              padding: '64px 20px',
+              padding: '56px 20px',
               backgroundColor: '#FFFFFF',
               borderRadius: '20px',
-              border: '1px solid #E6E3EE',
-              margin: '24px 0'
+              border: '1.5px solid #E2E8F0',
+              margin: '24px 0',
+              boxShadow: '0 4px 20px rgba(0,0,82,0.04)'
             }}
           >
             <div 
@@ -1267,28 +1268,62 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               No Properties Match Your Search
             </h3>
             <p style={{ fontSize: '14px', color: '#636377', maxWidth: '440px', margin: '0 auto 20px', lineHeight: 1.5 }}>
-              We could not find any rentals in {filters.city || 'Ibadan'} matching your current filters. Try widening your budget or clearing filters.
+              We could not find any listings in {filters.city || 'Ibadan'} matching your exact filters. Try widening your budget, clearing filters, or exploring popular neighborhoods below.
             </p>
-            <button 
-              type="button"
-              onClick={handleResetAllFilters}
-              style={{
-                backgroundColor: '#000052',
-                color: '#FFFFFF',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '9999px',
-                fontSize: '13.5px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <RotateCcw size={14} />
-              <span>Reset All Filters</span>
-            </button>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '24px' }}>
+              <button 
+                type="button"
+                onClick={handleResetAllFilters}
+                style={{
+                  backgroundColor: '#000052',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '9999px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <RotateCcw size={14} />
+                <span>Reset All Filters</span>
+              </button>
+            </div>
+
+            {/* Quick Popular Neighborhoods in Ibadan */}
+            <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '20px', maxWidth: '520px', margin: '0 auto' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '10px' }}>
+                Browse popular neighborhoods in Ibadan:
+              </span>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {['Bodija', 'Akobo', 'Jericho', 'Ring Road', 'UI / Samonda', 'Oluyole'].map(area => (
+                  <button
+                    key={area}
+                    type="button"
+                    onClick={() => {
+                      onFilterChange({ area, minPrice: undefined, maxPrice: undefined, type: undefined, category: undefined });
+                    }}
+                    style={{
+                      backgroundColor: '#F8FAFC',
+                      border: '1px solid #CBD5E1',
+                      color: '#000052',
+                      padding: '6px 14px',
+                      borderRadius: '999px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           /* 4-Column Paginated Card Grid */

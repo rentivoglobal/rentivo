@@ -213,7 +213,7 @@ export const RenterOnboardingPage: React.FC = () => {
 
   const handleSkip = async () => {
     await renterProfileService.skipOnboarding(currentUser?.id);
-    navigate('/account');
+    navigate('/account/search');
   };
 
   const handleNext = () => {
@@ -686,7 +686,7 @@ export const RenterOnboardingPage: React.FC = () => {
             <button
               type="button"
               className="onboarding-btn onboarding-btn-outline"
-              onClick={() => navigate('/account')}
+              onClick={() => navigate('/account/search')}
             >
               Go to dashboard
             </button>

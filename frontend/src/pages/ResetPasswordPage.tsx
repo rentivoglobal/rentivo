@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Lock, CheckCircle2, AlertCircle, Eye, EyeOff, ArrowRight, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Lock, CheckCircle2, AlertCircle, Eye, EyeOff, ArrowRight, ArrowLeft, ShieldCheck, RefreshCw } from 'lucide-react';
 import { authService } from '../services/authService';
 
 interface ResetPasswordPageProps {
@@ -11,12 +12,26 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
   onSuccess,
   onNavigateHome
 }) => {
+  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [hasValidSession, setHasValidSession] = useState(true);
+
+  // Validate recovery session or token presence on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      const isValid = await authService.hasActiveRecoverySession();
+      setHasValidSession(isValid);
+      setSessionChecked(true);
+    };
+    void checkSession();
+  }, []);
 
   // Password rules validation
   const hasMinLength = password.length >= 8;
@@ -48,7 +63,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
     <div style={{ backgroundColor: '#F8FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px 20px' }}>
       
       {/* Brand Header */}
-      <div style={{ marginBottom: '28px', textAlign: 'center' }}>
+      <div style={{ marginBottom: '20px', textAlign: 'center' }}>
         <a 
           href="/" 
           onClick={(e) => { e.preventDefault(); onNavigateHome(); }} 
@@ -56,6 +71,36 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
         >
           <img src="/RENTIVO-lockup.svg" alt="Rentivo" style={{ height: '36px' }} />
         </a>
+      </div>
+
+      {/* Top Back to Sign In Link */}
+      <div style={{ maxWidth: '440px', width: '100%', marginBottom: '12px' }}>
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.length > 1) {
+              navigate(-1);
+            } else {
+              navigate('/login');
+            }
+          }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'none',
+            border: 'none',
+            color: '#000052',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            padding: 0
+          }}
+          aria-label="Back to Sign In"
+        >
+          <ArrowLeft size={14} />
+          <span>Back to Sign In</span>
+        </button>
       </div>
 
       {/* Main Card */}
@@ -68,7 +113,67 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
         boxShadow: '0 10px 30px rgba(0, 0, 82, 0.06)',
         padding: '36px 32px'
       }}>
-        {success ? (
+        {!sessionChecked ? (
+          <div style={{ textAlign: 'center', padding: '30px 0' }}>
+            <div style={{
+              display: 'inline-block',
+              width: '28px',
+              height: '28px',
+              border: '2.5px solid #000052',
+              borderTopColor: 'transparent',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+              marginBottom: '12px'
+            }} />
+            <p style={{ fontSize: '13px', color: '#64748B', margin: 0 }}>Verifying reset authorization…</p>
+          </div>
+        ) : !hasValidSession ? (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: '#FEF2F2',
+              color: '#DC2626',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <AlertCircle size={30} />
+            </div>
+
+            <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#000052', margin: '0 0 8px' }}>
+              Reset Link Expired or Invalid
+            </h2>
+            <p style={{ fontSize: '13.5px', color: '#64748B', lineHeight: 1.6, margin: '0 0 24px' }}>
+              For your account security, password reset links can only be used once and expire after 1 hour.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              style={{
+                width: '100%',
+                backgroundColor: '#000052',
+                color: '#FFFFFF',
+                border: 'none',
+                padding: '12px',
+                borderRadius: '9999px',
+                fontSize: '13.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>Request New Reset Link</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        ) : success ? (
           <div style={{ textAlign: 'center' }}>
             <div style={{
               width: '60px',
@@ -184,6 +289,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 0 }}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -195,23 +301,33 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
                   Confirm New Password
                 </label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter your new password"
-                  required
-                  style={{
-                    width: '100%',
-                    height: '42px',
-                    padding: '0 12px',
-                    borderRadius: '8px',
-                    border: '1.5px solid #CBD5E1',
-                    fontSize: '13.5px',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter your new password"
+                    required
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      padding: '0 40px 0 12px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #CBD5E1',
+                      fontSize: '13.5px',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 0 }}
+                    aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               {/* Password Checklist */}

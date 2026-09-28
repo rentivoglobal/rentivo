@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { NavigationTab, UserRole } from '../types';
 import { authService } from '../services/authService';
+import { validateNigerianPhone } from '../utils/phoneValidator';
 
 interface AuthPageProps {
   initialMode?: 'signin' | 'signup' | 'forgot';
@@ -65,7 +66,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const [email, setEmail] = useState('');
   const [agencyName, setAgencyName] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showSignupPw, setShowSignupPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(true);
   const [signupError, setSignupError] = useState<string | null>(null);
   const [signupShake, setSignupShake] = useState(false);
@@ -86,6 +89,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   const signupEmailId = useId();
   const signupAgencyId = useId();
   const signupPwId = useId();
+  const signupConfirmPwId = useId();
   const forgotEmailId = useId();
 
   // Resend countdown timer effect
@@ -131,8 +135,15 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     e.preventDefault();
     setSigninError(null);
 
-    if (!signinIdentifier.trim()) {
-      setSigninError('Enter your email or phone number.');
+    const cleanIdentifier = signinIdentifier.trim();
+    if (!cleanIdentifier) {
+      setSigninError('Enter your registered email address.');
+      setSigninShake(true);
+      setTimeout(() => setSigninShake(false), 400);
+      return;
+    }
+    if (!isEmailValid(cleanIdentifier)) {
+      setSigninError('Please enter a valid email address (e.g. name@example.com).');
       setSigninShake(true);
       setTimeout(() => setSigninShake(false), 400);
       return;
@@ -145,7 +156,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     }
 
     setIsSigningIn(true);
-    const res = await authService.login(signinIdentifier, signinPassword);
+    const res = await authService.login(cleanIdentifier, signinPassword);
 
     if (res.success) {
       setSigninSuccess(true);
@@ -175,13 +186,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     setSignupError(null);
 
     if (fullName.trim().length < 2) {
-      setSignupError('Please enter your full name.');
+      setSignupError('Please enter your full name (minimum 2 characters).');
       setSignupShake(true);
       setTimeout(() => setSignupShake(false), 400);
       return;
     }
-    if (phone.trim().length < 7) {
-      setSignupError('Enter a valid Nigerian phone number (e.g. 08012345678).');
+    const phoneVal = validateNigerianPhone(phone);
+    if (!phoneVal.isValid) {
+      setSignupError(phoneVal.errorMessage || 'Enter a valid Nigerian phone number (e.g. 08012345678).');
       setSignupShake(true);
       setTimeout(() => setSignupShake(false), 400);
       return;
@@ -198,6 +210,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       setTimeout(() => setSignupShake(false), 400);
       return;
     }
+    if (signupPassword !== confirmPassword) {
+      setSignupError('Passwords do not match. Please verify both passwords.');
+      setSignupShake(true);
+      setTimeout(() => setSignupShake(false), 400);
+      return;
+    }
     if (!agreedToTerms) {
       setSignupError('Please accept Rentivo\'s Terms of Service to continue.');
       setSignupShake(true);
@@ -209,9 +227,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     const role: UserRole = signupRole === 'lister' ? (agencyName ? 'agent' : 'landlord') : 'tenant';
 
     const res = await authService.signup({
-      fullName,
-      phone,
-      email,
+      fullName: fullName.trim(),
+      phone: phoneVal.cleaned || phone.trim(),
+      email: email.trim().toLowerCase(),
       role,
       agencyName: agencyName.trim() || undefined,
       password: signupPassword
@@ -426,6 +444,30 @@ export const AuthPage: React.FC<AuthPageProps> = ({
       {/* RIGHT COLUMN: INTERACTIVE FORM SUITE */}
       <div className="auth-form-side">
         <div className="auth-form-wrap">
+          {/* Back to Home Link */}
+          <div style={{ marginBottom: '16px' }}>
+            <button
+              type="button"
+              onClick={onNavigateHome}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'none',
+                border: 'none',
+                color: '#64748B',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: 0
+              }}
+              aria-label="Return to Rentivo Home"
+            >
+              <ArrowLeft size={15} />
+              <span>Return to Home</span>
+            </button>
+          </div>
+
           {/* VIEW: SIGN IN */}
           {view === 'signin' && (
             <div className="auth-fw-anim">
@@ -440,21 +482,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
               <form onSubmit={handleSignIn} noValidate>
                 {/* Identifier Input */}
-                <div className={`auth-field ${signinIdentifier ? 'filled' : ''} ${signinShake && !signinIdentifier ? 'error shake' : ''}`}>
-                  <label htmlFor={signinIdInputId} className="auth-field-label">Email or phone number</label>
+                <div className={`auth-field ${signinIdentifier ? 'filled' : ''} ${signinShake && (!signinIdentifier || !isEmailValid(signinIdentifier.trim())) ? 'error shake' : ''}`}>
+                  <label htmlFor={signinIdInputId} className="auth-field-label">Email address</label>
                   <div className="auth-input-wrap">
                     <Mail size={16} className="li" />
                     <input 
                       id={signinIdInputId}
-                      type="text" 
+                      type="email" 
                       value={signinIdentifier}
                       onChange={(e) => setSigninIdentifier(e.target.value)}
-                      placeholder="e.g. name@example.com or 080..."
+                      placeholder="name@example.com"
                       required 
-                      autoComplete="username"
+                      autoComplete="email"
                     />
                   </div>
-                  <div className="auth-field-error">Enter your email or phone number.</div>
+                  <div className="auth-field-error">Enter your registered email address.</div>
                 </div>
 
                 {/* Password Input */}
@@ -540,7 +582,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               <div style={{ textAlign: 'center', marginBottom: '16px' }}>
                 <button
                   type="button"
-                  onClick={() => navigate('/verify')}
+                  onClick={() => {
+                    const clean = signinIdentifier.trim();
+                    if (clean && clean.includes('@')) {
+                      navigate(`/verify?email=${encodeURIComponent(clean)}&type=login`);
+                    } else {
+                      navigate('/verify?type=login');
+                    }
+                  }}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -551,7 +600,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     textDecoration: 'underline'
                   }}
                 >
-                  Already have a verification code? Enter code &rarr;
+                  Already have a 6-digit code? Enter code &rarr;
                 </button>
               </div>
 
@@ -742,6 +791,42 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     </div>
                   </div>
                   <div className="auth-field-error">Password needs at least 8 characters.</div>
+                </div>
+
+                {/* Confirm Password Input (Password Two) */}
+                <div className={`auth-field ${confirmPassword ? 'filled' : ''} ${signupShake && (signupPassword !== confirmPassword || !confirmPassword) ? 'error shake' : ''}`}>
+                  <label htmlFor={signupConfirmPwId} className="auth-field-label">
+                    <span>Confirm password</span>
+                    <span className="auth-label-helper">Re-enter password</span>
+                  </label>
+                  <div className="auth-input-wrap">
+                    <Lock size={16} className="li" />
+                    <input 
+                      id={signupConfirmPwId}
+                      type={showConfirmPw ? 'text' : 'password'} 
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter your password"
+                      required 
+                      autoComplete="new-password"
+                    />
+                    {confirmPassword && confirmPassword === signupPassword && signupPassword.length >= 8 && (
+                      <CheckCircle2 
+                        size={16} 
+                        className="auth-status-icon ok show" 
+                        style={{ right: '40px' }}
+                      />
+                    )}
+                    <button 
+                      type="button" 
+                      className="auth-toggle-eye" 
+                      onClick={() => setShowConfirmPw(!showConfirmPw)}
+                      title={showConfirmPw ? 'Hide password' : 'Show password'}
+                    >
+                      {showConfirmPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <div className="auth-field-error">Passwords do not match.</div>
                 </div>
 
                 {/* Terms Agreement Checkbox */}

@@ -65,18 +65,25 @@ export const authService = {
   },
 
   async login(email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) {
+      return { success: false, error: 'Please enter your registered email address.' };
+    }
+    if (!password) {
+      return { success: false, error: 'Please enter your password.' };
+    }
+
     if (!isLiveBackend) {
       const users = localStore.getUsers();
-      const matched = Object.values(users).find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-      if (!matched || (matched.password && matched.password !== password)) {
+      const matched = Object.values(users).find((u) => u.email.toLowerCase() === cleanEmail);
+      if (!matched) {
         return { success: false, error: 'Invalid email or password.' };
       }
-      const { password: _pw, ...user } = matched;
-      localStore.setSession(user);
-      return { success: true, user };
+      localStore.setSession(matched);
+      return { success: true, user: matched };
     }
     if (!supabase) return { success: false, error: 'Authentication is not configured.' };
-    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
     if (error || !data.user) return { success: false, error: error?.message || 'Failed to sign in.' };
     const profile = await fetchProfile(data.user.id);
     if (profile && (profile.role === 'tenant' || profile.role === 'business_renter')) {
@@ -93,24 +100,34 @@ export const authService = {
     agencyName?: string;
     password?: string;
   }): Promise<{ success: boolean; user?: User; error?: string; needsConfirmation?: boolean }> {
-    const role = roleFromSignup(input.role);
+    // Whitelist allowed public signup roles (strictly prevent admin role escalation)
+    const ALLOWED_SIGNUP_ROLES: UserRole[] = ['tenant', 'landlord', 'agent', 'business_renter'];
+    const role: UserRole = ALLOWED_SIGNUP_ROLES.includes(input.role) ? roleFromSignup(input.role) : 'tenant';
     const cleanEmail = input.email.trim().toLowerCase();
+    const cleanName = input.fullName.trim();
+    const cleanPhone = input.phone.trim();
+
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+    if (!input.password || input.password.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters long.' };
+    }
 
     if (!isLiveBackend) {
       const users = localStore.getUsers();
       if (Object.values(users).some((u) => u.email.toLowerCase() === cleanEmail)) {
         return { success: false, error: 'An account with this email already exists. Sign in instead.' };
       }
-      const user: User & { password?: string } = {
+      const user: User = {
         id: localStore.createId('usr'),
-        name: input.fullName.trim(),
+        name: cleanName,
         email: cleanEmail,
-        phone: input.phone.trim(),
+        phone: cleanPhone,
         role,
         agencyName: input.agencyName?.trim(),
         favorites: [],
-        createdAt: new Date().toISOString(),
-        password: input.password
+        createdAt: new Date().toISOString()
       };
       users[user.id] = user;
       localStore.saveUsers(users);
@@ -124,8 +141,8 @@ export const authService = {
       password: input.password || '',
       options: {
         data: {
-          full_name: input.fullName.trim(),
-          phone: input.phone.trim(),
+          full_name: cleanName,
+          phone: cleanPhone,
           role,
           agency_name: input.agencyName?.trim() || ''
         }
@@ -143,13 +160,13 @@ export const authService = {
         return { success: false, error: 'An account with this email already exists. Please sign in instead.' };
       }
 
-      // Fallback: If client signup is disabled or restricted, invoke auth-signup edge function
+      // Fallback: If client signup is restricted, invoke auth-signup edge function
       const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke('auth-signup', {
         body: {
           email: cleanEmail,
           password: input.password || '',
-          fullName: input.fullName.trim(),
-          phone: input.phone.trim(),
+          fullName: cleanName,
+          phone: cleanPhone,
           role,
           agencyName: input.agencyName?.trim() || ''
         }
@@ -185,9 +202,18 @@ export const authService = {
 
   async verifySignupCode(email: string, token: string): Promise<{ success: boolean; user?: User; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
-    const cleanToken = token.trim();
+    const cleanToken = token.replace(/\D/g, '').trim();
+
+    // 1. Strict 6-digit validation
+    if (cleanToken.length !== 6) {
+      return { success: false, error: 'Verification code must be exactly 6 digits.' };
+    }
 
     if (!isLiveBackend || !supabase) {
+      // In local demo mode, only accept demo code '123456'
+      if (cleanToken !== '123456') {
+        return { success: false, error: 'Invalid verification code. (Demo code is 123456)' };
+      }
       const users = localStore.getUsers();
       const matched = Object.values(users).find(u => u.email.toLowerCase() === cleanEmail);
       const user: User = matched ? {
@@ -212,7 +238,7 @@ export const authService = {
       return { success: true, user };
     }
 
-    // Try type: 'signup'
+    // 2. Real Supabase verification (type: 'signup')
     let { data, error } = await supabase.auth.verifyOtp({
       email: cleanEmail,
       token: cleanToken,
@@ -249,9 +275,18 @@ export const authService = {
 
   async verifyLoginCode(email: string, token: string): Promise<{ success: boolean; user?: User; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
-    const cleanToken = token.trim();
+    const cleanToken = token.replace(/\D/g, '').trim();
+
+    // 1. Strict 6-digit validation
+    if (cleanToken.length !== 6) {
+      return { success: false, error: 'Login code must be exactly 6 digits.' };
+    }
 
     if (!isLiveBackend || !supabase) {
+      // In local demo mode, only accept demo code '123456'
+      if (cleanToken !== '123456') {
+        return { success: false, error: 'Invalid login code. (Demo code is 123456)' };
+      }
       const users = localStore.getUsers();
       const matched = Object.values(users).find(u => u.email.toLowerCase() === cleanEmail);
       const user: User = matched ? {
@@ -276,7 +311,7 @@ export const authService = {
       return { success: true, user };
     }
 
-    // Try type: 'email'
+    // 2. Real Supabase verification (type: 'email')
     let { data, error } = await supabase.auth.verifyOtp({
       email: cleanEmail,
       token: cleanToken,
@@ -363,29 +398,45 @@ export const authService = {
   },
 
   async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
     if (!isLiveBackend || !supabase) {
       return { success: true };
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
       redirectTo: `${APP_URL}/reset-password`
     });
     if (error) return { success: false, error: error.message };
     return { success: true };
   },
 
+  async hasActiveRecoverySession(): Promise<boolean> {
+    if (!isLiveBackend || !supabase) {
+      return Boolean(localStore.getSession());
+    }
+    try {
+      const { data } = await supabase.auth.getSession();
+      return Boolean(data.session?.user);
+    } catch {
+      return false;
+    }
+  },
+
   async updatePassword(password: string): Promise<{ success: boolean; error?: string }> {
+    if (!password || password.length < 8) {
+      return { success: false, error: 'New password must be at least 8 characters long.' };
+    }
+
     if (!isLiveBackend || !supabase) {
       const session = localStore.getSession();
-      if (!session) return { success: false, error: 'No active reset session.' };
-      const users = localStore.getUsers();
-      if (users[session.id]) {
-        users[session.id].password = password;
-        localStore.saveUsers(users);
-      }
+      if (!session) return { success: false, error: 'No active reset session. Please request a new reset link.' };
       return { success: true };
     }
+
     const { error } = await supabase.auth.updateUser({ password });
-    if (error) return { success: false, error: error.message };
+    if (error) return { success: false, error: error.message || 'Failed to update password. Reset link may have expired.' };
     return { success: true };
   },
 

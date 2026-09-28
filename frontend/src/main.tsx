@@ -9,6 +9,7 @@ import './styles/rentivo.css'
 import './styles/marketplace.css'
 import './styles/auth.css'
 import './styles/renter-mobile.css'
+import './styles/admin.css'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext'
 

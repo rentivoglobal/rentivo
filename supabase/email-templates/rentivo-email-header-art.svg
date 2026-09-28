@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 180" width="600" height="180" fill="none">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="600" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#07073B"/>
+      <stop offset="45%" stop-color="#000052"/>
+      <stop offset="100%" stop-color="#020224"/>
+    </linearGradient>
+
+    <!-- Lilac Glow Gradient -->
+    <radialGradient id="lilacGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#BE89FF" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#8B5CF6" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#000052" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Shield Gradient -->
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C084FC"/>
+      <stop offset="50%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+
+    <!-- Window Warm Glow -->
+    <linearGradient id="windowGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FEF3C7" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#FDE68A" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Glass Balcony Gradient -->
+    <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#BE89FF" stop-opacity="0.1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Deep Navy Card Background -->
+  <rect width="600" height="180" fill="url(#bgGrad)"/>
+
+  <!-- Subtle Blueprint Architectural Grid -->
+  <g stroke="#BE89FF" stroke-width="0.75" stroke-opacity="0.12" stroke-dasharray="3 3">
+    <line x1="0" y1="30" x2="600" y2="30"/>
+    <line x1="0" y1="70" x2="600" y2="70"/>
+    <line x1="0" y1="110" x2="600" y2="110"/>
+    <line x1="0" y1="150" x2="600" y2="150"/>
+    <line x1="60" y1="0" x2="600" y2="180"/>
+    <line x1="160" y1="0" x2="160" y2="180"/>
+    <line x1="440" y1="0" x2="440" y2="180"/>
+    <line x1="540" y1="0" x2="540" y2="180"/>
+  </g>
+
+  <!-- Ambient Light Orbs -->
+  <circle cx="300" cy="90" r="110" fill="url(#lilacGlow)"/>
+  <circle cx="100" cy="50" r="80" fill="url(#lilacGlow)" opacity="0.6"/>
+  <circle cx="500" cy="110" r="80" fill="url(#lilacGlow)" opacity="0.6"/>
+
+  <!-- Left Architectural Structure: Modern Residence -->
+  <g transform="translate(40, 48)">
+    <!-- Base / First Floor -->
+    <rect x="0" y="44" width="130" height="74" rx="4" fill="#0D1140" stroke="#BE89FF" stroke-width="1.2" stroke-opacity="0.3"/>
+    
+    <!-- Second Floor Cantilever -->
+    <rect x="15" y="10" width="125" height="42" rx="4" fill="#131B54" stroke="#BE89FF" stroke-width="1.2" stroke-opacity="0.45"/>
+    
+    <!-- Pergola Roof Feature -->
+    <line x1="8" y1="6" x2="148" y2="6" stroke="#BE89FF" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.7"/>
+    <line x1="25" y1="6" x2="25" y2="10" stroke="#BE89FF" stroke-width="1.5" stroke-opacity="0.6"/>
+    <line x1="55" y1="6" x2="55" y2="10" stroke="#BE89FF" stroke-width="1.5" stroke-opacity="0.6"/>
+    <line x1="85" y1="6" x2="85" y2="10" stroke="#BE89FF" stroke-width="1.5" stroke-opacity="0.6"/>
+    <line x1="115" y1="6" x2="115" y2="10" stroke="#BE89FF" stroke-width="1.5" stroke-opacity="0.6"/>
+    <line x1="140" y1="6" x2="140" y2="10" stroke="#BE89FF" stroke-width="1.5" stroke-opacity="0.6"/>
+
+    <!-- Glass Windows with Warm Glow -->
+    <rect x="26" y="18" width="44" height="24" rx="2" fill="url(#windowGlow)"/>
+    <line x1="48" y1="18" x2="48" y2="42" stroke="#000052" stroke-width="1"/>
+    
+    <rect x="80" y="18" width="48" height="24" rx="2" fill="url(#windowGlow)"/>
+    <line x1="104" y1="18" x2="104" y2="42" stroke="#000052" stroke-width="1"/>
+
+    <!-- Glass Balcony Railing -->
+    <rect x="20" y="32" width="112" height="14" rx="2" fill="url(#glassGrad)" stroke="#FFFFFF" stroke-width="0.8" stroke-opacity="0.4"/>
+
+    <!-- Ground Floor Entry & Windows -->
+    <rect x="14" y="58" width="34" height="42" rx="2" fill="url(#windowGlow)"/>
+    <rect x="62" y="66" width="22" height="52" rx="2" fill="#BE89FF" fill-opacity="0.85"/>
+    <circle cx="67" cy="94" r="2" fill="#000052"/>
+    <rect x="96" y="58" width="24" height="42" rx="2" fill="#1C2466" stroke="#BE89FF" stroke-width="1" stroke-opacity="0.3"/>
+    
+    <!-- Landscaping Tree -->
+    <circle cx="152" cy="85" r="14" fill="#3B82F6" fill-opacity="0.4"/>
+    <circle cx="156" cy="74" r="12" fill="#BE89FF" fill-opacity="0.6"/>
+    <line x1="154" y1="86" x2="154" y2="118" stroke="#BE89FF" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/>
+  </g>
+
+  <!-- Right Architectural Structure: Modern Duplex Elevation -->
+  <g transform="translate(425, 48)">
+    <!-- Main Block -->
+    <rect x="10" y="18" width="125" height="100" rx="4" fill="#11174B" stroke="#BE89FF" stroke-width="1.2" stroke-opacity="0.35"/>
+    
+    <!-- Feature Tower -->
+    <rect x="65" y="4" width="75" height="114" rx="4" fill="#182163" stroke="#BE89FF" stroke-width="1.2" stroke-opacity="0.45"/>
+    
+    <!-- Accent Roof Fins -->
+    <line x1="60" y1="4" x2="144" y2="4" stroke="#BE89FF" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.8"/>
+
+    <!-- Upper Windows -->
+    <rect x="22" y="30" width="32" height="30" rx="2" fill="url(#windowGlow)"/>
+    <rect x="80" y="16" width="48" height="34" rx="2" fill="url(#windowGlow)"/>
+    <line x1="104" y1="16" x2="104" y2="50" stroke="#000052" stroke-width="1"/>
+
+    <!-- Lower Windows & Entrance -->
+    <rect x="22" y="74" width="32" height="34" rx="2" fill="#1C256B" stroke="#BE89FF" stroke-width="1" stroke-opacity="0.3"/>
+    <rect x="80" y="68" width="22" height="50" rx="2" fill="#BE89FF" fill-opacity="0.85"/>
+    <circle cx="85" cy="94" r="2" fill="#000052"/>
+    <rect x="110" y="74" width="20" height="32" rx="2" fill="url(#windowGlow)"/>
+
+    <!-- Palm Tree Silhouette -->
+    <path d="M-8 118 Q -4 80 -14 58 Q -8 68 -2 74 Q 2 64 6 54 Q 6 68 8 76 Q 18 64 26 56 Q 16 70 8 82 L-4 118 Z" fill="#BE89FF" fill-opacity="0.55"/>
+  </g>
+
+  <!-- Central Verification Crest & Concept Hero Art -->
+  <g transform="translate(300, 88)">
+    <!-- Radiating Verification Halo -->
+    <circle cx="0" cy="0" r="42" fill="#BE89FF" fill-opacity="0.12"/>
+    <circle cx="0" cy="0" r="32" stroke="#BE89FF" stroke-width="1.5" stroke-opacity="0.3" stroke-dasharray="4 3"/>
+
+    <!-- 3D Shield Crest -->
+    <path d="M0 -30 L26 -16 C26 12 14 30 0 38 C-14 30 -26 12 -26 -16 Z" fill="url(#shieldGrad)" filter="drop-shadow(0 4px 12px rgba(139, 92, 246, 0.45))"/>
+    
+    <!-- Shield Inner Bevel -->
+    <path d="M0 -26 L22 -14 C22 10 12 25 0 32 C-12 25 -22 10 -22 -14 Z" fill="none" stroke="#FFFFFF" stroke-width="1" stroke-opacity="0.5"/>
+
+    <!-- Clean Sharp Checkmark -->
+    <path d="M-9 0 L-2 8 L11 -7" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Floating Inspection Seals / Micro Tags -->
+  <g transform="translate(230, 142)">
+    <rect x="-35" y="-12" width="70" height="20" rx="10" fill="#13194B" stroke="#BE89FF" stroke-width="1" stroke-opacity="0.5"/>
+    <text x="0" y="2" fill="#E9D5FF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="8.5" font-weight="700" text-anchor="middle" letter-spacing="0.04em">INSPECTED</text>
+  </g>
+
+  <g transform="translate(370, 142)">
+    <rect x="-42" y="-12" width="84" height="20" rx="10" fill="#13194B" stroke="#BE89FF" stroke-width="1" stroke-opacity="0.5"/>
+    <text x="0" y="2" fill="#E9D5FF" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="8.5" font-weight="700" text-anchor="middle" letter-spacing="0.04em">DIRECT KEYS</text>
+  </g>
+
+  <!-- Sparkle Stars / Ambience -->
+  <g fill="#FFFFFF" opacity="0.85">
+    <path d="M210 32 Q 212 36 216 38 Q 212 40 210 44 Q 208 40 204 38 Q 208 36 210 32 Z"/>
+    <path d="M390 28 Q 392 31 395 33 Q 392 35 390 38 Q 388 35 385 33 Q 388 31 390 28 Z"/>
+    <path d="M300 24 Q 301 27 304 28 Q 301 29 300 32 Q 299 29 296 28 Q 299 27 300 24 Z"/>
+    <circle cx="170" cy="38" r="1.5" opacity="0.6"/>
+    <circle cx="430" cy="36" r="1.5" opacity="0.6"/>
+    <circle cx="280" cy="46" r="1" opacity="0.4"/>
+    <circle cx="325" cy="42" r="1" opacity="0.4"/>
+  </g>
+
+  <!-- Bottom Dark Gradient Edge to merge seamlessly -->
+  <rect x="0" y="160" width="600" height="20" fill="url(#bgGrad)" opacity="0.9"/>
+</svg>

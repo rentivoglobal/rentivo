@@ -3,17 +3,19 @@
  * Shared types for marketplace listings, auth, verification, and access requests.
  */
 
-export type PropertyCategory = 'residential' | 'commercial';
+export type PropertyCategory = 'residential' | 'commercial' | 'shortlet' | 'land' | (string & {});
 
 export type PropertyType = 
   | 'Self-Contain'
   | 'Flat'
   | 'Duplex'
   | 'Bungalow'
+  | 'House'
   | 'Shop'
   | 'Office'
   | 'Warehouse'
-  | 'Land';
+  | 'Land'
+  | (string & {});
 
 export type UserRole = 
   | 'tenant'
@@ -56,6 +58,7 @@ export interface ListerContact {
 
 export interface Listing {
   id: string;
+  ownerUserId?: string;
   title: string;
   category: PropertyCategory;
   type: PropertyType;
@@ -161,13 +164,25 @@ export interface User {
   createdAt?: string;
 }
 
+export interface AreaLocation {
+  id: string;
+  cityId: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  listingCount?: number;
+}
+
 export interface CityLocation {
   id: string;
   name: string;
+  slug?: string;
   state: string;
   isActive: boolean;
   isPilot: boolean;
   areas: string[];
+  areaItems?: AreaLocation[];
+  listingCount?: number;
 }
 
 export interface ReportItem {

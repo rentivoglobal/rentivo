@@ -16,7 +16,7 @@ import { authService } from '../services/authService';
 import '../styles/lister.css';
 
 interface ListerVerificationPageProps {
-  listings: Listing[];
+  listings?: Listing[];
   onBack: () => void;
   initialMode?: 'dashboard' | 'request';
   initialPropertyId?: string;
@@ -95,9 +95,9 @@ export const ListerVerificationPage: React.FC<ListerVerificationPageProps> = ({
 }) => {
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<'dashboard' | 'request'>(initialMode);
-  const [listings, setListings] = useState<Listing[]>(propListings);
+  const [listings, setListings] = useState<Listing[]>(propListings || []);
   const [selectedListingId, setSelectedListingId] = useState<string>(
-    initialPropertyId || searchParams.get('propertyId') || propListings[0]?.id || ''
+    initialPropertyId || searchParams.get('propertyId') || (propListings && propListings[0]?.id) || ''
   );
 
   useEffect(() => {
@@ -155,42 +155,36 @@ export const ListerVerificationPage: React.FC<ListerVerificationPageProps> = ({
 
   // Map listing to verification state
   const getListingVerification = (l: Listing): 'verified' | 'inspected' | 'scheduled' | 'requested' | 'revoked' | 'none' => {
-    if (l.id === 'prop-2') return 'inspected';
-    if (l.id === 'prop-4' || l.verificationStatus === 'rejected') return 'revoked';
     if (l.verificationStatus === 'verified') return 'verified';
-    if (l.verificationStatus === 'pending') return 'scheduled';
-    if (l.verificationStatus === 'unverified') return 'none';
+    if (l.verificationStatus === 'pending') return 'requested';
+    if (l.verificationStatus === 'rejected') return 'revoked';
     return 'none';
   };
 
   const getListingHistory = (l: Listing): VerificationHistoryItem[] => {
     const v = getListingVerification(l);
+    const dateStr = l.createdAt
+      ? new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      : 'Recently';
     if (v === 'revoked') {
       return [
-        { status: 'requested', date: '25 Jan 2026' },
-        { status: 'scheduled', date: '28 Jan 2026' },
-        { status: 'inspected', date: '2 Feb 2026' },
-        { status: 'verified', date: '5 Feb 2026' },
+        { status: 'requested', date: dateStr },
         {
           status: 'revoked',
-          date: '14 Aug 2026',
-          note: l.verificationNote || 'A routine recheck found the property had been renovated and reassigned to a different tenant.'
+          date: 'Recently',
+          note: l.verificationNote || 'Verification status was revoked during audit.'
         }
       ];
     }
     if (v === 'verified') {
       return [
-        { status: 'requested', date: '10 Sep 2026' },
-        { status: 'scheduled', date: '12 Sep 2026', note: 'Visit booked for 18 Sep.' },
-        { status: 'inspected', date: '18 Sep 2026' },
-        { status: 'verified', date: '20 Sep 2026' }
+        { status: 'requested', date: dateStr },
+        { status: 'verified', date: 'Active' }
       ];
     }
-    if (v === 'inspected') {
+    if (v === 'requested') {
       return [
-        { status: 'requested', date: '19 Sep 2026' },
-        { status: 'scheduled', date: '20 Sep 2026', note: 'Visit booked for 21 Sep.' },
-        { status: 'inspected', date: '21 Sep 2026' }
+        { status: 'requested', date: dateStr, note: 'Under review by Rentivo verification team.' }
       ];
     }
     return [];

@@ -33,6 +33,7 @@ desktop.ini
 # Cursor / local tooling
 .cursor/
 .cursorignore
+.agents/
 agent-transcripts/
 
 # OneDrive / Windows
@@ -45,3 +46,5 @@ agent-transcripts/
 *PropertyPro*
 *.download
 Properties _ Landlord Panel.html
+rentivo-*.html
+rentivo-checkout*.html

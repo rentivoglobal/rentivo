@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ArrowLeft, 
   ShieldCheck, 
@@ -12,25 +13,22 @@ import {
   Copy, 
   Check, 
   MailCheck, 
-  ArrowRight, 
   Lock, 
   ExternalLink,
-  Calendar,
-  Building,
-  UserCheck,
-  FileText,
   Printer,
   Sparkles,
   Gift,
-  ChevronRight
+  Check as CheckIcon,
+  Mail
 } from 'lucide-react';
 import { Listing, AccessRequest, ListerContact } from '../types';
 import { requestsService } from '../services/requestsService';
-import { formatNaira, formatPeriod } from '../utils/formatters';
+import { formatNaira } from '../utils/formatters';
 import { EmailNotificationModal } from '../components/EmailNotificationModal';
-import { isDemoSimulator, ACCESS_FEE_KOBO, paystackPublicKey } from '../lib/config';
+import { ACCESS_FEE_KOBO, paystackPublicKey } from '../lib/config';
 import { openPaystackCheckout } from '../lib/paystack';
 import { useAuth } from '../contexts/AuthContext';
+import '../styles/checkout.css';
 
 interface CheckoutPageProps {
   listing: Listing | null;
@@ -43,106 +41,145 @@ interface CheckoutPageProps {
 export const CheckoutPage: React.FC<CheckoutPageProps> = ({
   listing,
   existingRequest = null,
-  onCreated,
   onBack,
   onBrowseListings
 }) => {
   const { user } = useAuth();
-  const [step, setStep] = useState<'form' | 'checking' | 'confirmed' | 'paying' | 'unlocked' | 'unavailable'>('form');
-  const [name, setName] = useState(user?.name || '');
-  const [phone, setPhone] = useState(user?.phone || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [moveInTimeframe, setMoveInTimeframe] = useState('Immediately (Within 2 weeks)');
-  const [inspectionWindow, setInspectionWindow] = useState('Weekday Morning (9am–12pm)');
-  const [leasePurpose, setLeasePurpose] = useState('Personal / Residential');
-  
-  const [createdRequest, setCreatedRequest] = useState<AccessRequest | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
-  const [promoStats, setPromoStats] = useState(() => requestsService.getPromotionStats());
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
+  const [step, setStep] = useState<'confirmed' | 'paying' | 'unlocked' | 'unavailable' | 'checking'>('confirmed');
+  const [createdRequest, setCreatedRequest] = useState<AccessRequest | null>(existingRequest || null);
+  
+  const [email, setEmail] = useState(user?.email || existingRequest?.renterEmail || '');
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Promo code / waiver
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [showPromoBox, setShowPromoBox] = useState(false);
+
+  // Overlay / modal states matching rentivo-checkout (2).html
+  const [overlayStatus, setOverlayStatus] = useState<'idle' | 'opening' | 'confirming' | 'success'>('idle');
+
+  // Copy states
   const [copiedPhone, setCopiedPhone] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
-  const [copiedRef, setCopiedRef] = useState(false);
 
-  useEffect(() => {
-    void requestsService.loadPromotionStats().then(setPromoStats);
-  }, []);
-
-  useEffect(() => {
-    if (existingRequest) return;
-    if (!user) return;
-    setName((current) => current || user.name);
-    setPhone((current) => current || user.phone);
-    setEmail((current) => current || user.email);
-  }, [user, existingRequest]);
+  // Email preview drawer
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (!existingRequest) return;
     setCreatedRequest(existingRequest);
-    setName(existingRequest.renterName);
-    setPhone(existingRequest.renterPhone);
-    setEmail(existingRequest.renterEmail);
-    if (existingRequest.status === 'paid') setStep('unlocked');
-    else if (existingRequest.status === 'confirmed' || existingRequest.status === 'payment_pending') setStep('confirmed');
-    else if (existingRequest.status === 'unavailable') setStep('unavailable');
-    else setStep('checking');
+    if (existingRequest.renterEmail) {
+      setEmail(existingRequest.renterEmail);
+    }
+    if (existingRequest.status === 'paid') {
+      setStep('unlocked');
+    } else if (existingRequest.status === 'unavailable') {
+      setStep('unavailable');
+    } else if (existingRequest.status === 'confirmed' || existingRequest.status === 'payment_pending') {
+      setStep('confirmed');
+    } else {
+      setStep('checking');
+    }
   }, [existingRequest]);
 
+  // Handle Paystack redirect with reference/trxref in query string
   useEffect(() => {
-    if (!createdRequest || (createdRequest.status !== 'availability_pending' && createdRequest.status !== 'submitted')) return;
-    const timer = window.setInterval(async () => {
-      const latest = await requestsService.getRequestById(createdRequest.id);
-      if (!latest) return;
-      setCreatedRequest(latest);
-      if (latest.status === 'confirmed') setStep('confirmed');
-      if (latest.status === 'unavailable') setStep('unavailable');
-      if (latest.status === 'paid') setStep('unlocked');
-    }, 4000);
-    return () => window.clearInterval(timer);
-  }, [createdRequest?.id, createdRequest?.status]);
+    const ref = searchParams.get('reference') || searchParams.get('trxref');
+    if (!ref || !createdRequest || createdRequest.status === 'paid' || verifyingPayment) return;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    let isMounted = true;
+    const verifyRedirect = async () => {
+      setVerifyingPayment(true);
+      setOverlayStatus('confirming');
+      try {
+        const verifyRes = await requestsService.verifyPaystack(createdRequest.id, ref);
+        if (!isMounted) return;
+        if (verifyRes.success && verifyRes.request) {
+          setCreatedRequest(verifyRes.request);
+          setStep('unlocked');
+          setOverlayStatus('success');
+        } else {
+          for (let i = 0; i < 8; i += 1) {
+            const latest = await requestsService.getRequestById(createdRequest.id);
+            if (!isMounted) return;
+            if (latest?.status === 'paid') {
+              setCreatedRequest(latest);
+              setStep('unlocked');
+              setOverlayStatus('success');
+              break;
+            }
+            await new Promise((r) => setTimeout(r, 1000));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to verify redirect payment:', err);
+        if (isMounted) {
+          setOverlayStatus('idle');
+          setStep('confirmed');
+        }
+      } finally {
+        if (isMounted) setVerifyingPayment(false);
+        try {
+          const newParams = new URLSearchParams(window.location.search);
+          newParams.delete('reference');
+          newParams.delete('trxref');
+          const cleanUrl = window.location.pathname + (newParams.toString() ? `?${newParams.toString()}` : '');
+          window.history.replaceState({}, '', cleanUrl);
+        } catch (_e) {
+          // Ignore
+        }
+      }
+    };
 
-    try {
-    if (!listing) return;
-    const req = await requestsService.createRequest(listing, { name, phone, email });
-      setCreatedRequest(req);
-      setStep('checking');
-      onCreated?.(req);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+    void verifyRedirect();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [searchParams, createdRequest?.id, createdRequest?.status, verifyingPayment]);
+
+  const handleApplyPromoCode = () => {
+    if (!promoCodeInput.trim()) {
+      setPromoError('Please enter a code');
+      return;
+    }
+    const res = requestsService.validatePromoCode(promoCodeInput);
+    if (res.valid) {
+      setAppliedPromoCode(promoCodeInput.trim().toUpperCase());
+      setPromoError(null);
+    } else {
+      setPromoError(res.message);
     }
   };
 
-  const handleSimulateListerReply = async (reply: 'YES' | 'NO') => {
-    if (!createdRequest) return;
-    setLoading(true);
-    const updated = await requestsService.simulateListerResponse(createdRequest.id, reply, listing?.lister);
-    setLoading(false);
-    if (updated) {
-      setCreatedRequest(updated);
-      setStep(reply === 'YES' ? 'confirmed' : 'unavailable');
-    }
+  const handleRemovePromoCode = () => {
+    setAppliedPromoCode(null);
+    setPromoCodeInput('');
+    setPromoError(null);
   };
 
   const handleClaimWaiver = async () => {
     if (!createdRequest) return;
     setLoading(true);
+    setOverlayStatus('confirming');
+    setPromoError(null);
     try {
-      const waived = await requestsService.claimPromotionWaiver(createdRequest.id, listing?.lister);
+      const waived = await requestsService.claimPromotionWaiver(createdRequest.id, appliedPromoCode || undefined, listing?.lister);
       if (waived) {
         setCreatedRequest(waived);
-        setPromoStats(requestsService.getPromotionStats());
         setStep('unlocked');
+        setOverlayStatus('success');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      handlePay();
+      setPromoError(e?.message || 'Failed to claim waiver.');
+      setOverlayStatus('idle');
     } finally {
       setLoading(false);
     }
@@ -150,1172 +187,701 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const handlePay = async () => {
     if (!createdRequest) return;
-    if (createdRequest.status !== 'confirmed' && !createdRequest.isPromotionWaiverApplied) {
+
+    if (appliedPromoCode) {
+      await handleClaimWaiver();
       return;
     }
-    setStep('paying');
+
+    setOverlayStatus('opening');
+    setLoading(true);
+
     try {
       if (paystackPublicKey) {
-        const init = await requestsService.initializePaystack(createdRequest.id, email);
-        await openPaystackCheckout({
-          email,
-          amountKobo: ACCESS_FEE_KOBO,
-          reference: init.reference,
-          metadata: { requestId: createdRequest.id }
-        });
-        for (let i = 0; i < 8; i += 1) {
-          await new Promise((r) => setTimeout(r, 1200));
-          const latest = await requestsService.getRequestById(createdRequest.id);
-          if (latest?.status === 'paid') {
-            setCreatedRequest(latest);
-            setStep('unlocked');
-            return;
+        const init = await requestsService.initializePaystack(createdRequest.id, email || user?.email || 'renter@rentivos.com.ng');
+        
+        // Brief animation transition matching rentivo-checkout (2).html
+        setTimeout(async () => {
+          try {
+            const checkoutRes = await openPaystackCheckout({
+              email: email || user?.email || 'renter@rentivos.com.ng',
+              amountKobo: ACCESS_FEE_KOBO,
+              reference: init.reference,
+              metadata: { requestId: createdRequest.id }
+            });
+
+            setOverlayStatus('confirming');
+            const refToVerify = checkoutRes?.reference || init.reference;
+            const verifyRes = await requestsService.verifyPaystack(createdRequest.id, refToVerify);
+            if (verifyRes.success && verifyRes.request) {
+              setCreatedRequest(verifyRes.request);
+              setStep('unlocked');
+              setOverlayStatus('success');
+              return;
+            }
+
+            for (let i = 0; i < 8; i += 1) {
+              const latest = await requestsService.getRequestById(createdRequest.id);
+              if (latest?.status === 'paid') {
+                setCreatedRequest(latest);
+                setStep('unlocked');
+                setOverlayStatus('success');
+                return;
+              }
+              await new Promise((r) => setTimeout(r, 1000));
+            }
+          } catch (checkoutErr) {
+            console.warn('Paystack popup dismissed or error:', checkoutErr);
+            setOverlayStatus('idle');
+          } finally {
+            setLoading(false);
           }
-        }
-      }
-      const paid = await requestsService.completePayment(createdRequest.id, listing?.lister);
-      if (paid) {
-        setCreatedRequest(paid);
-        setStep('unlocked');
+        }, 600);
+      } else {
+        // Fallback / simulator
+        setTimeout(async () => {
+          setOverlayStatus('confirming');
+          setTimeout(async () => {
+            const paid = await requestsService.completePayment(createdRequest.id, listing?.lister);
+            if (paid) {
+              setCreatedRequest(paid);
+              setStep('unlocked');
+              setOverlayStatus('success');
+            } else {
+              setOverlayStatus('idle');
+            }
+            setLoading(false);
+          }, 800);
+        }, 600);
       }
     } catch (err) {
-      console.error(err);
-      setStep('confirmed');
+      console.error('Payment initiation error:', err);
+      setOverlayStatus('idle');
+      setLoading(false);
     }
   };
 
   const handleCopyPhone = () => {
-    const ph = createdRequest?.unlockedListerContact?.phone || '';
-    navigator.clipboard?.writeText(ph);
-    setCopiedPhone(true);
-    setTimeout(() => setCopiedPhone(false), 2000);
+    const ph = createdRequest?.unlockedListerContact?.phone || listing?.lister?.phone || '';
+    if (ph) {
+      navigator.clipboard?.writeText(ph);
+      setCopiedPhone(true);
+      setTimeout(() => setCopiedPhone(false), 2000);
+    }
   };
 
   const handleCopyAddress = () => {
     const addr = createdRequest?.unlockedListerContact
       ? (createdRequest.unlockedListerContact as ListerContact & { exactAddress?: string }).exactAddress || `${listing?.area}, Ibadan`
       : `${listing?.area}, Ibadan`;
-    navigator.clipboard?.writeText(addr);
-    setCopiedAddress(true);
-    setTimeout(() => setCopiedAddress(false), 2000);
+    if (addr) {
+      navigator.clipboard?.writeText(addr);
+      setCopiedAddress(true);
+      setTimeout(() => setCopiedAddress(false), 2000);
+    }
   };
 
   const unlockedLister: ListerContact = createdRequest?.unlockedListerContact || listing?.lister || {
-    fullName: 'Lister',
+    fullName: 'Property Owner',
     phone: '',
     whatsapp: '',
-    memberSince: '',
-    activeListingsCount: 0,
-    responseRate: '—'
+    memberSince: '2024',
+    activeListingsCount: 1,
+    responseRate: '100%'
   };
-  const propertyAddress = listing?.addressDescription || `${listing?.area || ''}, Ibadan`;
+
+  const cleanPhone = unlockedLister.phone ? unlockedLister.phone.replace(/\s+/g, '') : '';
+  const cleanWa = (unlockedLister.whatsapp || unlockedLister.phone || '').replace(/\D/g, '');
+  const propertyAddress = createdRequest?.unlockedListerContact
+    ? (createdRequest.unlockedListerContact as ListerContact & { exactAddress?: string }).exactAddress || listing?.addressDescription || `${listing?.area || ''}, Ibadan`
+    : listing?.addressDescription || `${listing?.area || ''}, Ibadan`;
+  const referenceId = createdRequest?.id ? `RQ-${createdRequest.id.slice(0, 5).toUpperCase()}` : 'RQ-20604';
 
   if (!listing) {
     return (
-      <div style={{ backgroundColor: '#F8FAFC', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-        <div style={{ textAlign: 'center', maxWidth: '440px', backgroundColor: '#FFFFFF', padding: '32px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#000052', marginBottom: '8px' }}>No Property Selected</h2>
-          <p style={{ fontSize: '13.5px', color: '#64748B', marginBottom: '20px' }}>Please select a property from the marketplace before proceeding to checkout.</p>
-          <button type="button" onClick={onBrowseListings} style={{ backgroundColor: '#000052', color: '#FFFFFF', padding: '10px 20px', borderRadius: '8px', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
-            Browse Available Properties
+      <div className="checkout-flow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '40px 20px' }}>
+        <div style={{ textAlign: 'center', maxWidth: '420px', background: 'var(--surface)', padding: '32px', borderRadius: 'var(--r-m)', border: '1px solid var(--border)' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--navy)', marginBottom: '8px' }}>No Property Selected</h2>
+          <p style={{ fontSize: '0.88rem', color: 'var(--ink-soft)', marginBottom: '20px' }}>Please select a property from the marketplace before proceeding to checkout.</p>
+          <button type="button" onClick={onBrowseListings} className="btn btn-accent">
+            Browse Properties
           </button>
         </div>
       </div>
     );
   }
 
+  const propertyPhoto = listing.photos?.[0] || 'https://ik.imagekit.io/3unwhixxd/Property%20type.png';
+
   return (
-    <div style={{ backgroundColor: '#F8FAFC', minHeight: '100vh', paddingBottom: '80px' }}>
-      {/* Distraction-Free Focused Checkout Header */}
-      <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E2E8F0', padding: '14px 0' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button 
-              onClick={onBack}
-              style={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: '6px', 
-                fontSize: '13.5px', 
-                fontWeight: 700, 
-                color: '#000052',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer'
-              }}
-            >
-              <ArrowLeft size={16} />
-              <span>Back to property</span>
-            </button>
+    <div className="checkout-flow">
+      {/* Header matching rentivo-checkout (2).html */}
+      <header className="checkout-topbar">
+        <div className="topbar-row">
+          <button className="back-btn" onClick={onBack} aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <div className="topbar-title">Checkout</div>
+          <span className="secure-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="5" y="10" width="14" height="10" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+            Secure
+          </span>
+        </div>
+      </header>
 
-            <div style={{ width: '1px', height: '18px', backgroundColor: '#CBD5E1' }}></div>
+      {/* Mini Progress Stepper matching rentivo-checkout (2).html */}
+      <div className="mini-steps">
+        <div className={`mini-step ${step !== 'unavailable' ? 'done' : ''}`}>
+          <span className="dot">{step === 'unavailable' ? '✕' : '✓'}</span>
+          {step === 'unavailable' ? 'Unavailable' : 'Confirmed'}
+        </div>
+        <div className={`mini-line ${step === 'unlocked' ? 'done' : ''}`} />
+        <div className={`mini-step ${step === 'unlocked' ? 'done' : step === 'confirmed' || step === 'paying' ? 'now' : ''}`}>
+          <span className="dot">{step === 'unlocked' ? '✓' : '2'}</span>
+          Pay
+        </div>
+        <div className={`mini-line ${step === 'unlocked' ? 'done' : ''}`} />
+        <div className={`mini-step ${step === 'unlocked' ? 'now' : ''}`}>
+          <span className="dot">{step === 'unlocked' ? '✓' : '3'}</span>
+          Connect
+        </div>
+      </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#16794A', fontWeight: 700, backgroundColor: '#E8F7EE', padding: '4px 10px', borderRadius: '999px' }}>
-              <Lock size={12} />
-              <span>256-Bit Encrypted Secure Checkout</span>
+      {/* Main Container Shell */}
+      <div className="shell view-enter">
+        <div className="main-card">
+
+          {/* Property Hero Photo & Status Badge */}
+          <div className="hero-photo">
+            {step === 'unlocked' ? (
+              <span className="hero-badge">
+                <CheckIcon size={13} strokeWidth={2.4} />
+                Contact unlocked
+              </span>
+            ) : step === 'unavailable' ? (
+              <span className="hero-badge badge-danger">
+                <AlertTriangle size={13} strokeWidth={2.4} />
+                Already taken
+              </span>
+            ) : (
+              <span className="hero-badge">
+                <CheckIcon size={13} strokeWidth={2.4} />
+                Confirmed available
+              </span>
+            )}
+            <img src={propertyPhoto} alt={listing.title} />
+          </div>
+
+          {/* Section 1: Property Title & Meta */}
+          <div className="sect">
+            <h1 className="prop-title">{listing.title}</h1>
+            <div className="prop-meta">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z" />
+                <circle cx="12" cy="10" r="2.5" />
+              </svg>
+              {listing.addressDescription || `${listing.area}, Ibadan`}
             </div>
           </div>
 
-          <div className="hide-on-mobile" style={{ fontSize: '13px', color: '#64748B' }}>
-            Direct Landlord Access Pass · <span style={{ fontWeight: 700, color: '#000052' }}>Ibadan</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Progress Stepper Bar */}
-      <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E2E8F0', padding: '12px 0' }}>
-        {/* Desktop 5-Step Stepper */}
-        <div className="container hide-on-mobile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '12.5px', flexWrap: 'wrap' }}>
-          <span style={{ color: '#16794A', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <CheckCircle2 size={14} /> 1. Review Property
-          </span>
-          <ChevronRight size={13} color="#94A3B8" />
-          <span style={{ color: step === 'form' ? '#000052' : '#16794A', fontWeight: step === 'form' ? 800 : 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {step !== 'form' && <CheckCircle2 size={14} />} 2. Renter Information
-          </span>
-          <ChevronRight size={13} color="#94A3B8" />
-          <span style={{ color: step === 'checking' ? '#000052' : step === 'confirmed' || step === 'paying' || step === 'unlocked' ? '#16794A' : '#94A3B8', fontWeight: step === 'checking' ? 800 : 600 }}>
-            3. Vacancy Check
-          </span>
-          <ChevronRight size={13} color="#94A3B8" />
-          <span style={{ color: step === 'confirmed' || step === 'paying' ? '#000052' : step === 'unlocked' ? '#16794A' : '#94A3B8', fontWeight: step === 'confirmed' || step === 'paying' ? 800 : 600 }}>
-            4. Paystack Payment
-          </span>
-          <ChevronRight size={13} color="#94A3B8" />
-          <span style={{ color: step === 'unlocked' ? '#16794A' : '#94A3B8', fontWeight: step === 'unlocked' ? 800 : 600 }}>
-            5. Direct Access Unlocked
-          </span>
-        </div>
-
-        {/* Mobile Compact Progress Bar */}
-        <div className="container show-on-mobile" style={{ padding: '4px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', fontSize: '12px' }}>
-            <span style={{ fontWeight: 800, color: '#000052' }}>
-              {step === 'form' && 'Step 2 of 5: Renter Information'}
-              {step === 'checking' && 'Step 3 of 5: Vacancy Check'}
-              {(step === 'confirmed' || step === 'paying') && 'Step 4 of 5: Paystack Payment'}
-              {step === 'unlocked' && 'Step 5 of 5: Access Unlocked'}
-              {step === 'unavailable' && 'Listing Unavailable'}
-            </span>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#16794A' }}>
-              {step === 'form' ? '40%' : step === 'checking' ? '60%' : step === 'confirmed' || step === 'paying' ? '80%' : '100%'}
-            </span>
-          </div>
-          <div style={{ height: '4px', backgroundColor: '#E2E8F0', borderRadius: '999px', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                backgroundColor: '#000052', 
-                borderRadius: '999px', 
-                width: step === 'form' ? '40%' : step === 'checking' ? '60%' : step === 'confirmed' || step === 'paying' ? '80%' : '100%',
-                transition: 'width 0.3s ease'
-              }} 
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Main Checkout Container: 2-Column Split Layout */}
-      <div className="container" style={{ marginTop: '30px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px', alignItems: 'start' }}>
-          
-          {/* LEFT COLUMN (62%): The Progressive Checkout Journey */}
-          <div style={{ minWidth: 0, flex: '1 1 580px' }}>
-            
-            {/* STEP 1: Renter Verification & Contact Details Form */}
-            {step === 'form' && (
-              <div style={{ backgroundColor: '#FFFFFF', borderRadius: '18px', border: '1px solid #E2E8F0', padding: '28px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-                <div style={{ marginBottom: '22px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#16794A', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                    Stage 1 of 3 · Zero Risk
-                  </span>
-                  <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#000052', margin: '4px 0 6px' }}>
-                    Renter Verification &amp; Contact Details
-                  </h1>
-                  <p style={{ fontSize: '13.5px', color: '#64748B', lineHeight: 1.5 }}>
-                    Provide your contact details so we can verify vacancy directly with <b>{listing.lister.fullName}</b>. No payment card is required now.
-                  </p>
+          {/* STEP: CONFIRMED / PAYMENT PENDING */}
+          {step === 'confirmed' && (
+            <>
+              {/* Section 2: Fee Breakdown */}
+              <div className="sect">
+                <div className="fee-row">
+                  <span className="lbl">Rentivo access fee</span>
+                  <span>₦5,000</span>
+                </div>
+                <div className="fee-row">
+                  <span className="lbl">Processing fee</span>
+                  <span>₦0</span>
                 </div>
 
-                {/* Free Guarantee Alert Callout */}
-                <div style={{ 
-                  backgroundColor: '#EFF6FF', 
-                  border: '1.5px solid #BFDBFE', 
-                  borderRadius: '12px', 
-                  padding: '14px 18px', 
-                  marginBottom: '24px',
-                  display: 'flex',
-                  gap: '12px',
-                  alignItems: 'flex-start'
-                }}>
-                  <ShieldCheck size={20} color="#1D4ED8" style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#1E3A8A', marginBottom: '4px' }}>
-                      Rentivo Vacancy Guarantee
-                    </div>
-                    <div style={{ fontSize: '12.5px', color: '#1E293B', lineHeight: 1.5 }}>
-                      • <b>100% Free to submit:</b> No payment card needed today.<br />
-                      • <b>Automated verification:</b> We email the landlord a one-click YES / NO link to confirm vacancy.<br />
-                      • <b>Flat access fee:</b> Payable only if the landlord confirms the property is unoccupied.
-                    </div>
-                  </div>
-                </div>
-
-                <form onSubmit={handleSubmit}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '24px' }}>
-                    
-                    {/* Full Name */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>
-                        Full Name
-                      </label>
-                      <input 
-                        type="text" 
-                        required 
-                        value={name} 
-                        onChange={(e) => setName(e.target.value)} 
-                        placeholder="e.g. Adeola Johnson"
-                        style={{ width: '100%', height: '44px', borderRadius: '10px', border: '1px solid #CBD5E1', padding: '0 14px', fontSize: '14px', backgroundColor: '#FFFFFF' }}
-                      />
-                    </div>
-
-                    {/* WhatsApp Phone Number */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>
-                        Phone number
-                      </label>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <span style={{ 
-                          height: '44px', 
-                          padding: '0 12px', 
-                          backgroundColor: '#F1F5F9', 
-                          border: '1px solid #CBD5E1', 
-                          borderRight: 'none', 
-                          borderRadius: '10px 0 0 10px', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          fontSize: '13px', 
-                          fontWeight: 700, 
-                          color: '#334155' 
-                        }}>
-                          +234 (NG)
-                        </span>
-                        <input 
-                          type="tel" 
-                          required 
-                          value={phone} 
-                          onChange={(e) => setPhone(e.target.value)} 
-                          placeholder="803 123 4567"
-                          style={{ flex: 1, height: '44px', borderRadius: '0 10px 10px 0', border: '1px solid #CBD5E1', padding: '0 14px', fontSize: '14px', backgroundColor: '#FFFFFF' }}
-                        />
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
-                        Used on your request record. Vacancy updates and the landlord dossier are sent by email.
-                      </div>
-                    </div>
-
-                    {/* Email Address */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>
-                        Email Address (For Official Receipt &amp; Dossier)
-                      </label>
-                      <input 
-                        type="email" 
-                        required 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
-                        placeholder="adeola@example.com"
-                        style={{ width: '100%', height: '44px', borderRadius: '10px', border: '1px solid #CBD5E1', padding: '0 14px', fontSize: '14px', backgroundColor: '#FFFFFF' }}
-                      />
-                      <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
-                        Your official Paystack receipt, landlord direct contact details, and physical landmark address are dispatched here.
-                      </div>
-                    </div>
-
-                    {/* Move-in Timeline & Inspection Preference (Researched Flow Enhancements) */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>
-                          Move-in Timeframe
-                        </label>
-                        <select
-                          value={moveInTimeframe}
-                          onChange={(e) => setMoveInTimeframe(e.target.value)}
-                          style={{ width: '100%', height: '44px', borderRadius: '10px', border: '1px solid #CBD5E1', padding: '0 12px', fontSize: '13px', backgroundColor: '#FFFFFF', color: '#0F172A' }}
-                        >
-                          <option value="Immediately (Within 2 weeks)">Immediately (Within 2 weeks)</option>
-                          <option value="Within 1 month">Within 1 month</option>
-                          <option value="Within 2-3 months">Within 2-3 months</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>
-                          Preferred Inspection Time
-                        </label>
-                        <select
-                          value={inspectionWindow}
-                          onChange={(e) => setInspectionWindow(e.target.value)}
-                          style={{ width: '100%', height: '44px', borderRadius: '10px', border: '1px solid #CBD5E1', padding: '0 12px', fontSize: '13px', backgroundColor: '#FFFFFF', color: '#0F172A' }}
-                        >
-                          <option value="Weekday Morning (9am–12pm)">Weekday Morning (9am–12pm)</option>
-                          <option value="Weekday Afternoon (1pm–5pm)">Weekday Afternoon (1pm–5pm)</option>
-                          <option value="Weekend (Saturday/Sunday)">Weekend (Saturday/Sunday)</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '6px' }}>
-                        Purpose of Tenancy
-                      </label>
-                      <select
-                        value={leasePurpose}
-                        onChange={(e) => setLeasePurpose(e.target.value)}
-                        style={{ width: '100%', height: '44px', borderRadius: '10px', border: '1px solid #CBD5E1', padding: '0 12px', fontSize: '13px', backgroundColor: '#FFFFFF', color: '#0F172A' }}
-                      >
-                        <option value="Personal / Residential">Personal / Residential</option>
-                        <option value="Family Relocation">Family Relocation</option>
-                        <option value="Work / Job Transfer">Work / Job Transfer</option>
-                        <option value="Student Housing / Scholar">Student Housing / Scholar</option>
-                      </select>
-                    </div>
-
-                  </div>
-
-                  {/* Submit CTA */}
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary btn-block btn-lg" 
-                    disabled={loading}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '10px',
-                      height: '50px',
-                      fontSize: '15px',
-                      fontWeight: 800,
-                      backgroundColor: '#000052',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: '999px',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 14px rgba(0, 0, 82, 0.2)'
-                    }}
-                  >
-                    <span>{loading ? 'Submitting Request...' : 'Check Vacancy & Proceed (Free)'}</span>
-                    <ArrowRight size={18} />
-                  </button>
-                  
-                  <div style={{ textAlign: 'center', fontSize: '12px', color: '#64748B', marginTop: '12px' }}>
-                    By clicking submit, you confirm you are requesting verified landlord details for this Ibadan property.
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {/* STEP 2: Live Automated Vacancy Verification Radar */}
-            {step === 'checking' && (
-              <div style={{ backgroundColor: '#FFFFFF', borderRadius: '18px', border: '1px solid #E2E8F0', padding: '36px 28px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-                <div style={{ 
-                  width: '72px', 
-                  height: '72px', 
-                  borderRadius: '50%', 
-                  backgroundColor: '#EFF6FF', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  margin: '0 auto 20px', 
-                  color: '#1D4ED8',
-                  border: '2px solid #BFDBFE'
-                }}>
-                  <Clock size={36} className="animate-spin" />
-                </div>
-
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#1D4ED8', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  Stage 2 of 3 · Live Automated Check
-                </span>
-                <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#000052', margin: '6px 0 8px' }}>
-                  Checking Vacancy with Landlord
-                </h2>
-                <p style={{ fontSize: '14px', color: '#475569', maxWidth: '460px', margin: '0 auto 24px', lineHeight: 1.6 }}>
-                  We emailed <b>{listing.lister.fullName}</b> a one-click YES / NO link to confirm the {listing.area} listing is vacant. You will not be asked to pay until they confirm.
-                </p>
-
-                {/* Authentic Live Status & SLA Reassurance */}
-                <div style={{
-                  backgroundColor: '#F8FAFC',
-                  borderRadius: '16px',
-                  border: '1px solid #E2E8F0',
-                  padding: '22px 24px',
-                  maxWidth: '520px',
-                  margin: '0 auto 24px',
-                  textAlign: 'left'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#2563EB', animation: 'pulse 1.5s infinite' }} />
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Automated Vacancy Inquiry Dispatched
+                {appliedPromoCode && (
+                  <div className="fee-row" style={{ color: 'var(--lavender-deep)', fontWeight: 700 }}>
+                    <span className="lbl" style={{ color: 'var(--lavender-deep)' }}>
+                      Promo waiver ({appliedPromoCode})
                     </span>
+                    <span>-₦5,000</span>
                   </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px', color: '#475569' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                      <CheckCircle2 size={16} color="#16794A" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <span>Inquiry sent to <b>{listing.lister.fullName}</b> via SMS &amp; secure email link.</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                      <Clock size={16} color="#2563EB" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <span>We ask the landlord to verify vacancy. Most replies arrive within a day.</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                      <ShieldCheck size={16} color="#7E22CE" style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <span>Zero charge occurs until the lister confirms vacancy. 100% money-back guarantee.</span>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px solid #E2E8F0', marginTop: '16px', paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                    <span style={{ fontSize: '12px', color: '#64748B' }}>
-                      Need help? Ibadan Desk: <a href="mailto:support@rentivo.ng" style={{ color: '#000052', fontWeight: 700, textDecoration: 'none' }}>support@rentivo.ng</a>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={onBrowseListings}
-                      style={{ background: 'none', border: 'none', color: '#000052', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <span>Browse More Homes</span>
-                      <ArrowRight size={13} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: Confirmed Available - Prompt ₦5,000 Paystack */}
-            {step === 'confirmed' && (
-              <div style={{ backgroundColor: '#FFFFFF', borderRadius: '18px', border: '1px solid #E2E8F0', padding: '28px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                  <div style={{ 
-                    width: '64px', 
-                    height: '64px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#E8F7EE', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    margin: '0 auto 12px', 
-                    color: '#16794A',
-                    border: '1.5px solid #A7F3D0'
-                  }}>
-                    <CheckCircle2 size={34} />
-                  </div>
-
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#16794A', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                    Stage 3 of 3 · Vacancy Confirmed
-                  </span>
-                  <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#000052', margin: '4px 0 6px' }}>
-                    Property Confirmed Vacant &amp; Ready!
-                  </h2>
-                  <p style={{ fontSize: '13.5px', color: '#475569', maxWidth: '440px', margin: '0 auto' }}>
-                    <b>{listing.lister.fullName}</b> has verified that <b>{listing.title}</b> is currently unoccupied and ready for immediate physical inspection.
-                  </p>
-                </div>
-
-                {/* Promotional Launch Banner (FR-5.3 & FR-5.4) */}
-                {promoStats.isActive ? (
-                  <div style={{
-                    backgroundColor: '#F3E8FF',
-                    border: '1.5px solid #BE89FF',
-                    borderRadius: '14px',
-                    padding: '16px 18px',
-                    marginBottom: '18px',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px'
-                  }}>
-                    <Sparkles size={22} color="#7E22CE" style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#000052' }}>
-                          First-100-Users Launch Promotion Active!
-                        </span>
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 800,
-                          backgroundColor: '#7E22CE',
-                          color: '#FFFFFF',
-                          padding: '2px 8px',
-                          borderRadius: '999px'
-                        }}>
-                          {promoStats.remaining} waivers left
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '12.5px', color: '#581C87', margin: '4px 0 0', lineHeight: 1.45 }}>
-                        As part of Rentivo's Ibadan pilot launch, the flat access fee is <b>100% waived</b> for the first 100 qualifying renters. Unlock verified direct contact at <b>₦0</b>.
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* High-Contrast Transparent Fee Breakdown Card */}
-                <div style={{ 
-                  backgroundColor: '#F8FAFC', 
-                  border: '1.5px solid #CBD5E1', 
-                  borderRadius: '14px', 
-                  padding: '20px', 
-                  marginBottom: '20px' 
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>Standard Access Fee:</span>
-                    <span style={{
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: promoStats.isActive ? '#94A3B8' : '#000052',
-                      textDecoration: promoStats.isActive ? 'line-through' : 'none',
-                      fontFamily: 'monospace'
-                    }}>
-                      Standard Access Fee
-                    </span>
-                  </div>
-
-                  {promoStats.isActive && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', color: '#7E22CE' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Gift size={14} />
-                        <span>First-100-Users Promotion Waiver:</span>
-                      </span>
-                      <span style={{ fontSize: '15px', fontWeight: 800, fontFamily: 'monospace' }}>-Access Fee Waived</span>
-                    </div>
-                  )}
-
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingTop: '10px',
-                    borderTop: '1.5px solid #E2E8F0',
-                    marginBottom: '12px'
-                  }}>
-                    <span style={{ fontSize: '14.5px', fontWeight: 800, color: '#000052' }}>Total Due Today:</span>
-                    <span style={{ fontSize: '22px', fontWeight: 800, color: promoStats.isActive ? '#16794A' : '#000052', fontFamily: 'monospace' }}>
-                      {promoStats.isActive ? '₦0.00 (FREE)' : 'Access Fee'}
-                    </span>
-                  </div>
-
-                  <div style={{ borderTop: '1px dashed #CBD5E1', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16794A' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Check size={14} />
-                        <span>Traditional Agent Commission Saved:</span>
-                      </span>
-                      <span style={{ fontWeight: 800 }}>~₦85,000.00</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16794A' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Check size={14} />
-                        <span>Upfront Roadside Inspection / Gate Fees:</span>
-                      </span>
-                      <span style={{ fontWeight: 800 }}>₦0.00</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', marginTop: '6px', fontSize: '12px' }}>
-                      <Lock size={13} />
-                      <span>Unlocks direct phone number, WhatsApp link, physical landmark address, and PDF receipt.</span>
-                    </div>
-                  </div>
-                </div>
-
-                {promoStats.isActive ? (
-                  <button 
-                    type="button"
-                    className="btn btn-primary btn-block btn-lg"
-                    onClick={handleClaimWaiver}
-                    disabled={loading}
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: '10px',
-                      height: '52px',
-                      fontSize: '16px',
-                      fontWeight: 800,
-                      backgroundColor: '#16794A',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: '999px',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 14px rgba(22, 121, 74, 0.3)',
-                      marginBottom: '12px'
-                    }}
-                  >
-                    <CheckCircle2 size={20} />
-                    <span>{loading ? 'Unlocking Dossier...' : 'Claim Launch Waiver & Unlock Contact (₦0)'}</span>
-                    <ArrowRight size={18} />
-                  </button>
-                ) : (
-                  <button 
-                    type="button"
-                    className="btn btn-primary btn-block btn-lg"
-                    onClick={handlePay}
-                    disabled={loading}
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: '10px',
-                      height: '52px',
-                      fontSize: '16px',
-                      fontWeight: 800,
-                      backgroundColor: '#000052',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: '999px',
-                      cursor: 'pointer',
-                      boxShadow: '0 4px 14px rgba(0, 0, 82, 0.25)',
-                      marginBottom: '12px'
-                    }}
-                  >
-                    <CreditCard size={20} />
-                    <span>Pay Access Fee with Paystack</span>
-                    <ArrowRight size={18} />
-                  </button>
                 )}
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '12px', color: '#64748B' }}>
-                  <ShieldCheck size={14} color="#16794A" />
-                  <span>{promoStats.isActive ? 'Zero debit card entry required · Instant Email Receipt & Dossier' : 'Secured by Paystack 256-bit SSL · Instant Email Receipt & Dossier'}</span>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 4: Paying Simulation */}
-            {step === 'paying' && (
-              <div style={{ backgroundColor: '#FFFFFF', borderRadius: '18px', border: '1px solid #E2E8F0', padding: '48px 28px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-                <div style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '50%',
-                  backgroundColor: '#EFF6FF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 18px',
-                  color: '#1D4ED8'
-                }}>
-                  <CreditCard size={32} className="animate-spin" />
-                </div>
-                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#000052', marginBottom: '8px' }}>
-                  Processing Payment via Paystack...
-                </h3>
-                <p style={{ fontSize: '13.5px', color: '#64748B', maxWidth: '380px', margin: '0 auto' }}>
-                  Connecting with Paystack secure gateway. Unlocking landlord contact dossier and generating transactional email receipt.
-                </p>
-              </div>
-            )}
-
-            {/* STEP 5: Contact Unlocked & Email Dispatched */}
-            {step === 'unlocked' && (
-              <div style={{ backgroundColor: '#FFFFFF', borderRadius: '18px', border: '1px solid #E2E8F0', padding: '28px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-                <div style={{ textAlign: 'center', marginBottom: '18px' }}>
-                  <div style={{ 
-                    width: '60px', 
-                    height: '60px', 
-                    borderRadius: '50%', 
-                    backgroundColor: '#E8F7EE', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    margin: '0 auto 10px', 
-                    color: '#16794A',
-                    border: '1.5px solid #A7F3D0'
-                  }}>
-                    <CheckCircle2 size={32} />
-                  </div>
-
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#16794A', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                    {createdRequest?.isPromotionWaiverApplied ? 'Launch Promotion Access Unlocked' : 'Access Unlocked & Paid'}
-                  </span>
-                  <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#000052', margin: '4px 0' }}>
-                    Direct Landlord Contact Unlocked!
-                  </h2>
-                  <p style={{ fontSize: '13px', color: '#64748B' }}>
-                    {createdRequest?.isPromotionWaiverApplied 
-                      ? 'First-100-Users Launch Waiver applied (₦0 Access Fee). You can now contact the verified lister directly.'
-                      : 'Payment verified. You can now contact the verified lister directly.'}
-                  </p>
+                <div className="fee-row total">
+                  <span className="lbl">Total due</span>
+                  <span className="amt">{appliedPromoCode ? '₦0' : '₦5,000'}</span>
                 </div>
 
-                {/* Email Dispatched Banner with Interactive Preview Button */}
-                <div style={{
-                  backgroundColor: '#E8F7EE',
-                  border: '1.5px solid #16794A',
-                  borderRadius: '12px',
-                  padding: '14px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  marginBottom: '20px',
-                  flexWrap: 'wrap'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <MailCheck size={20} color="#16794A" style={{ flexShrink: 0 }} />
-                    <div style={{ fontSize: '12.5px', color: '#166534' }}>
-                      <span style={{ fontWeight: 800 }}>Email Dispatched:</span> Official receipt and landlord dossier sent to <b>{email}</b>.
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setEmailPreviewOpen(true)}
-                    style={{
-                      backgroundColor: '#16794A',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      padding: '7px 14px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px'
-                    }}
-                  >
-                    <span>View Email</span>
-                    <ExternalLink size={12} />
-                  </button>
+                <div className="fee-note">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  A flat one-time fee — never a percentage of your rent — and fully refunded if this property turns out to be unavailable.
                 </div>
 
-                {/* Verified Landlord Contact Box */}
-                <div style={{ 
-                  backgroundColor: '#F8FAFC', 
-                  border: '1.5px solid #000052', 
-                  borderRadius: '14px', 
-                  padding: '20px', 
-                  marginBottom: '20px' 
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#000052', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Verified Lister Contact Dossier
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, backgroundColor: '#E2E8F0', padding: '2px 8px', borderRadius: '4px' }}>
-                      Ref: {createdRequest?.id || 'REQ-8492'}
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#000052', margin: '2px 0' }}>
-                    {unlockedLister.fullName}
-                  </div>
-                  <div style={{ fontSize: '12.5px', color: '#64748B', marginBottom: '16px' }}>
-                    {unlockedLister.agencyName || 'Direct Landlord'} · Member since {unlockedLister.memberSince} · {unlockedLister.responseRate} Response Rate
-                  </div>
-
-                  {/* Contact Action Buttons */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {/* Phone with CopyChip */}
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <a 
-                        href={`tel:${unlockedLister.phone}`} 
-                        className="btn btn-primary"
-                        style={{ 
-                          flex: 1,
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          gap: '8px',
-                          backgroundColor: '#000052',
-                          color: '#FFFFFF',
-                          borderRadius: '8px',
-                          padding: '11px 16px',
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          textDecoration: 'none'
-                        }}
+                {/* Promo Code Box */}
+                <div className="promo-toggle-wrap">
+                  {appliedPromoCode ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                      <span style={{ color: 'var(--success)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <CheckCircle2 size={15} /> Code {appliedPromoCode} applied (100% waiver)
+                      </span>
+                      <button 
+                        type="button" 
+                        onClick={handleRemovePromoCode}
+                        style={{ color: 'var(--coral)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
                       >
-                        <Phone size={16} />
-                        <span>Call {unlockedLister.phone}</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={handleCopyPhone}
-                        style={{
-                          backgroundColor: '#FFFFFF',
-                          border: '1px solid #CBD5E1',
-                          borderRadius: '8px',
-                          padding: '0 14px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          fontSize: '12.5px',
-                          fontWeight: 700,
-                          color: copiedPhone ? '#16794A' : '#334155',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {copiedPhone ? <Check size={14} /> : <Copy size={14} />}
-                        <span>{copiedPhone ? 'Copied' : 'Copy'}</span>
+                        Remove
                       </button>
                     </div>
-
-                    {/* WhatsApp Action */}
-                    <a 
-                      href={`https://wa.me/${unlockedLister.whatsapp.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(unlockedLister.fullName)},%20I%20requested%20details%20for%20your%20property%20on%20Rentivo:%20${encodeURIComponent(listing.title)}`} 
-                      target="_blank" 
-                      rel="noreferrer"
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        gap: '8px', 
-                        backgroundColor: '#25D366', 
-                        color: '#FFFFFF',
-                        borderRadius: '8px',
-                        padding: '11px 16px',
-                        fontSize: '14px',
-                        fontWeight: 700,
-                        textDecoration: 'none'
-                      }}
-                    >
-                      <MessageCircle size={16} />
-                      <span>Chat on WhatsApp Directly</span>
-                    </a>
-
-                    {/* Physical Landmark Address */}
-                    <div style={{
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid #CBD5E1',
-                      borderRadius: '8px',
-                      padding: '12px 14px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <MapPin size={13} className="text-navy" />
-                          <span>EXACT PHYSICAL LANDMARK ADDRESS</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleCopyAddress}
-                          style={{
-                            border: 'none',
-                            background: 'none',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            color: copiedAddress ? '#16794A' : '#64748B',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
+                  ) : showPromoBox ? (
+                    <div>
+                      <div className="promo-input-row">
+                        <input
+                          type="text"
+                          value={promoCodeInput}
+                          onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                          placeholder="Enter code (e.g. FIRST100)"
+                          className="promo-input"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleApplyPromoCode();
+                            }
                           }}
+                        />
+                        <button type="button" onClick={handleApplyPromoCode} className="promo-apply-btn">
+                          Apply
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => { setShowPromoBox(false); setPromoError(null); }}
+                          style={{ background: 'none', border: 'none', color: 'var(--ink-faint)', fontSize: '0.8rem', cursor: 'pointer' }}
                         >
-                          {copiedAddress ? <Check size={13} /> : <Copy size={13} />}
-                          <span>{copiedAddress ? 'Copied' : 'Copy'}</span>
+                          Cancel
                         </button>
                       </div>
-                      <div style={{ fontSize: '13.5px', color: '#0F172A', fontWeight: 600 }}>
-                        {propertyAddress}
-                      </div>
+                      {promoError && (
+                        <div style={{ color: 'var(--coral)', fontSize: '0.78rem', marginTop: '6px', fontWeight: 600 }}>
+                          {promoError}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button 
-                    type="button"
-                    className="btn btn-outline" 
-                    onClick={() => window.print()}
-                    style={{
-                      flex: 1,
-                      borderRadius: '8px',
-                      padding: '11px',
-                      fontSize: '13.5px',
-                      fontWeight: 700,
-                      borderColor: '#CBD5E1',
-                      color: '#334155',
-                      backgroundColor: '#FFFFFF',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <Printer size={15} />
-                    <span>Print / PDF Receipt</span>
-                  </button>
-
-                  <button 
-                    type="button"
-                    className="btn btn-primary" 
-                    onClick={onBrowseListings}
-                    style={{
-                      flex: 1,
-                      borderRadius: '8px',
-                      padding: '11px',
-                      fontSize: '13.5px',
-                      fontWeight: 700,
-                      backgroundColor: '#000052',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Return to Marketplace
-                  </button>
+                  ) : (
+                    <button type="button" onClick={() => setShowPromoBox(true)} className="promo-toggle-btn">
+                      <Sparkles size={13} />
+                      <span>Have a promo or waiver code? Click to enter</span>
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* STEP 6: Unavailable / Lister replied NO */}
-            {step === 'unavailable' && (
-              <div style={{ backgroundColor: '#FFFFFF', borderRadius: '18px', border: '1px solid #E2E8F0', padding: '36px 28px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-                <div style={{ 
-                  width: '64px', 
-                  height: '64px', 
-                  borderRadius: '50%', 
-                  backgroundColor: '#FEE4E2', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  margin: '0 auto 16px', 
-                  color: '#B42318',
-                  border: '1.5px solid #FCA5A5'
-                }}>
-                  <AlertTriangle size={34} />
-                </div>
-
-                <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#000052', marginBottom: '8px' }}>
-                  Property No Longer Vacant
-                </h3>
-                <p style={{ fontSize: '13.5px', color: '#475569', marginBottom: '20px', maxWidth: '420px', margin: '0 auto 20px', lineHeight: 1.5 }}>
-                  The landlord verified that <b>{listing.title}</b> in <b>{listing.area}</b> has just been rented out or taken off the market.
+              {/* Section 3: Payment Lead & Methods */}
+              <div className="sect">
+                <p className="pay-lead">
+                  You&apos;ll complete payment in a secure Paystack window — card, bank transfer, USSD and mobile money are all supported there.
                 </p>
-
-                <div style={{ 
-                  backgroundColor: '#E8F7EE', 
-                  border: '1.5px solid #A7F3D0', 
-                  padding: '14px 18px', 
-                  borderRadius: '12px', 
-                  marginBottom: '22px', 
-                  color: '#16794A', 
-                  fontWeight: 700, 
-                  fontSize: '13.5px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}>
-                  <ShieldCheck size={18} />
-                  <span>Zero charges made. Your payment card was never debited.</span>
+                <div className="method-row">
+                  <span className="method-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <path d="M2 10h20" />
+                    </svg>
+                    Card
+                  </span>
+                  <span className="method-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M4 10h16M4 10l3-4M4 10l3 4M20 14H4M20 14l-3-4M20 14l-3 4" />
+                    </svg>
+                    Bank transfer
+                  </span>
+                  <span className="method-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <rect x="6" y="2" width="12" height="20" rx="2" />
+                      <path d="M10 18h4" />
+                    </svg>
+                    USSD
+                  </span>
+                  <span className="method-chip">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1M16 12h.01" />
+                      <path d="M3 9h18" />
+                    </svg>
+                    Mobile money
+                  </span>
                 </div>
 
                 <button 
                   type="button"
-                  className="btn btn-primary btn-block btn-lg" 
-                  onClick={onBrowseListings}
-                  style={{
-                    width: '100%',
-                    height: '48px',
-                    borderRadius: '999px',
-                    fontSize: '15px',
-                    fontWeight: 700,
-                    backgroundColor: '#000052',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
+                  className="btn btn-accent desktop-pay" 
+                  onClick={handlePay}
+                  disabled={loading || verifyingPayment}
                 >
-                  Browse Other Available Listings in Ibadan
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="5" y="10" width="14" height="10" rx="2" />
+                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                  </svg>
+                  {appliedPromoCode ? 'Claim Waiver & Unlock Contact (₦0)' : 'Pay ₦5,000 with Paystack'}
                 </button>
-              </div>
-            )}
+                <p className="pay-hint desktop-pay">
+                  A secure Paystack window will open — you won&apos;t leave Rentivo.
+                </p>
 
-          </div>
-
-          {/* RIGHT COLUMN (38%): Sticky Property & Order Summary Sidebar */}
-          <div style={{ minWidth: 0, flex: '1 1 360px', position: 'sticky', top: '24px' }}>
-            <div style={{ backgroundColor: '#FFFFFF', borderRadius: '18px', border: '1.5px solid #E2E8F0', padding: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-              
-              <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '14px' }}>
-                Property Order Summary
-              </div>
-
-              {/* Property Snapshot Card */}
-              <div style={{ display: 'flex', gap: '14px', marginBottom: '18px', paddingBottom: '16px', borderBottom: '1px solid #E2E8F0' }}>
-                <img 
-                  src={listing.photos[0]} 
-                  alt={listing.title} 
-                  style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', flexShrink: 0 }} 
-                />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#000052', backgroundColor: '#EFF6FF', display: 'inline-block', padding: '2px 7px', borderRadius: '4px', marginBottom: '4px' }}>
-                    {listing.type}
-                  </div>
-                  <div style={{ fontWeight: 800, fontSize: '15px', color: '#000052', lineHeight: 1.3, marginBottom: '4px' }}>
-                    {listing.title}
-                  </div>
-                  <div style={{ fontSize: '12.5px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <MapPin size={12} color="#000052" />
-                    <span>{listing.area}, Ibadan</span>
-                  </div>
+                <div className="trust-row">
+                  <span className="trust-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    256-bit encrypted
+                  </span>
+                  <span className="trust-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    Powered by Paystack
+                  </span>
+                  <span className="trust-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    100% refundable
+                  </span>
                 </div>
               </div>
+            </>
+          )}
 
-              {/* Inspection Audit Proof */}
-              {listing.verificationStatus === 'verified' && (
-                <div style={{ 
-                  backgroundColor: '#E8F7EE', 
-                  border: '1px solid #A7F3D0', 
-                  borderRadius: '10px', 
-                  padding: '10px 12px', 
-                  marginBottom: '18px',
+          {/* STEP: UNLOCKED / DOSSIER */}
+          {step === 'unlocked' && (
+            <>
+              {/* Unlocked Contact Dossier */}
+              <div className="sect">
+                <div className="unlocked-box">
+                  <div className="unlocked-meta-row">
+                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--navy)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      Verified Lister Contact Dossier
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--ink-soft)', fontWeight: 700, background: 'var(--surface)', padding: '3px 8px', borderRadius: '6px' }}>
+                      Ref: {referenceId}
+                    </span>
+                  </div>
+
+                  <div className="unlocked-name">{unlockedLister.fullName}</div>
+                  <div className="unlocked-sub">
+                    {unlockedLister.agencyName || 'Direct Landlord'} · Member since {unlockedLister.memberSince} · {unlockedLister.responseRate} Response Rate
+                  </div>
+
+                  <div className="contact-btn-stack">
+                    {/* WhatsApp */}
+                    {cleanWa && (
+                      <a 
+                        href={`https://wa.me/${cleanWa}?text=Hello%20${encodeURIComponent(unlockedLister.fullName)},%20I%20requested%20details%20for%20your%20property%20on%20Rentivo:%20${encodeURIComponent(listing.title)}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="btn btn-wa"
+                      >
+                        <MessageCircle size={18} />
+                        <span>Chat on WhatsApp Directly</span>
+                      </a>
+                    )}
+
+                    {/* Phone Call & Copy */}
+                    {unlockedLister.phone && (
+                      <div className="phone-row">
+                        <a href={`tel:${cleanPhone}`} className="btn btn-navy" style={{ flex: 1 }}>
+                          <Phone size={16} />
+                          <span>Call {unlockedLister.phone}</span>
+                        </a>
+                        <button type="button" onClick={handleCopyPhone} className={`copy-chip ${copiedPhone ? 'copied' : ''}`}>
+                          {copiedPhone ? <Check size={14} /> : <Copy size={14} />}
+                          <span>{copiedPhone ? 'Copied' : 'Copy'}</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Landmark Address */}
+                    <div className="address-card">
+                      <div className="address-hdr">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <MapPin size={12} color="var(--navy)" /> EXACT PHYSICAL LANDMARK ADDRESS
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleCopyAddress}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: copiedAddress ? 'var(--success)' : 'var(--ink-soft)',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          {copiedAddress ? <Check size={12} /> : <Copy size={12} />}
+                          {copiedAddress ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
+                      <div className="address-body">{propertyAddress}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Notice & Preview */}
+                <div style={{
+                  background: 'var(--success-bg)',
+                  border: '1px solid var(--success)',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                  flexWrap: 'wrap'
                 }}>
-                  <ShieldCheck size={16} color="#16794A" style={{ flexShrink: 0 }} />
-                  <div style={{ fontSize: '12px', color: '#166534', fontWeight: 700 }}>
-                    Physically Verified On-Site by Rentivo
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--ink)' }}>
+                    <MailCheck size={18} color="var(--success)" style={{ flexShrink: 0 }} />
+                    <span>Receipt &amp; contact dossier dispatched to <b>{email || 'your email'}</b></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEmailPreviewOpen(true)}
+                    style={{
+                      background: 'var(--success)',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px 12px',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>View Email</span>
+                    <ExternalLink size={11} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Section: Before You Go Checklist */}
+              <div className="sect">
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '14px' }}>Before You Go</h3>
+                
+                <div className="checklist-item">
+                  <div className="checklist-num">1</div>
+                  <div className="checklist-text">
+                    <h4>Agree on a time</h4>
+                    <p>Message or call the landlord directly to confirm a walkthrough slot that works for both of you.</p>
                   </div>
                 </div>
-              )}
 
-              {/* Annual Rent Price Indicator */}
-              <div style={{ marginBottom: '18px', paddingBottom: '16px', borderBottom: '1px solid #E2E8F0' }}>
-                <div style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>Annual Property Rent:</div>
-                <div style={{ fontSize: '24px', fontWeight: 800, color: '#000052', marginTop: '2px' }}>
-                  {formatNaira(listing.price)}
-                  <span style={{ fontSize: '13px', fontWeight: 500, color: '#64748B', marginLeft: '4px' }}>
-                    {formatPeriod(listing.pricePeriod)}
-                  </span>
+                <div className="checklist-item">
+                  <div className="checklist-num">2</div>
+                  <div className="checklist-text">
+                    <h4>Bring valid ID</h4>
+                    <p>Landlords in Ibadan generally expect this for a first viewing — a national ID or driver&apos;s licence is fine.</p>
+                  </div>
+                </div>
+
+                <div className="checklist-item" style={{ marginBottom: 0 }}>
+                  <div className="checklist-num">3</div>
+                  <div className="checklist-text">
+                    <h4>Inspect before you commit</h4>
+                    <p>Check the taps, sockets, and doors/locks in person. Don&apos;t send any rent or deposit before you&apos;ve seen the property.</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Fee Breakdown Table */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', fontSize: '13px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-                  <span>Direct Access Pass:</span>
-                  <span style={{ fontWeight: 700, color: '#0F172A' }}>Access Fee</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16794A' }}>
-                  <span>Traditional Agent Fee Saved:</span>
-                  <span style={{ fontWeight: 700 }}>~₦85,000.00</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16794A' }}>
-                  <span>Roadside Viewing / Gate Fee:</span>
-                  <span style={{ fontWeight: 700 }}>₦0.00</span>
-                </div>
-                <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '10px', marginTop: '2px', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '16px', color: '#000052' }}>
-                  <span>Due Today:</span>
-                  <span>
-                    {step === 'form' || step === 'checking' || step === 'unavailable'
-                      ? '₦0.00 (Pending Check)'
-                      : createdRequest?.isPromotionWaiverApplied || (promoStats.isActive && step === 'confirmed')
-                        ? '₦0.00'
-                        : 'Access Fee'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Guarantees List */}
-              <div style={{ backgroundColor: '#F8FAFC', borderRadius: '12px', padding: '14px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#334155' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldCheck size={14} color="#16794A" />
-                  <span>100% Direct Landlord Mandate Audit</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Lock size={14} color="#16794A" />
-                  <span>256-Bit SSL Secured Payment via Paystack</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <MailCheck size={14} color="#16794A" />
-                  <span>Instant Transactional Email Receipt</span>
-                </div>
-              </div>
-
-              {/* Need Help Box */}
-              <div style={{ marginTop: '18px', textAlign: 'center', fontSize: '12px', color: '#64748B' }}>
-                Questions about this checkout?{' '}
-                <a 
-                  href="mailto:support@rentivo.ng?subject=Rentivo%20Checkout%20Question" 
-                  style={{ color: '#000052', fontWeight: 700, textDecoration: 'none' }}
+              {/* Actions Footer */}
+              <div className="sect" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn btn-ghost"
+                  style={{ flex: '1 1 140px', padding: '12px' }}
                 >
-                  Contact Rentivo Support (support@rentivo.ng)
-                </a>
+                  <Printer size={15} />
+                  <span>Print Receipt</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/account/requests')}
+                  className="btn btn-accent"
+                  style={{ flex: '2 1 180px', padding: '12px' }}
+                >
+                  <span>Go to My Requests</span>
+                </button>
               </div>
+            </>
+          )}
 
+          {/* STEP: UNAVAILABLE */}
+          {step === 'unavailable' && (
+            <div className="sect" style={{ textAlign: 'center', padding: '36px 24px' }}>
+              <div style={{
+                width: '60px',
+                height: '60px',
+                borderRadius: '99px',
+                background: 'var(--coral-bg)',
+                color: 'var(--coral)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <AlertTriangle size={30} />
+              </div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '6px' }}>
+                Property No Longer Vacant
+              </h2>
+              <p style={{ fontSize: '0.88rem', color: 'var(--ink-soft)', maxWidth: '420px', margin: '0 auto 20px', lineHeight: 1.55 }}>
+                The landlord verified that <b>{listing.title}</b> in <b>{listing.area}</b> has just been taken off the market.
+              </p>
+              <div style={{
+                background: 'var(--success-bg)',
+                border: '1px solid var(--success)',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                fontSize: '0.82rem',
+                color: 'var(--success)',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginBottom: '24px'
+              }}>
+                <ShieldCheck size={16} />
+                <span>Zero charges made. Your payment card was never debited.</span>
+              </div>
+              <button type="button" onClick={onBrowseListings} className="btn btn-accent">
+                Browse Other Available Listings
+              </button>
             </div>
-          </div>
+          )}
+
+          {/* STEP: CHECKING (FALLBACK) */}
+          {step === 'checking' && (
+            <div className="sect" style={{ textAlign: 'center', padding: '36px 24px' }}>
+              <div className="spin" />
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '6px' }}>
+                Checking Vacancy with Landlord
+              </h2>
+              <p style={{ fontSize: '0.88rem', color: 'var(--ink-soft)', maxWidth: '420px', margin: '0 auto 20px', lineHeight: 1.55 }}>
+                We sent a 1-click vacancy inquiry to the property owner. You will only be asked to pay once they confirm availability.
+              </p>
+              <button type="button" onClick={() => navigate('/account/requests')} className="btn btn-accent">
+                Track in My Requests
+              </button>
+            </div>
+          )}
 
         </div>
       </div>
 
-      {/* Transactional Email Preview Drawer */}
+      {/* Sticky Mobile Bar matching rentivo-checkout (2).html */}
+      {step === 'confirmed' && (
+        <div className="stickybar">
+          <div className="stickybar-row">
+            <div className="amt">{appliedPromoCode ? '₦0' : '₦5,000'}</div>
+            <button 
+              type="button"
+              className="btn btn-accent" 
+              onClick={handlePay} 
+              disabled={loading || verifyingPayment}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="5" y="10" width="14" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              {appliedPromoCode ? 'Claim Waiver' : 'Pay with Paystack'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay / Modal matching rentivo-checkout (2).html */}
+      <div 
+        className={`overlay ${overlayStatus !== 'idle' ? 'show' : ''}`}
+        onClick={(e) => {
+          if (e.target === e.currentTarget && overlayStatus === 'success') {
+            setOverlayStatus('idle');
+          }
+        }}
+      >
+        {overlayStatus === 'opening' && (
+          <div className="result-card">
+            <div className="spin" />
+            <h3>Opening Paystack…</h3>
+            <p>A secure payment window is loading.</p>
+          </div>
+        )}
+
+        {overlayStatus === 'confirming' && (
+          <div className="result-card">
+            <div className="spin" />
+            <h3>Confirming your payment…</h3>
+            <p>This only takes a moment.</p>
+          </div>
+        )}
+
+        {overlayStatus === 'success' && (
+          <div className="result-card">
+            <div className="check-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            </div>
+            <h3>Payment successful!</h3>
+            <p>
+              {appliedPromoCode ? '₦0 launch waiver applied.' : '₦5,000 received.'} The landlord&apos;s phone number, WhatsApp link and exact address are unlocked.
+            </p>
+            <div className="email-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M3 7l9 6 9-6" />
+              </svg>
+              Also sent to your email
+            </div>
+            <div className="result-actions">
+              <button 
+                type="button" 
+                className="btn btn-accent" 
+                onClick={() => navigate('/account/requests')}
+              >
+                View My Requests
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-ghost" 
+                onClick={() => {
+                  setOverlayStatus('idle');
+                  setStep('unlocked');
+                }}
+              >
+                View Landlord Contact Here
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Transactional Email Drawer */}
       <EmailNotificationModal
         isOpen={emailPreviewOpen}
         onClose={() => setEmailPreviewOpen(false)}
         request={createdRequest}
         listing={listing}
       />
-
-      {/* Discreet Development / QA Test Actions Dock (Only visible when awaiting reply and simulator enabled) */}
-      {isDemoSimulator && step === 'checking' && (
-        <aside
-          aria-label="Development testing panel"
-          style={{
-            position: 'fixed',
-            bottom: '16px',
-            right: '16px',
-            zIndex: 1000,
-            backgroundColor: '#0F172A',
-            color: '#FFFFFF',
-            borderRadius: '12px',
-            padding: '10px 14px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-            border: '1px solid #334155',
-            fontSize: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}
-        >
-          <span style={{ fontWeight: 700, color: '#94A3B8' }}>Local Test Response:</span>
-          <button
-            type="button"
-            onClick={() => handleSimulateListerReply('YES')}
-            disabled={loading}
-            style={{
-              backgroundColor: '#16794A',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '5px 10px',
-              fontWeight: 700,
-              fontSize: '11px',
-              cursor: 'pointer'
-            }}
-          >
-            Simulate Available
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSimulateListerReply('NO')}
-            disabled={loading}
-            style={{
-              backgroundColor: '#DC2626',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '5px 10px',
-              fontWeight: 700,
-              fontSize: '11px',
-              cursor: 'pointer'
-            }}
-          >
-            Simulate Taken
-          </button>
-        </aside>
-      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Home,
   Building2,
@@ -164,8 +164,8 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
       setPasswordError('Please enter a new password.');
       return;
     }
-    if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters.');
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -212,20 +212,20 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Load latest listings
-  useEffect(() => {
-    if (propListings && propListings.length > 0) {
-      setDashboardListings(propListings);
-    } else {
-      void listingsService.getMyListings().then((items) => {
-        setDashboardListings(items);
-      });
+  // Load latest listings (strictly own listings, never marketplace public listings)
+  const loadListings = useCallback(async () => {
+    try {
+      const items = await listingsService.getMyListings();
+      setDashboardListings(items);
+    } catch (err) {
+      console.error('Failed to load lister listings:', err);
     }
-  }, [propListings]);
+  }, []);
 
-  // Load inquiries
-  useEffect(() => {
-    void requestsService.getAllRequests().then((rows) => {
+  // Load inquiries (strictly inquiries for properties owned by this lister)
+  const loadInquiries = useCallback(async () => {
+    try {
+      const rows = await requestsService.getMyInquiries();
       setInquiries(
         rows.map((r, idx) => {
           const isAwaiting =
@@ -264,8 +264,21 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
           };
         })
       );
-    });
+    } catch (err) {
+      console.error('Failed to load lister inquiries:', err);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadListings();
+    void loadInquiries();
+    const interval = setInterval(() => {
+      void loadListings();
+      void loadInquiries();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [loadListings, loadInquiries]);
+
 
   // Time-based greeting
   const greeting = useMemo(() => {

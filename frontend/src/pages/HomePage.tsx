@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Listing } from '../types';
 import { formatNaira } from '../utils/formatters';
+import { useAuth } from '../contexts/AuthContext';
 
 interface HomePageProps {
   listings?: Listing[];
@@ -61,6 +62,9 @@ export const HomePage: React.FC<HomePageProps> = ({
   onOpenAuth
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isLister = user?.role === 'landlord' || user?.role === 'agent';
+  const isRenter = Boolean(user && !isLister && user.role !== 'admin');
   const showcase = listings.filter((l) => l.isApproved !== false).slice(0, 6);
   const [activePinId, setActivePinId] = useState<string>('');
   const [selectedArea, setSelectedArea] = useState<string>('All Ibadan areas');
@@ -345,39 +349,42 @@ export const HomePage: React.FC<HomePageProps> = ({
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(0, 0, 82, 0.45)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(190, 137, 255, 0.35)',
-              borderRadius: '9999px',
-              padding: '6px 16px',
-              fontSize: '12.5px',
-              color: '#FFFFFF'
-            }}>
-              <Building size={14} color="#BE89FF" />
-              <span style={{ fontWeight: 600 }}>Own property?</span>
-              <button
-                type="button"
-                onClick={() => navigate('/lister/listings/new')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#BE89FF',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  padding: 0,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span>List for free</span>
-                <ArrowRight size={13} />
-              </button>
-            </div>
+            {/* Lister doorway - strictly hidden for renters */}
+            {!isRenter && (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: 'rgba(0, 0, 82, 0.45)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(190, 137, 255, 0.35)',
+                borderRadius: '9999px',
+                padding: '6px 16px',
+                fontSize: '12.5px',
+                color: '#FFFFFF'
+              }}>
+                <Building size={14} color="#BE89FF" />
+                <span style={{ fontWeight: 600 }}>Own property?</span>
+                <button
+                  type="button"
+                  onClick={() => navigate(isLister ? '/lister/listings/new' : '/signup?role=lister')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#BE89FF',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <span>List for free</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            )}
           </div>
 
         </div>

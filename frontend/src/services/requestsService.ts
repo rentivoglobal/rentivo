@@ -4,15 +4,23 @@ import { supabase, extractEdgeFunctionError } from '../lib/supabase';
 import { localStore } from './localStore';
 import { authService } from './authService';
 import { listingsService } from './listingsService';
+import { emailNotificationService } from './emailNotificationService';
 
 function mapRequest(row: Record<string, unknown>, listing?: Listing): AccessRequest {
+  const listingRel = (row.listings as any) || (row.listing as any);
+  const areaName = listing?.area || (listingRel?.areas as any)?.name || (Array.isArray(listingRel?.areas) ? listingRel?.areas[0]?.name : undefined) || String(row.listing_area || 'Ibadan');
+  const photosArr = listing?.photos || (listingRel?.listing_photos as any[])?.sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0)).map((p: any) => p.url) || [];
+  const photo = photosArr[0] || String(row.listing_photo || 'https://ik.imagekit.io/3unwhixxd/Property%20type.png');
+  const price = listing?.price || (listingRel?.price_amount ? (listingRel.price_amount > 10000000 ? listingRel.price_amount / 100 : listingRel.price_amount) : Number(row.listing_price || 0));
+  const title = listing?.title || listingRel?.title || String(row.listing_title || 'Verified Property');
+
   return {
     id: String(row.id),
-    listingId: String(row.listing_id),
-    listingTitle: listing?.title || String(row.listing_title || ''),
-    listingArea: listing?.area || String(row.listing_area || ''),
-    listingPrice: listing?.price || Number(row.listing_price || 0),
-    listingPhoto: listing?.photos?.[0] || String(row.listing_photo || ''),
+    listingId: String(row.listing_id || listingRel?.id || ''),
+    listingTitle: title,
+    listingArea: areaName,
+    listingPrice: price,
+    listingPhoto: photo,
     renterName: String(row.renter_name || ''),
     renterPhone: String(row.renter_phone || ''),
     renterEmail: String(row.renter_email || ''),
@@ -27,33 +35,142 @@ function mapRequest(row: Record<string, unknown>, listing?: Listing): AccessRequ
 export const requestsService = {
   async getAllRequests(): Promise<AccessRequest[]> {
     if (!isLiveBackend || !supabase) return localStore.getRequests();
+    try {
+      const { data, error } = await supabase
+        .from('availability_requests')
+        .select(`
+          *,
+          listings (
+            id, title, category, property_type, price_amount, billing_period, address_summary,
+            areas ( name ),
+            listing_photos ( url, sort_order, is_primary )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []).map((row) => mapRequest(row as Record<string, unknown>));
+    } catch (err) {
+      console.warn('Direct relation select failed, using fallback query for getAllRequests:', err);
+      const { data: flatData, error: flatError } = await supabase
+        .from('availability_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (flatError) throw flatError;
+      const listings = await listingsService.getListings().catch(() => []);
+      return (flatData || []).map((row) => {
+        const listing = listings.find((l) => l.id === row.listing_id);
+        return mapRequest(row as Record<string, unknown>, listing);
+      });
+    }
+  },
+
+  async getMyRequests(): Promise<AccessRequest[]> {
+    if (!isLiveBackend || !supabase) return localStore.getRequests();
+    const { data: session } = await supabase.auth.getSession();
+    const userId = session.session?.user.id;
+    if (!userId) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('availability_requests')
+        .select(`
+          *,
+          listings (
+            id, title, category, property_type, price_amount, billing_period, address_summary,
+            areas ( name ),
+            listing_photos ( url, sort_order, is_primary )
+          )
+        `)
+        .eq('renter_user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return (data || []).map((row) => mapRequest(row as Record<string, unknown>));
+    } catch (err) {
+      console.warn('Direct relation select failed, using fallback query:', err);
+      const { data: flatData, error: flatError } = await supabase
+        .from('availability_requests')
+        .select('*')
+        .eq('renter_user_id', userId)
+        .order('created_at', { ascending: false });
+      if (flatError) throw flatError;
+      const listings = await listingsService.getListings().catch(() => []);
+      return (flatData || []).map((row) => {
+        const listing = listings.find((l) => l.id === row.listing_id);
+        return mapRequest(row as Record<string, unknown>, listing);
+      });
+    }
+  },
+
+  async getMyInquiries(): Promise<AccessRequest[]> {
+    if (!isLiveBackend || !supabase) {
+      const user = authService.getCurrentUser();
+      const myListingIds = new Set(localStore.getListingsRaw().filter(l => l.lister.fullName === user?.name).map(l => l.id));
+      return localStore.getRequests().filter(r => myListingIds.has(r.listingId));
+    }
+    const myListings = await listingsService.getMyListings();
+    if (!myListings.length) return [];
+    const myIds = myListings.map((l) => l.id);
     const { data, error } = await supabase
       .from('availability_requests')
       .select('*')
+      .in('listing_id', myIds)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    const listings = await listingsService.getListings();
-    const mine = await listingsService.getMyListings().catch(() => []);
-    const all = [...listings, ...mine];
     return (data || []).map((row) => {
-      const listing = all.find((l) => l.id === row.listing_id);
+      const listing = myListings.find((l) => l.id === row.listing_id);
       return mapRequest(row as Record<string, unknown>, listing);
     });
   },
 
   async getRequests(): Promise<AccessRequest[]> {
-    return this.getAllRequests();
+    return this.getMyRequests();
   },
 
   async getRequestById(id: string): Promise<AccessRequest | undefined> {
-    const all = await this.getAllRequests();
-    const found = all.find((r) => r.id === id);
-    if (!found) return undefined;
-    if (found.status === 'paid') {
-      found.unlockedListerContact = await this.getUnlockedContact(id);
+    if (!isLiveBackend || !supabase) {
+      const all = localStore.getRequests();
+      const found = all.find((r) => r.id === id);
+      return found;
     }
-    return found;
+
+    try {
+      const { data, error } = await supabase
+        .from('availability_requests')
+        .select(`
+          *,
+          listings (
+            id, title, category, property_type, price_amount, billing_period, address_summary,
+            areas ( name ),
+            listing_photos ( url, sort_order, is_primary )
+          )
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error || !data) throw error || new Error('Not found');
+      const req = mapRequest(data as Record<string, unknown>);
+      if (req.status === 'paid') {
+        req.unlockedListerContact = await this.getUnlockedContact(id);
+      }
+      return req;
+    } catch (_e) {
+      const { data, error } = await supabase
+        .from('availability_requests')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      if (error || !data) return undefined;
+      const listing = await listingsService.getListingById(data.listing_id);
+      const req = mapRequest(data as Record<string, unknown>, listing);
+      if (req.status === 'paid') {
+        req.unlockedListerContact = await this.getUnlockedContact(id);
+      }
+      return req;
+    }
   },
+
 
   async createRequest(listing: Listing, renter: { name: string; phone: string; email: string }): Promise<AccessRequest> {
     if (!isLiveBackend || !supabase) {
@@ -130,34 +247,71 @@ export const requestsService = {
   },
 
   async respond(requestId: string, decision: 'YES' | 'NO'): Promise<AccessRequest | undefined> {
+    let result: AccessRequest | undefined;
     if (!isLiveBackend || !supabase) {
-      return this.updateStatus(requestId, decision === 'YES' ? 'confirmed' : 'unavailable');
+      result = await this.updateStatus(requestId, decision === 'YES' ? 'confirmed' : 'unavailable');
+    } else {
+      const { error } = await supabase.rpc('respond_to_availability', {
+        p_request_id: requestId,
+        p_decision: decision === 'YES' ? 'yes' : 'no'
+      });
+      if (error) throw error;
+      result = await this.getRequestById(requestId);
     }
-    const { error } = await supabase.rpc('respond_to_availability', {
-      p_request_id: requestId,
-      p_decision: decision === 'YES' ? 'yes' : 'no'
-    });
-    if (error) throw error;
-    return this.getRequestById(requestId);
+
+    if (decision === 'YES' && result) {
+      void (async () => {
+        try {
+          const listing = await listingsService.getListingById(result.listingId);
+          await emailNotificationService.sendAvailabilityConfirmedEmail({
+            request: result,
+            listing
+          });
+        } catch (e) {
+          console.warn('Could not dispatch availability email:', e);
+        }
+      })();
+    }
+
+    return result;
   },
 
   async verifyToken(token: string, decision: 'YES' | 'NO'): Promise<AccessRequest | undefined> {
+    let result: AccessRequest | undefined;
     if (!isLiveBackend || !supabase) {
       const found = localStore.lookupToken(token);
       if (!found) throw new Error('Invalid or expired confirmation link');
       if (new Date(found.expiresAt) < new Date()) throw new Error('This confirmation link has expired');
-      return this.respond(found.requestId, decision);
+      result = await this.respond(found.requestId, decision);
+      return result;
     }
     const encoder = new TextEncoder();
     const digest = await crypto.subtle.digest('SHA-256', encoder.encode(token));
     const hash = Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
-    const { error } = await supabase.rpc('verify_availability_token', {
+    const { data: rpcRes, error } = await supabase.rpc('verify_availability_token', {
       p_token_hash: hash,
       p_decision: decision === 'YES' ? 'yes' : 'no'
     });
     if (error) throw error;
-    const all = await this.getAllRequests();
-    return all[0];
+    const reqId = (rpcRes as any)?.requestId;
+    result = reqId ? await this.getRequestById(reqId) : (await this.getAllRequests())[0];
+
+
+    if (decision === 'YES' && result) {
+      void (async () => {
+        try {
+          const listing = await listingsService.getListingById(result.listingId);
+          await emailNotificationService.sendAvailabilityConfirmedEmail({
+            request: result,
+            listing
+          });
+        } catch (e) {
+          console.warn('Could not dispatch availability email from token verify:', e);
+        }
+      })();
+    }
+
+    return result;
   },
 
   async updateStatus(requestId: string, status: RequestAccessStatus): Promise<AccessRequest | undefined> {
@@ -215,9 +369,27 @@ export const requestsService = {
           ...localStore.getPayments()
         ]);
       }
-      return req;
     }
-    return this.getRequestById(requestId);
+    const paidRequest = (!isLiveBackend || !supabase) ? await this.getRequestById(requestId) : await this.getRequestById(requestId);
+
+    if (paidRequest) {
+      void (async () => {
+        try {
+          const listing = await listingsService.getListingById(paidRequest.listingId);
+          const contact = paidRequest.unlockedListerContact || listingLister;
+          await emailNotificationService.sendPaymentSuccessEmail({
+            request: paidRequest,
+            listing,
+            unlockedContact: contact,
+            paymentReference: `PSTK-${requestId.slice(-8)}`
+          });
+        } catch (e) {
+          console.warn('Could not dispatch payment success email:', e);
+        }
+      })();
+    }
+
+    return paidRequest;
   },
 
   async getUnlockedContact(requestId: string): Promise<ListerContact | undefined> {
@@ -242,7 +414,8 @@ export const requestsService = {
       agencyName: payload.agencyName,
       memberSince: payload.memberSince || '',
       activeListingsCount: 0,
-      responseRate: '—'
+      responseRate: '—',
+      exactAddress: payload.exactAddress
     };
   },
 
@@ -264,7 +437,19 @@ export const requestsService = {
     return this.getPromotionStats();
   },
 
-  async claimPromotionWaiver(requestId: string, listingLister?: Listing['lister']): Promise<AccessRequest | undefined> {
+  validatePromoCode(code: string): { valid: boolean; discountPercent: number; message: string } {
+    const clean = code.trim().toUpperCase();
+    if (['FIRST100', 'RENTIVO100', 'WAIVER5000', 'TESTFREE'].includes(clean)) {
+      return { valid: true, discountPercent: 100, message: '100% Launch Access Fee Waiver applied' };
+    }
+    return { valid: false, discountPercent: 0, message: 'Invalid or expired promo code.' };
+  },
+
+  async claimPromotionWaiver(requestId: string, code?: string, listingLister?: Listing['lister']): Promise<AccessRequest | undefined> {
+    if (code) {
+      const check = this.validatePromoCode(code);
+      if (!check.valid) throw new Error(check.message);
+    }
     if (!isLiveBackend || !supabase) {
       localStore.incrementPromo();
       const paid = await this.completePayment(requestId, listingLister);
@@ -288,5 +473,27 @@ export const requestsService = {
       return data as { authorizationUrl?: string; reference: string };
     }
     return { reference: `local_${requestId}_${Date.now()}` };
+  },
+
+  async verifyPaystack(requestId: string, reference: string): Promise<{ success: boolean; request?: AccessRequest }> {
+    if (isLiveBackend && supabase) {
+      try {
+        const { data, error } = await supabase.functions.invoke('paystack-verify', {
+          body: { requestId, reference }
+        });
+        if (error) {
+          const errMsg = await extractEdgeFunctionError(error, 'Failed to verify Paystack payment.');
+          console.warn('paystack-verify error:', errMsg);
+          return { success: false };
+        }
+        const updated = await this.getRequestById(requestId);
+        return { success: Boolean(data?.success), request: updated };
+      } catch (err) {
+        console.warn('verifyPaystack invoke exception:', err);
+        return { success: false };
+      }
+    }
+    return { success: true };
   }
 };
+

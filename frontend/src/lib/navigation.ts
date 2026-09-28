@@ -2,7 +2,7 @@ import { NavigationTab } from '../types';
 
 export const HASH_TO_PATH: Record<string, string> = {
   home: '/',
-  account: '/account',
+  account: '/account/search',
   search: '/search',
   detail: '/search',
   checkout: '/account/requests',
@@ -13,7 +13,7 @@ export const HASH_TO_PATH: Record<string, string> = {
   terms: '/terms',
   privacy: '/privacy',
   access_fee_terms: '/access-fee-terms',
-  profile: '/account/profile',
+  profile: '/account/search',
   reset_password: '/reset-password',
   availability_action: '/availability/action',
   lister: '/lister',
@@ -37,7 +37,7 @@ export function pathForTab(
     case 'home':
       return '/';
     case 'account':
-      return '/account';
+      return '/account/search';
     case 'search':
       return '/search';
     case 'detail':
@@ -59,7 +59,7 @@ export function pathForTab(
     case 'access_fee_terms':
       return '/access-fee-terms';
     case 'profile':
-      return '/account/profile';
+      return '/account/search';
     case 'reset_password':
       return '/reset-password';
     case 'availability_action':
@@ -92,7 +92,6 @@ export function pathForTab(
 
 export function tabFromPathname(pathname: string): NavigationTab {
   if (pathname === '/') return 'home';
-  if (pathname === '/account') return 'account';
   if (pathname.startsWith('/search')) return 'search';
   if (pathname.startsWith('/listings')) {
     return pathname.endsWith('/request') ? 'checkout' : 'detail';
@@ -100,9 +99,9 @@ export function tabFromPathname(pathname: string): NavigationTab {
   if (pathname.startsWith('/requests')) return 'checkout';
   if (pathname.startsWith('/account/requests')) return 'requests';
   if (pathname.startsWith('/account/favorites')) return 'favorites';
-  if (pathname.startsWith('/account/profile')) return 'profile';
+  if (pathname.startsWith('/account/profile')) return 'search';
   if (pathname.startsWith('/account/search')) return 'search';
-  if (pathname.startsWith('/account')) return 'account';
+  if (pathname.startsWith('/account')) return 'search';
   if (pathname.startsWith('/how-it-works')) return 'how_it_works';
   if (pathname.startsWith('/terms')) return 'terms';
   if (pathname.startsWith('/privacy')) return 'privacy';

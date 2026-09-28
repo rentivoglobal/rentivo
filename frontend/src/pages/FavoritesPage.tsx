@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Heart, 
   ShieldCheck, 
@@ -7,6 +8,7 @@ import {
   Bath, 
   Maximize2, 
   ArrowRight, 
+  ArrowLeft,
   Trash2,
   Clock,
   CheckCircle2,
@@ -28,6 +30,7 @@ interface FavoritesPageProps {
   onBrowseListings: () => void;
   onNavigateToRequests?: () => void;
   onProceedToCheckout?: (listing: Listing) => void;
+  onBack?: () => void;
 }
 
 export const FavoritesPage: React.FC<FavoritesPageProps> = ({
@@ -38,8 +41,10 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
   onRequestAccess,
   onBrowseListings,
   onNavigateToRequests,
-  onProceedToCheckout
+  onProceedToCheckout,
+  onBack
 }) => {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
 
   useEffect(() => {
@@ -56,9 +61,48 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
     return requests.find(r => r.listingId === listingId && r.status !== 'unavailable');
   };
 
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      onBrowseListings();
+    }
+  };
+
   return (
-    <div className="renter-page-container" style={{ backgroundColor: '#F8FAFC', minHeight: 'calc(100vh - 72px)', padding: '36px 20px 72px' }}>
+    <div className="renter-page-container" style={{ backgroundColor: '#F8FAFC', minHeight: 'calc(100vh - 72px)', padding: '28px 20px 72px' }}>
       <div style={{ maxWidth: '1040px', margin: '0 auto' }}>
+        
+        {/* Top Back Navigation Button */}
+        <div style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={handleBack}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#FFFFFF',
+              border: '1.5px solid #E2E8F0',
+              borderRadius: '9999px',
+              padding: '8px 18px',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#000052',
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,82,0.04)',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#000052'; e.currentTarget.style.backgroundColor = '#F8FAFC'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.backgroundColor = '#FFFFFF'; }}
+            aria-label="Back to Search"
+          >
+            <ArrowLeft size={15} />
+            <span>Back to Browse</span>
+          </button>
+        </div>
         
         {/* Clean Modern Page Header */}
         <div style={{ marginBottom: '24px' }}>

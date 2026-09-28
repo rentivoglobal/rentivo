@@ -40,35 +40,56 @@ function publicListing(listing: Listing): Listing {
 }
 
 function seedCities(): CityLocation[] {
+  const areas = [
+    'Bodija', 'Akobo', 'Jericho', 'Ring Road', 'UI / Samonda', 'UI area', 'Agodi',
+    'Agodi GRA', 'Oluyole', 'Oluyole Estate', 'Samonda', 'Challenge', 'Dugbe',
+    'Iwo Road', 'Ikolaba', 'Eleyele', 'Moniya', 'Apata', 'Ologuneru'
+  ];
   return [
     {
       id: 'city-ibadan',
       name: 'Ibadan',
+      slug: 'ibadan',
       state: 'Oyo State',
       isActive: true,
       isPilot: true,
-      areas: [
-        'Bodija', 'Akobo', 'Jericho', 'Ring Road', 'UI / Samonda', 'UI area', 'Agodi',
-        'Agodi GRA', 'Oluyole', 'Oluyole Estate', 'Samonda', 'Challenge', 'Dugbe',
-        'Iwo Road', 'Ikolaba', 'Eleyele', 'Moniya', 'Apata', 'Ologuneru'
-      ]
+      areas,
+      areaItems: areas.map((name) => ({
+        id: `area-${slugify(name)}`,
+        cityId: 'city-ibadan',
+        name,
+        slug: slugify(name),
+        isActive: true,
+        listingCount: 0
+      })),
+      listingCount: 0
     }
   ];
 }
 
 export const localStore = {
-  getUsers(): Record<string, User & { password?: string }> {
-    return read<Record<string, User & { password?: string }>>(KEYS.users, {});
+  getUsers(): Record<string, User> {
+    return read<Record<string, User>>(KEYS.users, {});
   },
   saveUsers(users: Record<string, User & { password?: string }>) {
-    write(KEYS.users, users);
+    // Strip passwords before persisting to prevent plaintext leaks
+    const sanitized: Record<string, User> = {};
+    for (const [id, u] of Object.entries(users)) {
+      const { password: _pw, ...cleanUser } = u as any;
+      sanitized[id] = cleanUser;
+    }
+    write(KEYS.users, sanitized);
   },
   getSession(): User | null {
     return read<User | null>(KEYS.session, null);
   },
   setSession(user: User | null) {
-    if (user) write(KEYS.session, user);
-    else localStorage.removeItem(KEYS.session);
+    if (user) {
+      const { password: _pw, ...cleanUser } = user as any;
+      write(KEYS.session, cleanUser);
+    } else {
+      localStorage.removeItem(KEYS.session);
+    }
   },
   getListingsRaw(): Listing[] {
     return read<Listing[]>(KEYS.listings, []);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, 
   Phone, 
@@ -15,7 +16,9 @@ import {
   ExternalLink,
   Sparkles,
   Zap,
-  Check
+  Check,
+  CreditCard,
+  ArrowLeft
 } from 'lucide-react';
 import { AccessRequest, Listing } from '../types';
 import { requestsService } from '../services/requestsService';
@@ -28,8 +31,162 @@ interface RequestsPageProps {
   favorites?: string[];
   onNavigateToFavorites?: () => void;
   onSelectListing?: (listing: Listing) => void;
-  onProceedToCheckout?: (listing: Listing) => void;
+  onProceedToCheckout?: (request: AccessRequest) => void;
+  onBack?: () => void;
 }
+
+/**
+ * 4-Step Visual Progress Stepper for every request card:
+ * Step 1: Request Placed
+ * Step 2: Landlord Vacancy Check
+ * Step 3: Access Fee Payment (₦5,000)
+ * Step 4: Contact Unlocked
+ */
+const RequestStepProgress: React.FC<{ request: AccessRequest }> = ({ request }) => {
+  const isPending = request.status === 'submitted' || request.status === 'availability_pending';
+  const isConfirmed = request.status === 'confirmed';
+  const isPaid = request.status === 'paid';
+  const isUnavailable = request.status === 'unavailable';
+
+  const steps = [
+    {
+      num: 1,
+      title: '1. Placed',
+      desc: 'Free check dispatched',
+      status: 'completed' as const
+    },
+    {
+      num: 2,
+      title: '2. Lister Check',
+      desc: isUnavailable ? 'Listing taken' : isPending ? 'Checking vacancy...' : 'Confirmed vacant',
+      status: isUnavailable ? ('failed' as const) : isPending ? ('current' as const) : ('completed' as const)
+    },
+    {
+      num: 3,
+      title: '3. Fee (₦5K)',
+      desc: isPaid ? 'Fee verified' : isConfirmed ? 'Action: Pay ₦5,000' : isUnavailable ? '₦0 charge' : 'Flat ₦5,000',
+      status: isPaid ? ('completed' as const) : isConfirmed ? ('action_required' as const) : isUnavailable ? ('skipped' as const) : ('upcoming' as const)
+    },
+    {
+      num: 4,
+      title: '4. Unlocked',
+      desc: isPaid ? 'Phone & WhatsApp' : 'Locked',
+      status: isPaid ? ('completed' as const) : ('upcoming' as const)
+    }
+  ];
+
+  return (
+    <div style={{ marginBottom: '16px', padding: '12px 14px', backgroundColor: '#F8FAFC', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', position: 'relative' }}>
+        {steps.map((step, idx) => {
+          const isDone = step.status === 'completed';
+          const isCurrent = step.status === 'current';
+          const isAction = step.status === 'action_required';
+          const isFailed = step.status === 'failed';
+
+          let circleBg = '#E2E8F0';
+          let circleColor = '#64748B';
+          let circleBorder = 'none';
+
+          if (isDone) {
+            circleBg = '#16794A';
+            circleColor = '#FFFFFF';
+          } else if (isCurrent) {
+            circleBg = '#6B21A8';
+            circleColor = '#FFFFFF';
+          } else if (isAction) {
+            circleBg = '#000052';
+            circleColor = '#FFFFFF';
+            circleBorder = '2px solid #D8B4FE';
+          } else if (isFailed) {
+            circleBg = '#DC2626';
+            circleColor = '#FFFFFF';
+          }
+
+          return (
+            <div key={step.num} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative', minWidth: 0 }}>
+              {/* Connector line between steps */}
+              {idx < steps.length - 1 && (
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    top: '12px', 
+                    left: '50%', 
+                    width: '100%', 
+                    height: '2px', 
+                    backgroundColor: isDone ? '#16794A' : isAction || isCurrent ? '#CBD5E1' : '#E2E8F0', 
+                    zIndex: 0 
+                  }} 
+                />
+              )}
+
+              {/* Step Circle Badge */}
+              <div 
+                style={{ 
+                  width: '24px', 
+                  height: '24px', 
+                  borderRadius: '50%', 
+                  backgroundColor: circleBg, 
+                  color: circleColor, 
+                  border: circleBorder,
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  fontSize: '11px', 
+                  fontWeight: 800, 
+                  position: 'relative', 
+                  zIndex: 1,
+                  boxShadow: isAction ? '0 0 0 3px rgba(107, 33, 168, 0.2)' : 'none'
+                }}
+              >
+                {isDone ? (
+                  <Check size={13} strokeWidth={2.8} />
+                ) : isCurrent ? (
+                  <Clock size={12} strokeWidth={2.5} />
+                ) : isAction ? (
+                  <CreditCard size={12} strokeWidth={2.5} />
+                ) : isFailed ? (
+                  '✕'
+                ) : (
+                  step.num
+                )}
+              </div>
+
+              {/* Step Labels */}
+              <div style={{ marginTop: '5px', width: '100%', padding: '0 2px' }}>
+                <div 
+                  style={{ 
+                    fontSize: '11.5px', 
+                    fontWeight: isAction || isCurrent || isDone ? 800 : 600, 
+                    color: isAction ? '#000052' : isCurrent ? '#6B21A8' : isDone ? '#16794A' : isFailed ? '#DC2626' : '#64748B',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {step.title}
+                </div>
+                <div 
+                  style={{ 
+                    fontSize: '10px', 
+                    color: isAction ? '#6B21A8' : '#94A3B8', 
+                    fontWeight: isAction ? 700 : 500,
+                    marginTop: '1px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {step.desc}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 export const RequestsPage: React.FC<RequestsPageProps> = ({
   onBrowseListings,
@@ -37,8 +194,10 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
   favorites = [],
   onNavigateToFavorites,
   onSelectListing,
-  onProceedToCheckout
+  onProceedToCheckout,
+  onBack
 }) => {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'confirmed' | 'unlocked'>('all');
@@ -56,22 +215,28 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
 
   useEffect(() => {
     loadRequests();
+    const interval = setInterval(() => {
+      void requestsService.getAllRequests().then(data => setRequests(data));
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const promoStats = requestsService.getPromotionStats();
-
-  const handlePayNow = async (req: AccessRequest, matchedListing?: Listing) => {
-    if (matchedListing && onProceedToCheckout) {
-      onProceedToCheckout(matchedListing);
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (window.history.length > 1) {
+      navigate(-1);
     } else {
-      await requestsService.completePayment(req.id, matchedListing?.lister);
-      await loadRequests();
+      onBrowseListings();
     }
   };
 
-  const handleClaimWaiver = async (req: AccessRequest, matchedListing?: Listing) => {
-    await requestsService.claimPromotionWaiver(req.id, matchedListing?.lister);
-    await loadRequests();
+  const handlePayNow = (req: AccessRequest) => {
+    if (onProceedToCheckout) {
+      onProceedToCheckout(req);
+    } else {
+      navigate(`/requests/${req.id}`);
+    }
   };
 
   const handleConfirmSchedule = (reqId: string) => {
@@ -98,8 +263,37 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
   });
 
   return (
-    <div className="renter-page-container" style={{ backgroundColor: '#F8FAFC', minHeight: 'calc(100vh - 72px)', padding: '36px 20px 72px' }}>
+    <div className="renter-page-container" style={{ backgroundColor: '#F8FAFC', minHeight: 'calc(100vh - 72px)', padding: '28px 20px 72px' }}>
       <div style={{ maxWidth: '980px', margin: '0 auto' }}>
+        
+        {/* Top Back Navigation Button */}
+        <div style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={handleBack}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#FFFFFF',
+              border: '1.5px solid #E2E8F0',
+              borderRadius: '9999px',
+              padding: '8px 18px',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: '#000052',
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,82,0.04)',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#000052'; e.currentTarget.style.backgroundColor = '#F8FAFC'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.backgroundColor = '#FFFFFF'; }}
+            aria-label="Back to Search"
+          >
+            <ArrowLeft size={15} />
+            <span>Back to Browse</span>
+          </button>
+        </div>
         
         {/* Clean Modern Page Header */}
         <div style={{ marginBottom: '24px' }}>
@@ -363,6 +557,9 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                     </div>
                   </div>
 
+                  {/* 4-Step Visual Progress Stepper */}
+                  <RequestStepProgress request={req} />
+
                   {/* ---------------------------------------------------------
                       BODY STATE 1: WAITING PERIOD (PENDING VERIFICATION)
                      --------------------------------------------------------- */}
@@ -377,13 +574,19 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                             Rentivo has dispatched an automated vacancy check to the lister. Average response time in Ibadan is <strong>24 minutes</strong>.
                           </div>
                           <div style={{ fontSize: '11.5px', color: '#7E22CE', marginTop: '4px' }}>
-                            ✓ Your account is not charged during this verification period.
+                            ✓ Your account is not charged during this verification period. Flat fee (₦5,000) is only payable once vacancy is confirmed.
                           </div>
                         </div>
 
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', border: '1px solid #E9D5FF', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 700, color: '#6B21A8' }}>
-                          <Clock size={13} />
-                          <span>Awaiting Lister Reply</span>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => loadRequests()}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', border: '1px solid #E9D5FF', borderRadius: '8px', padding: '7px 14px', fontSize: '12px', fontWeight: 700, color: '#6B21A8', cursor: 'pointer' }}
+                          >
+                            <Clock size={13} />
+                            <span>Check for Updates</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -401,60 +604,34 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                             <span>Great news! Landlord confirmed this property is vacant.</span>
                           </div>
                           <div style={{ fontSize: '13.5px', color: '#17172B', marginTop: '4px', lineHeight: 1.4 }}>
-                            Pay the flat <strong>access fee</strong> via Paystack to unlock the landlord's direct phone number, WhatsApp, and schedule a physical inspection.
+                            Pay the flat <strong>₦5,000 access fee</strong> via Paystack to unlock the landlord's direct phone number, WhatsApp, and schedule a physical inspection.
                           </div>
-                          {promoStats.remaining > 0 && (
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#7E22CE', fontWeight: 700, marginTop: '4px' }}>
-                              <Sparkles size={14} color="#7E22CE" />
-                              <span>Ibadan Launch Promo: {promoStats.remaining} free waivers remaining!</span>
-                            </div>
-                          )}
+                          <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '4px' }}>
+                            Have a launch waiver promo code? You can enter it on the secure checkout screen.
+                          </div>
                         </div>
 
                         <div className="renter-request-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          {promoStats.remaining > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => handleClaimWaiver(req, matchedListing)}
-                              style={{
-                                backgroundColor: '#7E22CE',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                padding: '10px 16px',
-                                borderRadius: '10px',
-                                fontSize: '13px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px'
-                              }}
-                            >
-                              <Sparkles size={14} />
-                              <span>Claim ₦0 Launch Waiver</span>
-                            </button>
-                          )}
-
                           <button
                             type="button"
-                            onClick={() => handlePayNow(req, matchedListing)}
+                            onClick={() => handlePayNow(req)}
                             style={{
                               backgroundColor: '#000052',
                               color: '#FFFFFF',
                               border: 'none',
-                              padding: '10px 18px',
+                              padding: '11px 22px',
                               borderRadius: '10px',
-                              fontSize: '13px',
-                              fontWeight: 700,
+                              fontSize: '13.5px',
+                              fontWeight: 800,
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              boxShadow: '0 4px 12px rgba(0,0,82,0.18)'
+                              gap: '8px',
+                              boxShadow: '0 4px 14px rgba(0,0,82,0.22)'
                             }}
                           >
-                            <span>Pay via Paystack</span>
-                            <ArrowRight size={14} />
+                            <span>Pay ₦5,000 via Paystack</span>
+                            <ArrowRight size={15} />
                           </button>
                         </div>
                       </div>

@@ -20,24 +20,50 @@ Deno.serve(async (req) => {
     const password = body.password || "";
     const fullName = (body.fullName || "").trim();
     const phone = (body.phone || "").trim();
-    const role = body.role || "tenant";
     const agencyName = (body.agencyName || "").trim();
 
-    if (!email || !password || password.length < 8) {
+    // Strict Role Whitelisting (prevent privilege escalation)
+    const ALLOWED_SIGNUP_ROLES = ["tenant", "landlord", "agent", "business_renter"];
+    const requestedRole = typeof body.role === "string" ? body.role.toLowerCase().trim() : "tenant";
+    const role = ALLOWED_SIGNUP_ROLES.includes(requestedRole) ? requestedRole : "tenant";
+
+    // Strict Input Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "Valid email and 8+ character password required." 
+        error: "A valid email address is required." 
       }), {
         status: 200,
         headers: cors
       });
     }
 
-    // 1. Create user with admin client (auto-confirmed)
+    if (!password || password.length < 8) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Password must be at least 8 characters long." 
+      }), {
+        status: 200,
+        headers: cors
+      });
+    }
+
+    if (!fullName || fullName.length < 2) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Please provide your full name." 
+      }), {
+        status: 200,
+        headers: cors
+      });
+    }
+
+    // 1. Create user with admin client
     const { data: userData, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: false, // requires user verification
       user_metadata: {
         full_name: fullName,
         phone,
@@ -74,7 +100,7 @@ Deno.serve(async (req) => {
 
     const user = userData.user;
 
-    // 2. Ensure public.users profile exists with correct role
+    // 2. Ensure public.users profile exists with strictly sanitized role
     if (user) {
       await adminClient.from("users").upsert({
         id: user.id,

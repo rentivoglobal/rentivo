@@ -732,3 +732,221 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Stepper Controls for Numeric Fields (Bedrooms / Bathrooms) */
+.v2-num-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-m);
+  padding: 4px;
+}
+
+.v2-num-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-s);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.v2-num-btn:hover:not(:disabled) {
+  background: var(--line);
+  border-color: var(--line-strong);
+}
+
+.v2-num-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.v2-num-val {
+  min-width: 48px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+/* Custom Input Row (for custom category and custom amenity) */
+.v2-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.v2-add-input {
+  flex: 1;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-m);
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.v2-add-input:focus {
+  border-color: var(--focus);
+}
+
+.v2-add-btn {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-m);
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.84rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.v2-add-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* Quick Presets / Helpers */
+.v2-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.v2-preset-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.v2-preset-pill:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.v2-suggestion-chip {
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  padding: 6px 10px;
+  border-radius: var(--r-s);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.v2-suggestion-chip:hover {
+  background: var(--surface-2);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ImageKit Upload Progress & Live Alerts */
+.v2-upload-banner {
+  background: #f0f4ff;
+  border: 1.5px solid #c7d7fe;
+  border-radius: var(--r-m);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.v2-upload-bar-track {
+  width: 100%;
+  height: 8px;
+  background: #e0e7ff;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.v2-upload-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #be89ff);
+  transition: width 0.3s ease;
+  border-radius: 9999px;
+}
+
+/* Photo Cover Toggle */
+.v2-ph-cover-btn {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #fff;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(4px);
+  transition: background 0.15s;
+}
+
+.v2-ph-cover-btn:hover {
+  background: rgba(15, 23, 42, 0.95);
+}
+
+/* Error Banner in Step 4 */
+.v2-error-banner {
+  background: var(--coral-bg);
+  border: 1.5px solid var(--coral);
+  color: #7f1d1d;
+  border-radius: var(--r-m);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.v2-error-banner p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+/* Draft Restored Banner */
+.v2-draft-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}

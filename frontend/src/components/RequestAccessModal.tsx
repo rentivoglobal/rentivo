@@ -21,7 +21,9 @@ import { Listing, AccessRequest } from '../types';
 import { requestsService } from '../services/requestsService';
 import { formatNaira } from '../utils/formatters';
 import { EmailNotificationModal } from './EmailNotificationModal';
-import { isDemoSimulator } from '../lib/config';
+import { isDemoSimulator, ACCESS_FEE_KOBO, paystackPublicKey } from '../lib/config';
+import { openPaystackCheckout } from '../lib/paystack';
+
 
 interface RequestAccessModalProps {
   listing: Listing | null;
@@ -78,14 +80,35 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
   const handlePay = async () => {
     if (!createdRequest) return;
     setStep('paying');
-    setTimeout(async () => {
+    try {
+      if (paystackPublicKey) {
+        const init = await requestsService.initializePaystack(createdRequest.id, email);
+        const checkoutRes = await openPaystackCheckout({
+          email,
+          amountKobo: ACCESS_FEE_KOBO,
+          reference: init.reference,
+          metadata: { requestId: createdRequest.id }
+        });
+        const refToVerify = checkoutRes?.reference || init.reference;
+        await requestsService.verifyPaystack(createdRequest.id, refToVerify);
+        const latest = await requestsService.getRequestById(createdRequest.id);
+        if (latest?.status === 'paid') {
+          setCreatedRequest(latest);
+          setStep('unlocked');
+          return;
+        }
+      }
       const paid = await requestsService.completePayment(createdRequest.id, listing.lister);
       if (paid) {
         setCreatedRequest(paid);
         setStep('unlocked');
       }
-    }, 1600);
+    } catch (err) {
+      console.error(err);
+      setStep('confirmed');
+    }
   };
+
 
   const handleCopyPhone = () => {
     const ph = createdRequest?.unlockedListerContact?.phone || listing.lister.phone;

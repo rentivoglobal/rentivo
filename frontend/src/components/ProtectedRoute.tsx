@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { RenterLandlordGate } from './RenterLandlordGate';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -36,7 +37,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (listerOnly && user.role !== 'landlord' && user.role !== 'agent') {
-    return <Navigate to="/signup?role=lister" replace />;
+    return <RenterLandlordGate userEmail={user.email} />;
   }
 
   if (roles && !roles.includes(user.role)) {

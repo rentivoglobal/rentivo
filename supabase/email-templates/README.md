@@ -3,16 +3,33 @@
 This directory contains production-ready, minimalist, mobile-responsive HTML email templates styled with the official Rentivo brand identity for Supabase Authentication.
 
 All templates feature:
-- Clean, uncluttered layout with modern typography
-- Hosted official SVG Rentivo logo with typographic fallback (`RENTIVO` in `#000052`)
+- **Compact Hero Header**: Sleek, low-profile header (~85px height) that keeps verification codes above the fold on mobile and desktop
+- **Brand Identity**: Hosted official Rentivo SVG logo + clean white wordmark
+- **Integrated Concept Art Badge**: Compact vector artwork depicting contemporary architectural elevations, warm window glow, and 3D verification crest
+- **Brand Motto / Punchline**: `"★ Real Homes. Inspected Truth. Direct Mandates."`
+- **Prominent 6-Digit Code Container**: High-legibility 32px monospace token with 8px tracking for manual entry
 - High-contrast primary call-to-action button (`#000052`)
-- Highlighted 6-digit OTP code container for clients/users who prefer entering the token manually
 - Break-all direct link fallback for high email-client compatibility
 - Legal & security footer tailored for Rentivo (Ibadan, Nigeria)
 
 ---
 
-## 📍 Supabase Dashboard Location
+## ⚡ Setting Verification Code Length to Strictly 6 Digits
+
+If your Supabase emails are currently sending 7 or 8 characters, configure GoTrue to generate strictly **6 digits**:
+
+1. Go to your Supabase Dashboard:
+   **[https://supabase.com/dashboard/project/uovlgngsmvjcgkgznyme/auth/providers](https://supabase.com/dashboard/project/uovlgngsmvjcgkgznyme/auth/providers)**
+2. In the left menu, select **Authentication** &rarr; **Providers**.
+3. Click on the **Email** provider to expand its settings.
+4. Scroll to **Mailer OTP length** (or **OTP length**).
+5. Set the value to **`6`** (default is sometimes 8).
+6. Click **Save** at the bottom right.
+7. Any subsequent confirmation or login emails will strictly generate a clean **6-digit code** (e.g. `482910`).
+
+---
+
+## 📍 Supabase Dashboard Email Templates Location
 
 1. Open your Supabase Dashboard:
    **[https://supabase.com/dashboard/project/uovlgngsmvjcgkgznyme/auth/templates](https://supabase.com/dashboard/project/uovlgngsmvjcgkgznyme/auth/templates)**

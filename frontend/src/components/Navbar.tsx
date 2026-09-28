@@ -90,8 +90,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Brand Logo Lockup */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <a 
-            href={isRenterPortal ? "/account" : "/"} 
-            onClick={(e) => { e.preventDefault(); handleNav(isRenterPortal ? 'account' : 'home'); }}
+            href={isRenterPortal ? "/account/search" : "/"} 
+            onClick={(e) => { e.preventDefault(); handleNav(isRenterPortal ? 'search' : 'home'); }}
             style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
             title={isRenterPortal ? "Renter Portal Dashboard" : "Rentivo Home"}
           >
@@ -553,29 +553,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </button>
                   )}
 
-                  {/* Account Profile & Settings (Available for all authenticated users) */}
-                  <button
-                    type="button"
-                    onClick={() => handleNav('profile')}
-                    style={{
-                      textAlign: 'left',
-                      padding: '9px 12px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: currentTab === 'profile' ? '#F8F3FF' : 'none',
-                      color: '#000052',
-                      fontSize: '12.5px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    <UserIcon size={14} color="#000052" />
-                    <span>Profile & Settings</span>
-                  </button>
-
                   <div style={{ height: '1px', backgroundColor: '#F1F5F9', margin: '4px 0' }} />
 
                   {/* Sign Out */}
@@ -650,16 +627,37 @@ export const Navbar: React.FC<NavbarProps> = ({
             Browse Properties
           </button>
 
-          {/* Renter requests on mobile */}
+          {/* Renter portal links on mobile */}
           {currentUser && !isLister && !isAdmin && (
-            <button
-              type="button"
-              onClick={() => handleNav('requests')}
-              style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'requests' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center', gap: '10px' }}
-            >
-              <FileText size={16} color="#000052" />
-              <span>My Requests</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => handleNav('requests')}
+                style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'requests' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center', gap: '10px' }}
+              >
+                <FileText size={16} color="#000052" />
+                <span>My Requests</span>
+                {activeRequestsCount > 0 && (
+                  <span style={{ backgroundColor: '#000052', color: '#fff', fontSize: '11px', fontWeight: 800, padding: '1px 6px', borderRadius: '999px', marginLeft: 'auto' }}>
+                    {activeRequestsCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleNav('favorites')}
+                style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'favorites' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center', gap: '10px' }}
+              >
+                <Heart size={16} color="#000052" />
+                <span>Saved Properties</span>
+                {favoritesCount > 0 && (
+                  <span style={{ backgroundColor: '#BE89FF', color: '#000052', fontSize: '11px', fontWeight: 800, padding: '1px 6px', borderRadius: '999px', marginLeft: 'auto' }}>
+                    {favoritesCount}
+                  </span>
+                )}
+              </button>
+            </>
           )}
 
           {/* My Properties link on mobile */}
@@ -681,17 +679,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: '#FEE2E2', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#DC2626', fontSize: '14.5px', display: 'flex', alignItems: 'center' }}
             >
               Admin Operations
-            </button>
-          )}
-
-          {currentUser && (
-            <button
-              type="button"
-              onClick={() => handleNav('profile')}
-              style={{ textAlign: 'left', minHeight: '44px', padding: '10px 12px', background: currentTab === 'profile' ? '#F1F5F9' : 'none', border: 'none', borderRadius: '8px', fontWeight: 700, color: '#000052', fontSize: '14.5px', display: 'flex', alignItems: 'center', gap: '10px' }}
-            >
-              <UserIcon size={16} color="#000052" />
-              <span>Profile & Settings</span>
             </button>
           )}
 

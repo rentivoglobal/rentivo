@@ -1,0 +1,520 @@
+/* ==========================================================================
+   RENTIVO REQUEST ACCESS MODAL FLOW STYLES
+   Multi-step modal: Sign Up & Details -> 6-Digit OTP Verification -> Access Confirmation
+   ========================================================================== */
+
+.raf-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 40, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: rafFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 640px) {
+  .raf-overlay {
+    align-items: center;
+    padding: 24px 16px;
+  }
+}
+
+.raf-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 82, 0.28), 0 0 0 1px rgba(0, 0, 82, 0.06);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  animation: rafSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #16163a;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .raf-card {
+    border-radius: 20px;
+    max-height: 88vh;
+  }
+}
+
+@keyframes rafFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes rafSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.raf-header {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid #f0edf7;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  z-index: 10;
+}
+
+.raf-close-btn {
+  background: #f1f0f7;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #55557a;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.raf-close-btn:hover {
+  background: #e4e0f0;
+  color: #000052;
+}
+
+/* Steps Progress Bar */
+.raf-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.raf-step-dot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #8d8bb0;
+}
+
+.raf-step-dot.active {
+  color: #000052;
+}
+
+.raf-step-dot.completed {
+  color: #146c45;
+}
+
+.raf-step-pill {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f1f0f7;
+  color: #6b6b8d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.raf-step-dot.active .raf-step-pill {
+  background: #000052;
+  color: #ffffff;
+}
+
+.raf-step-dot.completed .raf-step-pill {
+  background: #e3f4ec;
+  color: #146c45;
+}
+
+.raf-step-line {
+  flex: 1;
+  height: 2px;
+  background: #f0edf7;
+  border-radius: 2px;
+}
+
+.raf-step-line.completed {
+  background: #146c45;
+}
+
+/* Body */
+.raf-body {
+  padding: 20px 22px 24px;
+}
+
+/* Property Mini Card */
+.raf-prop-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8f7fc;
+  border: 1px solid #e8e5f2;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 18px;
+}
+
+.raf-prop-thumb {
+  width: 50px;
+  height: 50px;
+  border-radius: 9px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.raf-prop-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.raf-prop-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #000052;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.raf-prop-meta {
+  font-size: 12px;
+  color: #6b6b8d;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.raf-prop-price {
+  font-weight: 800;
+  color: #000052;
+}
+
+/* Reassurance Box */
+.raf-reassurance {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.raf-reassurance-text {
+  font-size: 12.5px;
+  color: #4338ca;
+  line-height: 1.5;
+}
+
+.raf-reassurance-text strong {
+  color: #1e1b4b;
+}
+
+/* Form Fields */
+.raf-field {
+  margin-bottom: 15px;
+}
+
+.raf-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #16163a;
+  margin-bottom: 6px;
+}
+
+.raf-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.raf-input-icon {
+  position: absolute;
+  left: 13px;
+  color: #8d8bb0;
+  pointer-events: none;
+}
+
+.raf-input {
+  width: 100%;
+  height: 44px;
+  border: 1.5px solid #dcd7ed;
+  border-radius: 10px;
+  padding: 0 14px 0 38px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #16163a;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.raf-input:focus {
+  outline: none;
+  border-color: #000052;
+  box-shadow: 0 0 0 3px rgba(0, 0, 82, 0.08);
+}
+
+.raf-input.has-error {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.raf-input.is-valid {
+  border-color: #16a34a;
+}
+
+.raf-toggle-pw {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #8d8bb0;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.raf-toggle-pw:hover {
+  color: #000052;
+}
+
+.raf-error-text {
+  font-size: 11.5px;
+  color: #dc2626;
+  font-weight: 600;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.raf-help-text {
+  font-size: 11.5px;
+  color: #6b6b8d;
+  margin-top: 4px;
+}
+
+/* Alert Box */
+.raf-alert {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.raf-alert.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+.raf-alert.success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+}
+
+/* Primary Button */
+.raf-btn-primary {
+  width: 100%;
+  height: 48px;
+  border-radius: 999px;
+  background: #000052;
+  color: #ffffff;
+  font-size: 14.5px;
+  font-weight: 700;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.1s ease, filter 0.15s ease;
+  margin-top: 8px;
+}
+
+.raf-btn-primary:hover {
+  filter: brightness(1.15);
+}
+
+.raf-btn-primary:active {
+  transform: scale(0.98);
+}
+
+.raf-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Secondary / Ghost Button */
+.raf-btn-ghost {
+  width: 100%;
+  height: 40px;
+  border-radius: 999px;
+  background: transparent;
+  color: #55557a;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+.raf-btn-ghost:hover {
+  color: #000052;
+  background: #f1f0f7;
+}
+
+/* 6-Digit OTP Boxes */
+.raf-otp-wrap {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.raf-otp-box {
+  width: 48px;
+  height: 56px;
+  border: 2px solid #dcd7ed;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: 'Outfit', -apple-system, monospace;
+  color: #000052;
+  background: #fdfdff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  box-sizing: border-box;
+}
+
+.raf-otp-box:focus {
+  outline: none;
+  border-color: #000052;
+  box-shadow: 0 0 0 3px rgba(0, 0, 82, 0.1);
+  transform: translateY(-2px);
+  background: #ffffff;
+}
+
+.raf-otp-box.filled {
+  border-color: #000052;
+  background: #f8f7ff;
+}
+
+/* Shake Animation */
+.raf-shake {
+  animation: rafShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes rafShake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* Verification Modal Header & Helpers */
+.raf-verify-hero {
+  text-align: center;
+  padding: 12px 0 6px;
+}
+
+.raf-verify-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  border: 1px solid #c7d2fe;
+}
+
+.raf-verify-hero h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #000052;
+  margin: 0 0 6px;
+}
+
+.raf-verify-hero p {
+  font-size: 13px;
+  color: #55557a;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.raf-verify-footer {
+  text-align: center;
+  margin-top: 14px;
+}
+
+.raf-resend-btn {
+  background: none;
+  border: none;
+  color: #000052;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  text-decoration: underline;
+}
+
+.raf-resend-btn:disabled {
+  color: #8d8bb0;
+  text-decoration: none;
+  cursor: not-allowed;
+}
+
+/* Inline Switch Link */
+.raf-switch-link {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: #6b6b8d;
+}
+
+.raf-switch-link button {
+  background: none;
+  border: none;
+  color: #000052;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  margin-left: 4px;
+}

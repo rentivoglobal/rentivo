@@ -21,26 +21,34 @@
         <!-- Centered Container -->
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
           
-          <!-- Header / Brand Logo -->
+          <!-- COMPACT BRAND HERO HEADER (With Concept Art & Motto) -->
           <tr>
-            <td style="padding: 36px 36px 20px 36px; text-align: left;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+            <td style="padding: 20px 28px 18px 28px; background-color: #000052; background: linear-gradient(135deg, #0A0A58 0%, #000052 60%, #030328 100%); border-top-left-radius: 12px; border-top-right-radius: 12px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                 <tr>
-                  <td style="vertical-align: middle; padding-right: 10px;">
-                    <img src="https://uovlgngsmvjcgkgznyme.supabase.co/storage/v1/object/public/assets/rentivo-logo.svg" alt="Rentivo" width="32" height="32" style="display: block; border: 0; outline: none; border-radius: 6px;" />
+                  <!-- Left: Brand Lockup + Punchline -->
+                  <td style="vertical-align: middle; text-align: left;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="vertical-align: middle; padding-right: 9px;">
+                          <img src="https://uovlgngsmvjcgkgznyme.supabase.co/storage/v1/object/public/assets/rentivo-logo.svg" alt="Rentivo" width="30" height="30" style="display: block; border: 0; outline: none; border-radius: 6px;" />
+                        </td>
+                        <td style="vertical-align: middle;">
+                          <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 19px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.3px; line-height: 1;">RENTIVO</span>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin: 7px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11.5px; font-weight: 600; color: #DDD6FE; letter-spacing: 0.01em;">
+                      <span style="color: #BE89FF;">★</span> Real Homes. Inspected Truth. Direct Mandates.
+                    </p>
                   </td>
-                  <td style="vertical-align: middle;">
-                    <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 19px; font-weight: 800; color: #000052; letter-spacing: -0.4px;">RENTIVO</span>
+
+                  <!-- Right: Compact Concept Art Verification Badge -->
+                  <td align="right" style="vertical-align: middle; padding-left: 10px;">
+                    <img src="https://uovlgngsmvjcgkgznyme.supabase.co/storage/v1/object/public/assets/rentivo-header-badge.svg" alt="Verified Direct Mandates" width="130" height="48" style="display: block; border: 0; outline: none;" />
                   </td>
                 </tr>
               </table>
-            </td>
-          </tr>
-
-          <!-- Subtle Divider -->
-          <tr>
-            <td style="padding: 0 36px;">
-              <div style="height: 1px; background-color: #F3F4F6;"></div>
             </td>
           </tr>
 
@@ -58,26 +66,33 @@
                 Click the secure link below to sign in instantly to your Rentivo account. You will not need to enter a password.
               </p>
 
-              <!-- Primary Action Button -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 0 28px 0;">
+              <!-- 6-Digit Temporary Sign-In Code Block -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 24px 0; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px;">
                 <tr>
-                  <td align="center" style="border-radius: 8px; background-color: #000052;">
-                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; padding: 13px 26px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; color: #FFFFFF; text-decoration: none; border-radius: 8px; letter-spacing: -0.1px;">
-                      Sign In to Rentivo &rarr;
-                    </a>
+                  <td align="center" style="padding: 20px 24px; text-align: center;">
+                    <p style="margin: 0 0 8px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748B;">
+                      Your 6-Digit Sign-In Code
+                    </p>
+                    <div style="margin: 0 0 6px 0; font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 32px; font-weight: 800; color: #000052; letter-spacing: 8px; line-height: 1.2;">
+                      {{ .Token }}
+                    </div>
+                    <p style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; color: #94A3B8;">
+                      Enter this 6-digit code on the website to sign in instantly
+                    </p>
                   </td>
                 </tr>
               </table>
 
-              <!-- Optional 6-digit Code (for OTP/token verification) -->
-              <div style="margin: 0 0 26px 0; padding: 14px 16px; background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px;">
-                <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280;">
-                  Or enter temporary code
-                </p>
-                <p style="margin: 0; font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 22px; font-weight: 700; color: #000052; letter-spacing: 4px;">
-                  {{ .Token }}
-                </p>
-              </div>
+              <!-- Primary Action Button -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 0 0 26px 0;">
+                <tr>
+                  <td align="center" style="border-radius: 8px; background-color: #000052;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display: block; padding: 13px 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; color: #FFFFFF; text-decoration: none; border-radius: 8px; letter-spacing: -0.1px; text-align: center;">
+                      Sign In Instantly with Magic Link &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Fallback Direct URL -->
               <p style="margin: 0 0 8px 0; font-size: 12px; color: #6B7280; line-height: 1.5;">

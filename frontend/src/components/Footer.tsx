@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { NavigationTab } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface FooterProps {
   onNavigate?: (tab: NavigationTab) => void;
@@ -14,6 +15,10 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   const goSearchArea = (area: string) => {
     navigate(`/search?area=${encodeURIComponent(area)}`);
   };
+
+  const { user } = useAuth();
+  const isLister = user?.role === 'landlord' || user?.role === 'agent' || user?.role === 'admin';
+  const isRenter = Boolean(user && !isLister);
 
   return (
     <footer className="site-footer">
@@ -59,32 +64,60 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </ul>
           </div>
 
-          {/* Property Owners Column */}
-          <div className="footer-col">
-            <h4>Property Owners</h4>
-            <ul>
-              <li>
-                <a href="/lister/listings/new" onClick={(e) => { e.preventDefault(); onNavigate?.('list_property'); }}>
-                  List Your Property (Free)
-                </a>
-              </li>
-              <li>
-                <a href="/lister/verification" onClick={(e) => { e.preventDefault(); onNavigate?.('lister'); }}>
-                  Free Property Verification
-                </a>
-              </li>
-              <li>
-                <a href="/lister" onClick={(e) => { e.preventDefault(); onNavigate?.('lister'); }}>
-                  My Properties Hub
-                </a>
-              </li>
-              <li>
-                <a href="/how-it-works" onClick={(e) => { e.preventDefault(); onNavigate?.('how_it_works'); }}>
-                  Owner FAQs &amp; Direct Tenants
-                </a>
-              </li>
-            </ul>
-          </div>
+          {/* Conditional Column: Property Owners (for guests & listers) vs Renter Hub (for renters) */}
+          {isRenter ? (
+            <div className="footer-col">
+              <h4>Renter Hub</h4>
+              <ul>
+                <li>
+                  <a href="/account/search" onClick={(e) => { e.preventDefault(); navigate('/account/search'); }}>
+                    Browse Available Homes
+                  </a>
+                </li>
+                <li>
+                  <a href="/account/favorites" onClick={(e) => { e.preventDefault(); navigate('/account/favorites'); }}>
+                    Saved Listings
+                  </a>
+                </li>
+                <li>
+                  <a href="/account/requests" onClick={(e) => { e.preventDefault(); navigate('/account/requests'); }}>
+                    My Requests &amp; Access
+                  </a>
+                </li>
+                <li>
+                  <a href="/how-it-works" onClick={(e) => { e.preventDefault(); onNavigate?.('how_it_works'); }}>
+                    How Rentivo Protects You
+                  </a>
+                </li>
+              </ul>
+            </div>
+          ) : (
+            <div className="footer-col">
+              <h4>Property Owners</h4>
+              <ul>
+                <li>
+                  <a href="/lister/listings/new" onClick={(e) => { e.preventDefault(); onNavigate?.('list_property'); }}>
+                    List Your Property (Free)
+                  </a>
+                </li>
+                <li>
+                  <a href="/lister/verification" onClick={(e) => { e.preventDefault(); onNavigate?.('lister'); }}>
+                    Free Property Verification
+                  </a>
+                </li>
+                <li>
+                  <a href="/lister" onClick={(e) => { e.preventDefault(); onNavigate?.('lister'); }}>
+                    My Properties Hub
+                  </a>
+                </li>
+                <li>
+                  <a href="/how-it-works" onClick={(e) => { e.preventDefault(); onNavigate?.('how_it_works'); }}>
+                    Owner FAQs &amp; Direct Tenants
+                  </a>
+                </li>
+              </ul>
+            </div>
+          )}
 
           {/* Locations in Ibadan */}
           <div className="footer-col">

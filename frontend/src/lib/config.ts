@@ -13,4 +13,4 @@ export const isDemoSimulator =
 
 export const imagekitPublicKey = import.meta.env.VITE_IMAGEKIT_PUBLIC_KEY || '';
 export const imagekitUrlEndpoint = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT || '';
-export const paystackPublicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
+export const paystackPublicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_12d2be5b59ea1d89d379a84cdf74b8b5e15a759e';
