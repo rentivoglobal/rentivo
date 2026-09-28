@@ -15,11 +15,13 @@ import {
   Star, 
   MapPin, 
   Bed, 
+  BedDouble,
   Bath, 
   Maximize2, 
   DoorClosed, 
   Building2, 
   Home, 
+  Hotel,
   Store, 
   Building, 
   Warehouse, 
@@ -195,9 +197,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
         { label: 'All Short-let', icon: LayoutGrid, value: 'all' },
         { label: 'Studio Apartment', icon: DoorClosed, value: 'Studio Apartment' },
         { label: '1-Bedroom Serviced', icon: Bed, value: '1-Bedroom Serviced' },
-        { label: '2-Bedroom Serviced', icon: Home, value: '2-Bedroom Serviced' },
+        { label: '2-Bedroom Serviced', icon: BedDouble, value: '2-Bedroom Serviced' },
         { label: '3-Bedroom Serviced', icon: Building2, value: '3-Bedroom Serviced' },
-        { label: 'Luxury Villa', icon: Sparkles, value: 'Luxury Villa' }
+        { label: 'Luxury Villa', icon: Hotel, value: 'Luxury Villa' }
       ];
     }
     if (currentCategory === 'commercial') {
@@ -1044,7 +1046,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
           {[
             { id: 'all', label: 'All Properties', icon: LayoutGrid },
             { id: 'residential', label: 'Residential', icon: Home },
-            { id: 'shortlet', label: 'Short-let', icon: Sparkles },
+            { id: 'shortlet', label: 'Short-let', icon: Hotel },
             { id: 'commercial', label: 'Commercial', icon: Store }
           ].map(tab => {
             const isTabActive = currentCategory === tab.id;

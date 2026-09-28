@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Home,
   Building2,
+  Hotel,
   Sparkles,
   MapPin,
   Check,
@@ -552,11 +553,11 @@ RENT & LEASE TERMS:
       case 'commercial':
         return <Building2 size={22} />;
       case 'shortlet':
-        return <Sparkles size={22} />;
+        return <Hotel size={22} />;
       case 'land':
         return <MapPin size={22} />;
       default:
-        return <Sparkle size={22} />;
+        return <Home size={22} />;
     }
   };
 

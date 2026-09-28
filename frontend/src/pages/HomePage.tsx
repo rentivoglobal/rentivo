@@ -11,6 +11,8 @@ import {
   Home,
   Building2,
   Building,
+  Hotel,
+  LayoutGrid,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -43,9 +45,9 @@ const LOCATION_OPTIONS = [
 ];
 
 const GOAL_OPTIONS = [
-  { value: 'all', label: 'Homes, short-lets & commercial', subtitle: 'All residential, short-let and commercial properties', icon: Sparkles },
+  { value: 'all', label: 'Homes, short-lets & commercial', subtitle: 'All residential, short-let and commercial properties', icon: LayoutGrid },
   { value: 'residential', label: 'Home to rent', subtitle: 'Self-contain, flat, duplex, bungalow', icon: Home },
-  { value: 'shortlet', label: 'Short-let apartment', subtitle: 'Furnished & serviced daily, weekly, or monthly stays', icon: Sparkles },
+  { value: 'shortlet', label: 'Short-let apartment', subtitle: 'Furnished & serviced daily, weekly, or monthly stays', icon: Hotel },
   { value: 'commercial', label: 'Shop or office space', subtitle: 'Retail storefronts, corporate offices, warehouses', icon: Building2 },
 ];
 
