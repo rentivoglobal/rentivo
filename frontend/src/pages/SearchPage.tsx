@@ -24,7 +24,6 @@ import {
   Hotel,
   Store, 
   Building, 
-  Warehouse, 
   Map, 
   LayoutGrid, 
   Check, 
@@ -207,7 +206,6 @@ export const SearchPage: React.FC<SearchPageProps> = ({
         { label: 'All Commercial', icon: LayoutGrid, value: 'all' },
         { label: 'Shop', icon: Store, value: 'Shop' },
         { label: 'Office', icon: Building, value: 'Office' },
-        { label: 'Warehouse', icon: Warehouse, value: 'Warehouse' },
         { label: 'Land', icon: Map, value: 'Land' }
       ];
     }
@@ -219,10 +217,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
       { label: 'Bungalow', icon: Home, value: 'Bungalow' },
       { label: 'Studio Apartment', icon: DoorClosed, value: 'Studio Apartment' },
       { label: '1-Bedroom Serviced', icon: Bed, value: '1-Bedroom Serviced' },
-      { label: '2-Bedroom Serviced', icon: Home, value: '2-Bedroom Serviced' },
+      { label: '2-Bedroom Serviced', icon: BedDouble, value: '2-Bedroom Serviced' },
       { label: 'Shop', icon: Store, value: 'Shop' },
       { label: 'Office', icon: Building, value: 'Office' },
-      { label: 'Warehouse', icon: Warehouse, value: 'Warehouse' },
       { label: 'Land', icon: Map, value: 'Land' }
     ];
   }, [currentCategory]);
@@ -882,7 +879,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               {/* Property Type Dropdown Popover */}
               {isTypeDropdownOpen && (
                 <div className="usb-popover" style={{ left: 0, minWidth: '180px' }}>
-                  {['All Types', 'Flat', 'Self-Contain', 'Duplex', 'Bungalow', 'Shop', 'Office', 'Warehouse'].map((t) => {
+                  {['All Types', 'Flat', 'Self-Contain', 'Duplex', 'Bungalow', 'Studio Apartment', '1-Bedroom Serviced', '2-Bedroom Serviced', 'Shop', 'Office', 'Land'].map((t) => {
                     const isSelected = (filters.type || 'All Types') === t;
                     return (
                       <button
