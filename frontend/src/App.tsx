@@ -263,9 +263,18 @@ export const App: React.FC = () => {
             element={
               <HomePage
                 listings={listings}
-                onNavigateToMarketplace={(area) => {
-                  if (area && area !== 'All Ibadan areas') setFilters((prev) => ({ ...prev, area }));
-                  navigate(area && area !== 'All Ibadan areas' ? `/search?area=${encodeURIComponent(area)}` : '/search');
+                onNavigateToMarketplace={(area, category) => {
+                  const params = new URLSearchParams();
+                  if (area && area !== 'All Ibadan areas') {
+                    setFilters((prev) => ({ ...prev, area }));
+                    params.set('area', area);
+                  }
+                  if (category && category !== 'all') {
+                    setFilters((prev) => ({ ...prev, category: category as any }));
+                    params.set('category', category);
+                  }
+                  const qs = params.toString();
+                  navigate(qs ? `/search?${qs}` : '/search');
                 }}
                 onSelectListing={handleSelectListing}
                 onOpenAuth={() => handleOpenAuth('signup', 'renter')}

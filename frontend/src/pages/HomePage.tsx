@@ -26,7 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface HomePageProps {
   listings?: Listing[];
-  onNavigateToMarketplace: (areaFilter?: string) => void;
+  onNavigateToMarketplace: (areaFilter?: string, categoryFilter?: string) => void;
   onSelectListing: (listing: Listing) => void;
   onOpenAuth: () => void;
 }
@@ -43,8 +43,9 @@ const LOCATION_OPTIONS = [
 ];
 
 const GOAL_OPTIONS = [
-  { value: 'all', label: 'Homes & commercial', subtitle: 'All residential and commercial properties', icon: Sparkles },
+  { value: 'all', label: 'Homes, short-lets & commercial', subtitle: 'All residential, short-let and commercial properties', icon: Sparkles },
   { value: 'residential', label: 'Home to rent', subtitle: 'Self-contain, flat, duplex, bungalow', icon: Home },
+  { value: 'shortlet', label: 'Short-let apartment', subtitle: 'Furnished & serviced daily, weekly, or monthly stays', icon: Sparkles },
   { value: 'commercial', label: 'Shop or office space', subtitle: 'Retail storefronts, corporate offices, warehouses', icon: Building2 },
 ];
 
@@ -169,7 +170,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             onSubmit={(e) => {
               e.preventDefault();
               setOpenDropdown(null);
-              onNavigateToMarketplace(selectedArea);
+              onNavigateToMarketplace(selectedArea, selectedGoal);
             }}
           >
             <div className="search-lead" aria-hidden="true">
@@ -553,27 +554,26 @@ export const HomePage: React.FC<HomePageProps> = ({
             <p>Choose the path that fits your search. You can change it later, or browse everything now.</p>
           </div>
           <div className="goal-grid">
-            <div className="goal-card is-in" onClick={() => onNavigateToMarketplace()} style={{ cursor: 'pointer' }}>
+            <div className="goal-card is-in" onClick={() => onNavigateToMarketplace(undefined, 'residential')} style={{ cursor: 'pointer' }}>
               <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=900&q=80" alt="Rent a home in Ibadan" />
               <span className="goal-pill">Residential</span>
               <h3>A home to rent</h3>
               <p>Self-contain, flat, duplex, or bungalow across Ibadan.</p>
               <span className="goal-go goal-go--light">Browse homes <ArrowRight size={14} style={{ display: 'inline', verticalAlign: '-1px', marginLeft: '4px' }} /></span>
             </div>
-            <div className="goal-card is-in" onClick={() => onNavigateToMarketplace()} style={{ cursor: 'pointer' }}>
+            <div className="goal-card is-in" onClick={() => onNavigateToMarketplace(undefined, 'commercial')} style={{ cursor: 'pointer' }}>
               <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=900&q=80" alt="Shop or office space" />
               <span className="goal-pill">Commercial</span>
               <h3>A shop or office</h3>
               <p>Commercial space for a business, with the same check dates shown.</p>
               <span className="goal-go goal-go--light">Browse commercial <ArrowRight size={14} style={{ display: 'inline', verticalAlign: '-1px', marginLeft: '4px' }} /></span>
             </div>
-            <div className="goal-card goal-card--soft is-in" onClick={() => onNavigateToMarketplace()} style={{ cursor: 'pointer' }}>
-              <div className="goal-copy">
-                <span className="goal-pill goal-pill--soft">All Properties</span>
-                <h3>I am not sure yet</h3>
-                <p>Browse all available Ibadan options and filter as you go.</p>
-                <span className="goal-go">Browse everything <ArrowRight size={14} style={{ display: 'inline', verticalAlign: '-1px', marginLeft: '4px' }} /></span>
-              </div>
+            <div className="goal-card is-in" onClick={() => onNavigateToMarketplace(undefined, 'shortlet')} style={{ cursor: 'pointer' }}>
+              <img src="/shortlet-apartment.jpg" alt="Short-let apartments in Ibadan" />
+              <span className="goal-pill">Short-let</span>
+              <h3>Short-let apartments</h3>
+              <p>Furnished, serviced flats & studios for daily, weekly, or monthly stays.</p>
+              <span className="goal-go goal-go--light">Browse short-lets <ArrowRight size={14} style={{ display: 'inline', verticalAlign: '-1px', marginLeft: '4px' }} /></span>
             </div>
           </div>
         </section>

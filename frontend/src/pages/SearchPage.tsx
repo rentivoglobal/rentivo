@@ -135,6 +135,14 @@ export const SearchPage: React.FC<SearchPageProps> = ({
     if (searchParams.get('personalized') === 'true') {
       setOnlyTailoredMatches(true);
     }
+    const cat = searchParams.get('category');
+    if (cat && (cat === 'residential' || cat === 'commercial' || cat === 'shortlet' || cat === 'all')) {
+      onFilterChange({ category: cat as any });
+    }
+    const area = searchParams.get('area');
+    if (area && area !== 'All Ibadan areas') {
+      onFilterChange({ area });
+    }
   }, [searchParams]);
 
   const typeDropdownRef = useRef<HTMLDivElement>(null);
@@ -182,6 +190,16 @@ export const SearchPage: React.FC<SearchPageProps> = ({
         { label: 'Bungalow', icon: Home, value: 'Bungalow' }
       ];
     }
+    if (currentCategory === 'shortlet') {
+      return [
+        { label: 'All Short-let', icon: LayoutGrid, value: 'all' },
+        { label: 'Studio Apartment', icon: DoorClosed, value: 'Studio Apartment' },
+        { label: '1-Bedroom Serviced', icon: Bed, value: '1-Bedroom Serviced' },
+        { label: '2-Bedroom Serviced', icon: Home, value: '2-Bedroom Serviced' },
+        { label: '3-Bedroom Serviced', icon: Building2, value: '3-Bedroom Serviced' },
+        { label: 'Luxury Villa', icon: Sparkles, value: 'Luxury Villa' }
+      ];
+    }
     if (currentCategory === 'commercial') {
       return [
         { label: 'All Commercial', icon: LayoutGrid, value: 'all' },
@@ -197,6 +215,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
       { label: 'Flat', icon: Building2, value: 'Flat' },
       { label: 'Duplex', icon: Home, value: 'Duplex' },
       { label: 'Bungalow', icon: Home, value: 'Bungalow' },
+      { label: 'Studio Apartment', icon: DoorClosed, value: 'Studio Apartment' },
+      { label: '1-Bedroom Serviced', icon: Bed, value: '1-Bedroom Serviced' },
+      { label: '2-Bedroom Serviced', icon: Home, value: '2-Bedroom Serviced' },
       { label: 'Shop', icon: Store, value: 'Shop' },
       { label: 'Office', icon: Building, value: 'Office' },
       { label: 'Warehouse', icon: Warehouse, value: 'Warehouse' },
@@ -248,7 +269,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
     }
   };
 
-  const handleCategoryTabClick = (cat: 'all' | 'residential' | 'commercial') => {
+  const handleCategoryTabClick = (cat: 'all' | 'residential' | 'commercial' | 'shortlet') => {
     setSelectedCat('all');
     onFilterChange({ category: cat, type: 'All Types' });
   };
@@ -331,7 +352,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   if (filters.category && filters.category !== 'all') {
     activeFilterList.push({
       id: 'category',
-      label: filters.category === 'residential' ? 'Residential' : 'Commercial',
+      label: filters.category === 'residential' ? 'Residential' : filters.category === 'shortlet' ? 'Short-let' : filters.category === 'commercial' ? 'Commercial' : String(filters.category),
       onRemove: () => onFilterChange({ category: 'all' })
     });
   }
@@ -1009,18 +1030,21 @@ export const SearchPage: React.FC<SearchPageProps> = ({
          ----------------------------------------------------------------- */}
       <div className="marketplace-body" ref={gridContainerRef}>
 
-        {/* FR-3.2: Primary Category Segmented Tabs (All | Residential | Commercial) */}
+        {/* FR-3.2: Primary Category Segmented Tabs (All | Residential | Short-let | Commercial) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
           padding: '12px 0 8px',
           backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #F1F5F9'
+          borderBottom: '1px solid #F1F5F9',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch'
         }}>
           {[
             { id: 'all', label: 'All Properties', icon: LayoutGrid },
             { id: 'residential', label: 'Residential', icon: Home },
+            { id: 'shortlet', label: 'Short-let', icon: Sparkles },
             { id: 'commercial', label: 'Commercial', icon: Store }
           ].map(tab => {
             const isTabActive = currentCategory === tab.id;
@@ -1042,7 +1066,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                   fontSize: '13px',
                   fontWeight: 700,
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <TabIcon size={14} color={isTabActive ? '#FFFFFF' : '#64748B'} />
@@ -1222,7 +1247,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#000052', margin: 0 }}>
               {filters.searchQuery?.trim()
                 ? `Properties matching "${filters.searchQuery.trim()}"`
-                : `${currentCategory === 'residential' ? 'Residential Homes' : currentCategory === 'commercial' ? 'Commercial Spaces' : 'Listed Properties'} in ${filters.city || 'Ibadan'}`}
+                : `${currentCategory === 'residential' ? 'Residential Homes' : currentCategory === 'shortlet' ? 'Short-let Apartments' : currentCategory === 'commercial' ? 'Commercial Spaces' : 'Listed Properties'} in ${filters.city || 'Ibadan'}`}
             </h2>
             <p style={{ fontSize: '12.5px', color: '#636377', margin: '2px 0 0' }}>
               {displayListings.length} {onlyTailoredMatches ? 'tailored matches' : 'verified & verified-in-progress properties'} available
