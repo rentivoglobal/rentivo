@@ -9,7 +9,13 @@ import {
   ExternalLink,
   ShieldCheck,
   CheckCircle2,
-  Clock
+  Clock,
+  MapPin,
+  Bed,
+  Bath,
+  Maximize2,
+  Lock,
+  User as UserIcon
 } from 'lucide-react';
 import { Listing, AccessRequest } from '../types';
 import { formatNaira } from '../utils/formatters';
@@ -69,7 +75,7 @@ function renderAmenitySvg(name: string) {
 
   if (found?.custom === 'parking') {
     return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="4" y="4" width="16" height="16" rx="2" />
         <path d="M9 16V8h3.5a2.5 2.5 0 0 1 0 5H9" />
       </svg>
@@ -77,7 +83,7 @@ function renderAmenitySvg(name: string) {
   }
   if (found?.custom === 'inverter') {
     return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z" />
         <path d="M2 10h2M2 14h2M20 10h2M20 14h2M12 8v8" />
       </svg>
@@ -85,7 +91,7 @@ function renderAmenitySvg(name: string) {
   }
   if (found?.custom === 'tiles') {
     return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7" rx="1" />
         <rect x="14" y="3" width="7" height="7" rx="1" />
         <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -95,7 +101,7 @@ function renderAmenitySvg(name: string) {
   }
   if (found?.path) {
     return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d={found.path} />
       </svg>
     );
@@ -549,9 +555,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
           <div className="badges-row reveal">
             {listing.verificationStatus === 'verified' && (
               <span className="pill pill-verified">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
+                <ShieldCheck size={14} strokeWidth={2.4} />
                 Verified
               </span>
             )}
@@ -564,32 +568,22 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
           <h1 className="title reveal">{listing.title}</h1>
 
           <div className="loc-row reveal">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 22s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z" />
-              <circle cx="12" cy="10" r="2.5" />
-            </svg>
-            {listing.area}, Ibadan
+            <MapPin size={18} strokeWidth={2.2} />
+            <span>{listing.area}, Ibadan</span>
           </div>
 
           <div className="specs-row reveal">
             <span className="spec">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 18v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6" />
-                <path d="M3 18h18M5 10V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
-              </svg>
-              {listing.bedrooms || 1} {(listing.bedrooms || 1) === 1 ? 'bedroom' : 'bedrooms'}
+              <Bed size={18} strokeWidth={2.2} />
+              <span>{listing.bedrooms || 1} {(listing.bedrooms || 1) === 1 ? 'bedroom' : 'bedrooms'}</span>
             </span>
             <span className="spec">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12h16M6 12V6a2 2 0 0 1 4 0M4 16a4 4 0 0 0 4 4h8a4 4 0 0 0 4-4" />
-              </svg>
-              {listing.bathrooms || 1} {(listing.bathrooms || 1) === 1 ? 'bathroom' : 'bathrooms'}
+              <Bath size={18} strokeWidth={2.2} />
+              <span>{listing.bathrooms || 1} {(listing.bathrooms || 1) === 1 ? 'bathroom' : 'bathrooms'}</span>
             </span>
             <span className="spec">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
-              </svg>
-              {listing.areaSqm || 120} sqm
+              <Maximize2 size={18} strokeWidth={2.2} />
+              <span>{listing.areaSqm || 120} sqm</span>
             </span>
           </div>
 
@@ -652,10 +646,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
                 </div>
               </div>
               <div className="map-note">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <rect x="5" y="10" width="14" height="10" rx="2" />
-                  <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-                </svg>
+                <Lock size={16} strokeWidth={2.2} />
                 <span style={{ flex: 1 }}>
                   {listing.area}, Ibadan — the exact address is shared once your access request is confirmed.
                 </span>
@@ -671,12 +662,12 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
                     gap: 4,
                     color: 'var(--lavender-deep)',
                     fontWeight: 700,
-                    fontSize: '0.78rem',
+                    fontSize: '0.84rem',
                     flexShrink: 0
                   }}
                 >
                   <span>Explore area</span>
-                  <ExternalLink size={12} />
+                  <ExternalLink size={13} />
                 </a>
               </div>
             </div>
@@ -696,10 +687,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
                     style={{ width: '100%', height: '100%', borderRadius: 99, objectFit: 'cover' }}
                   />
                 ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
-                    <rect x="5" y="11" width="14" height="10" rx="2" />
-                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                  </svg>
+                  <UserIcon size={22} strokeWidth={2.2} />
                 )}
               </div>
               <div style={{ flex: 1 }}>
@@ -716,11 +704,8 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
               </div>
             </div>
             <p className="lister-privacy-note">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="5" y="11" width="14" height="10" rx="2" />
-                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-              </svg>
-              Name and contact details are kept private until your access request is confirmed — this protects both of you before anything is agreed.
+              <Lock size={15} strokeWidth={2.2} />
+              <span>Name and contact details are kept private until your access request is confirmed — this protects both of you before anything is agreed.</span>
             </p>
           </div>
 
@@ -848,21 +833,15 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
 
           <ul className="trust-list">
             <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
+              <CheckCircle2 size={16} strokeWidth={2.4} />
               <span>Verified by physical inspection</span>
             </li>
             <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
+              <CheckCircle2 size={16} strokeWidth={2.4} />
               <span>No agent commission — free for the landlord to list</span>
             </li>
             <li>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
+              <CheckCircle2 size={16} strokeWidth={2.4} />
               <span>You only pay once availability is confirmed</span>
             </li>
           </ul>
