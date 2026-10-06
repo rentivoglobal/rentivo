@@ -6,7 +6,7 @@
 .prop-detail-page {
   --navy: #000052;
   --navy-soft: #20206e;
-  --lavender: #9a48ff;
+  --lavender: #be89ff;
   --lavender-deep: #6f26d9;
   --gold: #b3701b;
   --gold-bg: #faeed9;
@@ -42,24 +42,23 @@
 
 @media (prefers-color-scheme: dark) {
   .prop-detail-page:not([data-theme="light"]) {
-    --navy: #c79bff;
-    --navy-soft: #dedcf5;
-    --paper: #0a0a1a;
-    --surface: #14142b;
-    --surface-2: #1e1e3b;
-    --ink: #ffffff;
-    --ink-soft: #dedcf5;
-    --ink-faint: #aba8cf;
-    --border: #2e2e54;
-    --border-strong: #444477;
-    --lavender: #c79bff;
-    --lavender-deep: #c79bff;
+    color-scheme: dark;
+    --paper: #0c0c1f;
+    --surface: #15152f;
+    --surface-2: #1d1d3d;
+    --ink: #f4f2ff;
+    --ink-soft: #d8d4f2;
+    --ink-faint: #b7b3d6;
+    --border: #2a2a4d;
+    --border-strong: #45457a;
+    --lavender: #d4b4ff;
+    --lavender-deep: #d4b4ff;
     --gold: #f3be65;
-    --gold-bg: rgba(243, 190, 101, 0.16);
-    --success: #34d399;
-    --success-bg: rgba(52, 211, 153, 0.16);
-    --coral: #ff6b81;
-    --coral-bg: rgba(255, 107, 129, 0.16);
+    --gold-bg: #3a2c14;
+    --success: #6ee7b0;
+    --success-bg: #0f3324;
+    --coral: #ff8aa0;
+    --coral-bg: #3a1620;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
     --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.7);
   }
@@ -68,24 +67,23 @@
 .prop-detail-page[data-theme="dark"],
 .dark .prop-detail-page,
 [data-theme="dark"] .prop-detail-page {
-  --navy: #c79bff;
-  --navy-soft: #dedcf5;
-  --paper: #0a0a1a;
-  --surface: #14142b;
-  --surface-2: #1e1e3b;
-  --ink: #ffffff;
-  --ink-soft: #dedcf5;
-  --ink-faint: #aba8cf;
-  --border: #2e2e54;
-  --border-strong: #444477;
-  --lavender: #c79bff;
-  --lavender-deep: #c79bff;
+  color-scheme: dark;
+  --paper: #0c0c1f;
+  --surface: #15152f;
+  --surface-2: #1d1d3d;
+  --ink: #f4f2ff;
+  --ink-soft: #d8d4f2;
+  --ink-faint: #b7b3d6;
+  --border: #2a2a4d;
+  --border-strong: #45457a;
+  --lavender: #d4b4ff;
+  --lavender-deep: #d4b4ff;
   --gold: #f3be65;
-  --gold-bg: rgba(243, 190, 101, 0.16);
-  --success: #34d399;
-  --success-bg: rgba(52, 211, 153, 0.16);
-  --coral: #ff6b81;
-  --coral-bg: rgba(255, 107, 129, 0.16);
+  --gold-bg: #3a2c14;
+  --success: #6ee7b0;
+  --success-bg: #0f3324;
+  --coral: #ff8aa0;
+  --coral-bg: #3a1620;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
   --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.7);
 }
@@ -107,6 +105,7 @@
 
 .prop-detail-page p {
   margin: 0;
+  color: var(--ink-soft);
 }
 
 .prop-detail-page button {
@@ -342,7 +341,7 @@
   height: 40px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.92);
-  color: var(--ink);
+  color: #16163a;
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -449,6 +448,9 @@
   max-width: 1180px;
   margin: 0 auto;
   padding: 20px 16px calc(var(--bar-h) + 30px);
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
 }
 
 @media (min-width: 960px) {
@@ -1038,19 +1040,6 @@
 .prop-detail-page .btn-primary {
   background: var(--navy);
   color: #ffffff;
-}
-
-.prop-detail-page[data-theme="dark"] .btn-primary,
-.dark .prop-detail-page .btn-primary {
-  background: #6366f1;
-  color: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-  .prop-detail-page:not([data-theme="light"]) .btn-primary {
-    background: #6366f1;
-    color: #ffffff;
-  }
 }
 
 .prop-detail-page .btn-primary:hover {
