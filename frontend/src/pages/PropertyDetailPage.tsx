@@ -221,29 +221,6 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Intersection Observer for scroll reveals
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in');
-            entry.target.querySelectorAll('.amen-item').forEach((el) => el.classList.add('in'));
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.12 }
-    );
-
-    const rootEl = pageContainerRef.current;
-    if (rootEl) {
-      const targets = rootEl.querySelectorAll('.reveal');
-      targets.forEach((t) => observer.observe(t));
-    }
-
-    return () => observer.disconnect();
-  }, [listing.id]);
 
   // Lightbox keyboard controls
   useEffect(() => {
@@ -535,7 +512,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
               }}
             >
               <div>
-                <strong style={{ display: 'block', fontSize: '0.88rem' }}>You are viewing your own listing</strong>
+                <strong style={{ display: 'block', fontSize: '0.88rem', color: 'var(--ink)' }}>You are viewing your own listing</strong>
                 <span style={{ fontSize: '0.78rem', color: 'var(--ink-soft)' }}>
                   Prospective renters view this exact presentation when browsing Rentivo.
                 </span>
