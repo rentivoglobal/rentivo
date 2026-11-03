@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, 
-  ShieldCheck, 
-  CheckCircle2, 
-  User as UserIcon, 
-  Mail, 
-  Phone, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
+import {
+  X,
+  ShieldCheck,
+  CheckCircle2,
+  User as UserIcon,
+  Mail,
+  Phone,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
   AlertCircle,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  MessageSquare
 } from 'lucide-react';
 import { Listing, AccessRequest } from '../types';
 import { authService } from '../services/authService';
@@ -49,6 +50,7 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [requestNotes, setRequestNotes] = useState('');
 
   // Visibility Toggles
   const [showPassword, setShowPassword] = useState(false);
@@ -307,7 +309,8 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
       const created = await requestsService.createRequest(listing, {
         name: fullName.trim(),
         email: email.trim().toLowerCase(),
-        phone: phoneValidation.cleaned || phone.trim()
+        phone: phoneValidation.cleaned || phone.trim(),
+        notes: requestNotes.trim()
       });
 
       setCreatedRequest(created);
@@ -366,7 +369,8 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
       const created = await requestsService.createRequest(listing, {
         name: user.name,
         email: user.email,
-        phone: phoneCheck.cleaned
+        phone: phoneCheck.cleaned,
+        notes: requestNotes.trim()
       });
 
       setCreatedRequest(created);
@@ -414,7 +418,8 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
       const created = await requestsService.createRequest(listing, {
         name: res.user.name,
         email: res.user.email,
-        phone: res.user.phone || phone.trim()
+        phone: res.user.phone || phone.trim(),
+        notes: requestNotes.trim()
       });
 
       setCreatedRequest(created);
@@ -453,8 +458,8 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
   }
 
   return (
-    <div className="raf-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div 
+    <div className="raf-overlay" data-theme="light" onClick={onClose} role="dialog" aria-modal="true">
+      <div
         className={`raf-card ${shake ? 'raf-shake' : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -493,9 +498,9 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
             )}
           </div>
 
-          <button 
-            type="button" 
-            className="raf-close-btn" 
+          <button
+            type="button"
+            className="raf-close-btn"
             onClick={onClose}
             aria-label="Close modal"
           >
@@ -507,9 +512,9 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
         <div className="raf-body">
           {/* Property Summary Mini Card */}
           <div className="raf-prop-card">
-            <img 
-              src={listing.photos?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80'} 
-              alt={listing.title} 
+            <img
+              src={listing.photos?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80'}
+              alt={listing.title}
               className="raf-prop-thumb"
             />
             <div className="raf-prop-info">
@@ -668,6 +673,59 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
                     <span>Passwords do not match.</span>
                   </div>
                 )}
+              </div>
+
+              {/* Message / Inspection Request to Landlord */}
+              <div className="raf-field" style={{ marginTop: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label className="raf-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MessageSquare size={13} color="#6d35c9" />
+                    <span>Move-in Timeline / Inspection Request</span>
+                    <span style={{ color: '#8583a8', fontWeight: 400, fontSize: '11px' }}>(optional)</span>
+                  </label>
+                  <span style={{ fontSize: '11px', color: '#8583a8' }}>{requestNotes.length}/300</span>
+                </div>
+                <textarea
+                  className="raf-input"
+                  style={{
+                    minHeight: '76px',
+                    padding: '10px 12px',
+                    fontSize: '13px',
+                    resize: 'none',
+                    lineHeight: '1.4'
+                  }}
+                  placeholder="e.g., I'm looking to move in around end of next month. Would love to inspect this Saturday morning."
+                  value={requestNotes}
+                  maxLength={300}
+                  onChange={(e) => setRequestNotes(e.target.value)}
+                />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                  {[
+                    'Inspect this weekend',
+                    'Moving in next month',
+                    'Ready for immediate inspection'
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => {
+                        setRequestNotes((prev) => (prev ? `${prev}. ${chip}` : chip));
+                      }}
+                      style={{
+                        background: '#f2f0fa',
+                        border: '1px solid #e2d9f3',
+                        color: '#5b28b0',
+                        borderRadius: '999px',
+                        padding: '3px 10px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + {chip}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Submit Button */}
@@ -878,6 +936,59 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
                     <span>{phoneValidation.errorMessage}</span>
                   </div>
                 )}
+              </div>
+
+              {/* Message / Inspection Request to Landlord for Logged-In User */}
+              <div className="raf-field" style={{ marginTop: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label className="raf-label" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <MessageSquare size={13} color="#6d35c9" />
+                    <span>Move-in Timeline / Inspection Request</span>
+                    <span style={{ color: '#8583a8', fontWeight: 400, fontSize: '11px' }}>(optional)</span>
+                  </label>
+                  <span style={{ fontSize: '11px', color: '#8583a8' }}>{requestNotes.length}/300</span>
+                </div>
+                <textarea
+                  className="raf-input"
+                  style={{
+                    minHeight: '76px',
+                    padding: '10px 12px',
+                    fontSize: '13px',
+                    resize: 'none',
+                    lineHeight: '1.4'
+                  }}
+                  placeholder="e.g., Looking to move in next month and would like to schedule an inspection this weekend."
+                  value={requestNotes}
+                  maxLength={300}
+                  onChange={(e) => setRequestNotes(e.target.value)}
+                />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                  {[
+                    'Inspect this weekend',
+                    'Moving in next month',
+                    'Ready for immediate inspection'
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => {
+                        setRequestNotes((prev) => (prev ? `${prev}. ${chip}` : chip));
+                      }}
+                      style={{
+                        background: '#f2f0fa',
+                        border: '1px solid #e2d9f3',
+                        color: '#5b28b0',
+                        borderRadius: '999px',
+                        padding: '3px 10px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + {chip}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <button

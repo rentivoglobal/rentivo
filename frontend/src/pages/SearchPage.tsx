@@ -1295,7 +1295,126 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               We could not find any listings in {filters.city || 'Ibadan'} matching your exact filters. Try widening your budget, clearing filters, or exploring popular neighborhoods below.
             </p>
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '24px' }}>
+            {/* Intelligent Filter Relaxation Pills */}
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '640px', margin: '0 auto 24px' }}>
+              {Boolean(filters.maxPrice) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMaxPriceInput('');
+                    onFilterChange({ maxPrice: undefined });
+                  }}
+                  style={{
+                    backgroundColor: '#F0E6FF',
+                    border: '1px solid #D8B4FE',
+                    color: '#000052',
+                    padding: '8px 16px',
+                    borderRadius: '999px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <X size={13} />
+                  <span>Remove max price (₦{Number(filters.maxPrice).toLocaleString()})</span>
+                </button>
+              )}
+
+              {Boolean(filters.bedrooms) && (
+                <button
+                  type="button"
+                  onClick={() => onFilterChange({ bedrooms: undefined })}
+                  style={{
+                    backgroundColor: '#F0E6FF',
+                    border: '1px solid #D8B4FE',
+                    color: '#000052',
+                    padding: '8px 16px',
+                    borderRadius: '999px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <X size={13} />
+                  <span>Show any bedroom count</span>
+                </button>
+              )}
+
+              {Boolean(filters.verifiedOnly) && (
+                <button
+                  type="button"
+                  onClick={() => onFilterChange({ verifiedOnly: false })}
+                  style={{
+                    backgroundColor: '#F0E6FF',
+                    border: '1px solid #D8B4FE',
+                    color: '#000052',
+                    padding: '8px 16px',
+                    borderRadius: '999px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <X size={13} />
+                  <span>Include all verified & pending</span>
+                </button>
+              )}
+
+              {Boolean(filters.area && filters.area !== 'All Ibadan areas') && (
+                <button
+                  type="button"
+                  onClick={() => onFilterChange({ area: 'All Ibadan areas' })}
+                  style={{
+                    backgroundColor: '#F0E6FF',
+                    border: '1px solid #D8B4FE',
+                    color: '#000052',
+                    padding: '8px 16px',
+                    borderRadius: '999px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <X size={13} />
+                  <span>Expand search across all Ibadan</span>
+                </button>
+              )}
+
+              {Boolean(filters.searchQuery && filters.searchQuery.trim()) && (
+                <button
+                  type="button"
+                  onClick={() => onFilterChange({ searchQuery: '' })}
+                  style={{
+                    backgroundColor: '#F0E6FF',
+                    border: '1px solid #D8B4FE',
+                    color: '#000052',
+                    padding: '8px 16px',
+                    borderRadius: '999px',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <X size={13} />
+                  <span>Clear keyword "{filters.searchQuery?.trim()}"</span>
+                </button>
+              )}
+
               <button 
                 type="button"
                 onClick={handleResetAllFilters}
@@ -1303,9 +1422,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                   backgroundColor: '#000052',
                   color: '#FFFFFF',
                   border: 'none',
-                  padding: '10px 20px',
+                  padding: '8px 18px',
                   borderRadius: '9999px',
-                  fontSize: '13px',
+                  fontSize: '12.5px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   display: 'inline-flex',
@@ -1313,7 +1432,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
                   gap: '6px'
                 }}
               >
-                <RotateCcw size={14} />
+                <RotateCcw size={13} />
                 <span>Reset All Filters</span>
               </button>
             </div>

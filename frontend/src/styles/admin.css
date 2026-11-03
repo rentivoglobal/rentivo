@@ -1,692 +1,1266 @@
 /* ==========================================================================
-   RENTIVO ADMIN RESPONSIVE STYLESHEET (admin.css)
-   Scoped styling for Rentivo Admin Operations (AdminQueuePage.tsx)
-   Guarantees 0px horizontal root overflow down to 360px while preserving
-   100% desktop fidelity (>= 1024px).
+   RENTIVO OPERATIONS COMMAND DESIGN SYSTEM (admin.css)
+   Inspired directly by "Rentivo Operations Command.html"
    ========================================================================== */
 
-/* --------------------------------------------------------------------------
-   Root Container & Safe Viewport Bounds
-   -------------------------------------------------------------------------- */
-.admin-page-root {
-  width: 100%;
-  max-width: 100vw;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap');
+
+:root {
+  --navy: #000052;
+  --navy-2: #0B0B6B;
+  --lav: #BE89FF;
+  --violet: #6B2FD6;
+  --bg: #F4F3FA;
+  --surface: #FFFFFF;
+  --surface-2: #F8F6FD;
+  --line: #E4E1F0;
+  --line-2: #EFEBF8;
+  --ink: #14142F;
+  --ink-2: #55557A;
+  --ink-3: #8383A6;
+  --accent: #000052;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #F1E5FF;
+  --link: #6B2FD6;
+  --ok: #0B6B4B;
+  --ok-bg: #E2F5EC;
+  --warn: #7A4B00;
+  --warn-bg: #FFF0D1;
+  --bad: #A3261A;
+  --bad-bg: #FDE7E4;
+  --info: #2A2A9C;
+  --info-bg: #E8E8FF;
+  --shadow: 0 1px 2px rgba(0, 0, 82, .05), 0 8px 24px -12px rgba(0, 0, 82, .16);
+  --shadow-lg: 0 24px 60px -16px rgba(0, 0, 60, .4);
+  --scrim: rgba(8, 8, 40, .55);
+  --d: 'Unbounded', system-ui, sans-serif;
+  --b: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Base utility for numbers */
+.roc-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ==========================================================================
+   APP SHELL LAYOUT
+   Navy rail (sidebar) on desktop + main content area
+   ========================================================================== */
+.roc-app {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
   min-height: 100vh;
-  overflow-x: hidden;
-  box-sizing: border-box;
-  background-color: #F8FAFC;
-  position: relative;
-}
-
-/* --------------------------------------------------------------------------
-   Responsive Visibility Utilities
-   -------------------------------------------------------------------------- */
-.admin-desktop-only {
-  display: block;
-}
-
-.admin-mobile-only {
-  display: none !important;
-}
-
-.admin-table-desktop {
-  display: block;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--b);
+  font-size: 14.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   width: 100%;
-}
-
-.admin-cards-mobile {
-  display: none !important;
-}
-
-@media (max-width: 1023px) {
-  .admin-desktop-only {
-    display: none !important;
-  }
-
-  .admin-mobile-only {
-    display: block !important;
-  }
-
-  .admin-mobile-flex {
-    display: flex !important;
-  }
-}
-
-@media (max-width: 767px) {
-  .admin-table-desktop {
-    display: none !important;
-  }
-
-  .admin-cards-mobile {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 12px !important;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Accessible Touch Target (WCAG 2.5.5 / Apple HIG: >= 44x44px)
-   -------------------------------------------------------------------------- */
-.admin-touch-target {
-  min-height: 44px !important;
-  min-width: 44px !important;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   box-sizing: border-box;
 }
 
-/* --------------------------------------------------------------------------
-   R1: Admin Header & Navigation (Two-Tier Mobile Architecture)
-   -------------------------------------------------------------------------- */
-.admin-header {
-  background-color: #000052;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+/* Side Rail */
+.roc-rail {
+  background: var(--navy);
+  color: #FFFFFF;
   position: sticky;
   top: 0;
-  z-index: 50;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  width: 100%;
-}
-
-/* Desktop Header Inner (>= 1024px) */
-.admin-header-desktop-inner {
-  max-width: 1500px;
-  margin: 0 auto;
-  padding: 0 32px;
-  height: 60px;
+  height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-/* Mobile Header Wrapper (< 1024px) */
-.admin-header-mobile-wrapper {
-  display: none;
-  width: 100%;
-}
-
-@media (max-width: 1023px) {
-  .admin-header-desktop-inner {
-    display: none !important;
-  }
-
-  .admin-header-mobile-wrapper {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-  }
-}
-
-/* Tier 1: Top Brand & Utility Bar */
-.admin-header-tier1 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 54px;
-  padding: 0 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background-color: #000052;
-}
-
-.admin-mobile-brand {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
+  padding: 22px 14px 18px;
   gap: 6px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.admin-header-mobile-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.admin-header-mobile-actions button {
-  min-height: 44px !important;
-  min-width: 44px !important;
-}
-
-@media (max-width: 374px) {
-  .admin-header-tier1 {
-    padding: 0 10px !important;
-  }
-  .admin-header-mobile-actions {
-    gap: 6px !important;
-  }
-}
-
-/* Tier 2: Fluid Horizontal Touch Rail */
-.admin-tab-rail {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  background-color: #00003A;
-  padding: 0 10px;
-  height: 52px;
-  position: relative;
-  mask-image: linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 12px, black calc(100% - 12px), transparent);
-}
-
-.admin-tab-rail::-webkit-scrollbar {
-  display: none;
-}
-
-.admin-tab-rail-item {
-  scroll-snap-align: start;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 14px;
-  height: 44px;
-  min-height: 44px;
-  font-size: 13.5px;
-  font-weight: 600;
-  border-radius: 8px;
-  color: #A9A6D0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-
-.admin-tab-rail-item.active {
-  color: #FFFFFF;
-  background-color: rgba(190, 137, 255, 0.18);
-  font-weight: 700;
-  position: relative;
-}
-
-.admin-tab-rail-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: 2px;
-  left: 10px;
-  right: 10px;
-  height: 2px;
-  background-color: #BE89FF;
-  border-radius: 2px;
-}
-
-/* Mobile Quick Search Bar (Collapsible / Toggleable) */
-.admin-header-search-bar {
-  padding: 8px 14px;
-  background-color: #000033;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* --------------------------------------------------------------------------
-   R2 View 1: Main Admin Container & Overview Dashboard
-   -------------------------------------------------------------------------- */
-.admin-main {
-  max-width: 1500px;
-  margin: 0 auto;
-  padding: 26px 32px 60px;
   box-sizing: border-box;
+  z-index: 40;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-@media (max-width: 767px) {
-  .admin-main {
-    padding: 14px 12px 48px !important;
-  }
-}
-
-/* 8 KPI Cards Grid */
-.admin-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
-  margin-bottom: 24px;
-}
-
-@media (max-width: 640px) {
-  .admin-kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-    margin-bottom: 16px !important;
-  }
-
-  .admin-kpi-grid > div {
-    padding: 12px 10px !important;
-  }
-
-  .admin-kpi-card-val {
-    font-size: 20px !important;
-  }
-
-  .admin-kpi-card-title {
-    font-size: 10.5px !important;
-    letter-spacing: 0.02em !important;
-  }
-
-  .admin-kpi-card-sub {
-    font-size: 10.5px !important;
-  }
-}
-
-/* 1.7fr 1fr Split Grid Reflow */
-.admin-split-grid {
-  display: grid;
-  grid-template-columns: 1.7fr 1fr;
-  gap: 18px;
-  align-items: start;
-  margin-bottom: 20px;
-}
-
-@media (max-width: 1023px) {
-  .admin-split-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 16px !important;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Generic Touch-Scrolling Rail Utility
-   -------------------------------------------------------------------------- */
-.admin-touch-rail {
-  display: flex !important;
-  align-items: center;
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-  max-width: 100%;
-}
-
-.admin-touch-rail::-webkit-scrollbar {
-  display: none;
-}
-
-.admin-touch-rail > * {
-  flex-shrink: 0 !important;
-}
-
-/* --------------------------------------------------------------------------
-   R2 View 2 & View 3: Listings & Verification Toolbars
-   -------------------------------------------------------------------------- */
-.admin-toolbar-wrap {
+.roc-brand {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-  background-color: #FFFFFF;
-  border: 1px solid #E6E3EE;
-  border-radius: 14px 14px 0 0;
-  padding: 14px 18px;
-  box-sizing: border-box;
-}
-
-@media (max-width: 767px) {
-  .admin-toolbar-wrap {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    padding: 12px 14px !important;
-    gap: 12px !important;
-  }
-
-  .admin-toolbar-row {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10px !important;
-    width: 100% !important;
-  }
-
-  .admin-toolbar-filters-grid {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-    width: 100% !important;
-  }
-
-  .admin-toolbar-filters-grid select {
-    width: 100% !important;
-    min-height: 42px !important;
-  }
-
-  .admin-toolbar-search-box {
-    width: 100% !important;
-    min-height: 42px !important;
-    box-sizing: border-box !important;
-  }
-
-  .admin-toolbar-search-box input {
-    width: 100% !important;
-  }
-}
-
-/* Floating Bulk Action Bar Mobile Drawer */
-.admin-bulk-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  background-color: #000052;
-  color: #FFFFFF;
-  padding: 12px 18px;
-  font-size: 13px;
-  font-weight: 600;
-  flex-wrap: wrap;
-  box-sizing: border-box;
-}
-
-@media (max-width: 767px) {
-  .admin-bulk-bar {
-    position: sticky !important;
-    bottom: 0 !important;
-    z-index: 45 !important;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25) !important;
-    border-radius: 12px 12px 0 0 !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    padding: 12px 14px !important;
-    gap: 10px !important;
-  }
-
-  .admin-bulk-bar-actions {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px !important;
-    width: 100% !important;
-  }
-
-  .admin-bulk-bar-actions button {
-    min-height: 44px !important;
-    justify-content: center !important;
-    font-size: 11px !important;
-    padding: 6px 8px !important;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   R2 View 5: Location Manager Responsive Overrides
-   -------------------------------------------------------------------------- */
-.admin-location-controls-grid {
-  display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(220px, 320px);
-  gap: 14px;
-  background-color: #F8FAFC;
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid #E2E8F0;
-  margin-bottom: 20px;
-  box-sizing: border-box;
-}
-
-@media (max-width: 767px) {
-  .admin-location-controls-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10px !important;
-    padding: 12px !important;
-  }
-
-  .admin-location-controls-grid form {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    width: 100% !important;
-  }
-
-  .admin-location-controls-grid form input {
-    width: 100% !important;
-    min-height: 44px !important;
-    box-sizing: border-box !important;
-  }
-
-  .admin-location-controls-grid form button {
-    width: 100% !important;
-    min-height: 44px !important;
-    justify-content: center !important;
-  }
-
-  .admin-location-controls-grid .admin-search-input-wrap {
-    width: 100% !important;
-    min-height: 44px !important;
-    box-sizing: border-box !important;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   R3: Standardized Admin Modals (All 7 Dialogues)
-   -------------------------------------------------------------------------- */
-.admin-modal-overlay {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 1000 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 12px !important;
-  box-sizing: border-box !important;
-}
-
-.admin-modal-backdrop {
-  position: absolute !important;
-  inset: 0 !important;
-  background-color: rgba(15, 23, 42, 0.65) !important;
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
-  z-index: 1 !important;
-}
-
-.admin-modal-card {
-  position: relative !important;
-  z-index: 2 !important;
-  background-color: #FFFFFF !important;
-  border-radius: 16px !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 82, 0.28), 0 0 0 1px rgba(0, 0, 82, 0.08) !important;
-  width: 100% !important;
-  max-width: 520px !important;
-  max-height: 90vh !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-}
-
-.admin-modal-card-lg {
-  max-width: 680px !important;
-}
-
-.admin-modal-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  padding: 16px 20px !important;
-  border-bottom: 1px solid #E2E8F0 !important;
-  flex-shrink: 0 !important;
-  box-sizing: border-box !important;
-}
-
-.admin-modal-close-btn {
-  width: 44px !important;
-  height: 44px !important;
-  min-width: 44px !important;
-  min-height: 44px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background-color: #F8FAFC !important;
-  border: 1px solid #E2E8F0 !important;
-  border-radius: 50% !important;
-  cursor: pointer !important;
-  color: #64748B !important;
-  padding: 0 !important;
-  flex-shrink: 0 !important;
-  transition: all 0.15s ease !important;
-}
-
-.admin-modal-close-btn:hover {
-  background-color: #F1F5F9 !important;
-  color: #000052 !important;
-}
-
-.admin-modal-body {
-  padding: 18px 20px !important;
-  overflow-y: auto !important;
-  flex: 1 !important;
-  -webkit-overflow-scrolling: touch !important;
-  box-sizing: border-box !important;
-}
-
-@media (max-width: 640px) {
-  .admin-modal-header {
-    padding: 12px 14px !important;
-  }
-
-  .admin-modal-body {
-    padding: 14px 14px !important;
-  }
-}
-
-.admin-modal-footer {
-  padding: 14px 20px !important;
-  border-top: 1px solid #E2E8F0 !important;
-  background-color: #F8FAFC !important;
-  display: flex !important;
-  gap: 10px !important;
-  justify-content: flex-end !important;
-  flex-shrink: 0 !important;
-  box-sizing: border-box !important;
-}
-
-@media (max-width: 640px) {
-  .admin-modal-footer {
-    flex-direction: column-reverse !important;
-    align-items: stretch !important;
-    padding: 12px 14px !important;
-    gap: 8px !important;
-  }
-
-  .admin-modal-footer button,
-  .admin-modal-footer a {
-    width: 100% !important;
-    min-height: 44px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-}
-
-@media (min-width: 641px) {
-  .admin-modal-footer .admin-footer-left {
-    margin-right: auto !important;
-  }
-}
-
-/* Inspection Modal Specific Grids */
-.admin-modal-metadata-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.admin-modal-assign-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-@media (max-width: 639px) {
-  .admin-modal-metadata-grid {
-    grid-template-columns: 1fr !important;
-    gap: 8px !important;
-  }
-
-  .admin-modal-assign-grid {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
-  }
-}
-
-/* Quick Locations Modal Form */
-.admin-modal-quick-add-form {
-  display: flex;
   gap: 10px;
+  padding: 2px 10px 18px;
+  user-select: none;
 }
 
-@media (max-width: 639px) {
-  .admin-modal-quick-add-form {
-    flex-direction: column !important;
-    gap: 8px !important;
-  }
-
-  .admin-modal-quick-add-form select,
-  .admin-modal-quick-add-form input,
-  .admin-modal-quick-add-form button {
-    width: 100% !important;
-    min-height: 44px !important;
-    box-sizing: border-box !important;
-  }
+.roc-brand b {
+  font-family: var(--d);
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
 }
 
-/* --------------------------------------------------------------------------
-   Mobile Action Cards (Reflowed from Tables at < 768px)
-   -------------------------------------------------------------------------- */
-.admin-mobile-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E6E3EE;
+.roc-brand i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--lav);
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.roc-tag {
+  font-family: var(--b);
+  font-weight: 800;
+  font-size: 10.5px;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lav);
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(190, 137, 255, 0.16);
+  margin-left: auto;
+}
+
+.roc-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.roc-nav button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 0;
   border-radius: 14px;
-  padding: 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 82, 0.03);
+  background: transparent;
+  color: #C9C8F0;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  font-family: var(--b);
+}
+
+.roc-nav button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.roc-nav button.active,
+.roc-nav button[aria-current="page"] {
+  background: var(--lav);
+  color: var(--navy);
+}
+
+.roc-nav svg {
+  flex-shrink: 0;
+}
+
+.roc-nav .roc-ct {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 800;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
   box-sizing: border-box;
+}
+
+.roc-nav .roc-ct.hot {
+  background: #FF6B5B;
+  color: #FFFFFF;
+}
+
+.roc-nav button.active .roc-ct,
+.roc-nav button[aria-current="page"] .roc-ct {
+  background: var(--navy);
+  color: #FFFFFF;
+}
+
+.roc-rail-foot {
+  margin-top: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.admin-mobile-card.urgent {
-  background-color: #FFF1F2;
-  border-color: #FECDD3;
+.roc-me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
 }
 
-.admin-mobile-card-header {
+.roc-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--lav);
+  color: var(--navy);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.roc-me small {
+  display: block;
+  color: #B5B4DA;
+  font-size: 12px;
+}
+
+.roc-me b {
+  font-size: 13.5px;
+  color: #FFFFFF;
+}
+
+.roc-ghost-d {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 0;
+  background: transparent;
+  color: #C9C8F0;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  font-family: var(--b);
+  transition: all 0.15s ease;
+}
+
+.roc-ghost-d:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.roc-ghost-d.active {
+  background: rgba(190, 137, 255, 0.18);
+  color: var(--lav);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   MOBILE TOP HEADER (< 980px)
+   ========================================================================== */
+.roc-mhead {
+  display: none;
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 60;
+  background: var(--navy);
+  color: #FFFFFF;
+  box-shadow: 0 8px 24px -14px rgba(0, 0, 60, 0.6);
+  width: 100%;
+}
+
+.roc-mtop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 0 16px;
+}
+
+.roc-mnav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 16px 12px;
+  scrollbar-width: none;
+}
+
+.roc-mnav::-webkit-scrollbar {
+  display: none;
+}
+
+.roc-mnav button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 10px 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: #E4E3FF;
+  font-weight: 700;
+  font-size: 13.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: var(--b);
+}
+
+.roc-mnav button.active {
+  background: var(--lav);
+  border-color: var(--lav);
+  color: var(--navy);
+}
+
+.roc-mnav .roc-ct {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+}
+
+.roc-mnav .roc-ct.hot {
+  background: #FF6B5B;
+}
+
+.roc-mnav button.active .roc-ct {
+  background: var(--navy);
+}
+
+/* ==========================================================================
+   MAIN CONTENT AREA
+   ========================================================================== */
+.roc-main {
+  min-width: 0;
+  padding: 28px 32px 56px;
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.roc-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.roc-top h1 {
+  font-family: var(--d);
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.roc-top p {
+  color: var(--ink-2);
+  margin-top: 6px;
+  max-width: 58ch;
+  font-size: 14px;
+}
+
+.roc-top-acts {
+  display: flex;
   gap: 10px;
-}
-
-.admin-mobile-card-row {
-  display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  font-size: 12.5px;
-  gap: 8px;
 }
 
-.admin-mobile-card-actions {
-  display: flex;
-  gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #F1F5F9;
-}
-
-.admin-mobile-card-actions button,
-.admin-mobile-card-actions a {
-  min-height: 44px;
+/* ==========================================================================
+   BUTTONS & CONTROLS
+   ========================================================================== */
+.roc-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 2px solid transparent;
   font-weight: 700;
-  border-radius: 8px;
-  text-decoration: none;
+  font-size: 14px;
+  white-space: nowrap;
+  transition: transform 0.12s ease, background 0.15s ease, filter 0.15s ease;
   cursor: pointer;
+  font-family: var(--b);
+  box-sizing: border-box;
+}
+
+.roc-btn:active {
+  transform: scale(0.98);
+}
+
+.roc-btn.b-pri {
+  background: var(--navy);
+  color: #FFFFFF;
+}
+
+.roc-btn.b-pri:hover {
+  filter: brightness(1.15);
+}
+
+.roc-btn.b-sec {
+  background: #FFFFFF;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.roc-btn.b-sec:hover {
+  border-color: var(--navy);
+  background: var(--accent-soft);
+}
+
+.roc-btn.b-bad {
+  background: var(--bad);
+  color: #FFFFFF;
+}
+
+.roc-btn.b-bad:hover {
+  filter: brightness(1.1);
+}
+
+.roc-btn.b-sm {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.roc-icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.roc-icon-btn:hover {
+  border-color: var(--navy);
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   PULSE EXECUTIVE METRICS SECTION
+   ========================================================================== */
+.roc-pulse {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.roc-kpi {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 18px 18px 14px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: transform 0.15s ease;
+}
+
+.roc-kpi:hover {
+  transform: translateY(-2px);
+}
+
+.roc-kpi.lead {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #FFFFFF;
+}
+
+.roc-kpi .l {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+  letter-spacing: 0.02em;
+}
+
+.roc-kpi.lead .l {
+  color: #C9C8F0;
+}
+
+.roc-kpi .v {
+  font-family: var(--d);
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.roc-kpi .s {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.roc-kpi.lead .s {
+  color: #C9C8F0;
+}
+
+.roc-kpi svg.sp {
+  width: 100%;
+  height: 34px;
+  margin-top: 4px;
+  overflow: visible;
+}
+
+.roc-up {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.roc-kpi.lead .roc-up {
+  color: #7FE5B8;
+}
+
+.roc-dn {
+  color: var(--bad);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   OPERATIONS PANEL & TOOLBAR
+   ========================================================================== */
+.roc-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.roc-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line-2);
+}
+
+.roc-search {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1.5px solid transparent;
+  color: var(--ink-3);
+  box-sizing: border-box;
+}
+
+.roc-search:focus-within {
+  border-color: var(--lav);
+  background: var(--surface);
+}
+
+.roc-search input {
   flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: 0;
+  color: var(--ink);
+  font-size: 14.5px;
+  font-family: var(--b);
+}
+
+.roc-sel {
+  min-height: 46px;
+  padding: 0 38px 0 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238383A6' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center;
+  appearance: none;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  font-family: var(--b);
+}
+
+.roc-sel:focus {
+  border-color: var(--lav);
+}
+
+.roc-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line-2);
+  scrollbar-width: none;
+}
+
+.roc-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.roc-chip {
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: transparent;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--b);
+}
+
+.roc-chip:hover {
+  border-color: var(--navy);
+}
+
+.roc-chip.active,
+.roc-chip[aria-pressed="true"] {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #FFFFFF;
+}
+
+.roc-chip em {
+  font-style: normal;
+  font-size: 11.5px;
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   DESKTOP TABLE
+   ========================================================================== */
+.roc-tw {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.roc-tw table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.roc-tw th {
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 700;
+  padding: 12px 18px;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+.roc-tw td {
+  padding: 14px 18px;
+  border-top: 1px solid var(--line-2);
+  vertical-align: middle;
+}
+
+.roc-tw tbody tr {
+  transition: background 0.12s ease;
+}
+
+.roc-tw tbody tr:hover {
+  background: var(--surface-2);
+}
+
+/* Property Cell Component */
+.roc-prop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 260px;
+}
+
+.roc-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 82, 0.08);
+}
+
+.roc-thumb::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46%;
+  background: rgba(255, 255, 255, 0.22);
+  clip-path: polygon(0 100%, 0 40%, 30% 10%, 60% 40%, 60% 20%, 100% 60%, 100% 100%);
+}
+
+.roc-pt {
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.roc-ps {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-top: 2px;
+}
+
+.roc-who b {
+  display: block;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.roc-who span {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* Status Pill with Bullet Dot */
+.roc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.roc-pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.roc-pill.p-ok {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.roc-pill.p-warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.roc-pill.p-bad {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.roc-pill.p-info {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.roc-pill.p-mute {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+}
+
+/* Inspector cell badge */
+.roc-insp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.roc-insp .roc-av {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+  background: var(--accent-soft);
+  color: var(--link);
+}
+
+.roc-unas {
+  color: var(--ink-3);
+  font-weight: 600;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.roc-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line-2);
+  color: var(--ink-2);
+  font-size: 13.5px;
+  align-items: center;
+}
+
+.roc-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.roc-empty b {
+  display: block;
+  color: var(--ink);
+  font-family: var(--d);
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+/* ==========================================================================
+   RESPONSIVE CARDS VIEW (< 760px)
+   ========================================================================== */
+.roc-cards {
+  display: none;
+}
+
+.roc-card {
+  padding: 16px;
+  border-top: 1px solid var(--line-2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.roc-card .roc-card-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  font-size: 13.5px;
+}
+
+.roc-card .roc-card-row span:first-child {
+  color: var(--ink-2);
+}
+
+.roc-card .roc-acts {
+  display: flex;
+  gap: 8px;
+}
+
+.roc-card .roc-acts .roc-btn {
+  flex: 1;
+}
+
+/* Escalation severity indicator */
+.roc-sev {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+/* Team Roles */
+.roc-role {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.roc-role.r-super {
+  background: var(--accent-soft);
+  color: var(--link);
+}
+
+.roc-role.r-ops {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.roc-role.r-insp {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+}
+
+/* ==========================================================================
+   MODAL DIALOG / BOTTOM SHEET SYSTEM
+   ========================================================================== */
+.roc-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px)) 16px;
+  box-sizing: border-box;
+}
+
+.roc-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  backdrop-filter: blur(6px);
+  animation: rocFade 0.2s ease-out;
+}
+
+.roc-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+  max-height: min(88vh, 860px);
+  background: var(--surface);
+  border-radius: 30px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: rocPop 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.roc-sheet.wide {
+  max-width: 740px;
+}
+
+.roc-mh {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 22px 24px 16px;
+}
+
+.roc-mi {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  color: var(--link);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.roc-mi.bad {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.roc-mh h2 {
+  font-family: var(--d);
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--ink);
+}
+
+.roc-mh p {
+  color: var(--ink-2);
+  font-size: 13.5px;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.roc-mb {
+  padding: 4px 24px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.roc-mf {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  border-top: 1px solid var(--line-2);
+  background: var(--surface-2);
+}
+
+.roc-mf .lft {
+  margin-right: auto;
+}
+
+.roc-fact {
+  background: var(--surface-2);
+  border-radius: 16px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.roc-fact small {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.roc-fact b {
+  display: block;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.roc-fld {
+  display: grid;
+  gap: 6px;
+}
+
+.roc-fld label,
+.roc-lbl {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.roc-fld input,
+.roc-fld select,
+.roc-fld textarea {
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  width: 100%;
+  font-family: var(--b);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.roc-fld textarea {
+  padding: 12px 14px;
+  min-height: 96px;
+  resize: vertical;
+}
+
+.roc-fld input:focus,
+.roc-fld select:focus,
+.roc-fld textarea:focus {
+  outline: 0;
+  border-color: var(--lav);
+  box-shadow: 0 0 0 3px rgba(190, 137, 255, 0.3);
+}
+
+/* Steps list */
+.roc-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.roc-steps li {
+  display: flex;
+  gap: 14px;
+  padding-bottom: 16px;
+  position: relative;
+}
+
+.roc-steps li::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 24px;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+
+.roc-steps li:last-child::before {
+  display: none;
+}
+
+.roc-steps .d {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.roc-steps .done .d {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #FFFFFF;
+}
+
+.roc-steps b {
+  display: block;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.roc-steps span {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+/* Toast */
+.roc-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 20px);
+  background: var(--navy);
+  color: #FFFFFF;
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13.5px;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.25s ease;
+  z-index: 200;
+  max-width: calc(100vw - 32px);
+  white-space: nowrap;
+}
+
+.roc-toast.on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@keyframes rocFade {
+  from { opacity: 0; }
+}
+
+@keyframes rocPop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+
+/* ==========================================================================
+   BREAKPOINTS
+   ========================================================================== */
+@media (max-width: 1180px) {
+  .roc-pulse {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .roc-app {
+    grid-template-columns: 1fr;
+  }
+  .roc-rail {
+    display: none;
+  }
+  .roc-main {
+    padding: 20px 16px 56px;
+  }
+  .roc-mhead {
+    display: block;
+  }
+  .roc-top h1 {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 760px) {
+  .roc-tw {
+    display: none;
+  }
+  .roc-cards {
+    display: block;
+  }
+  .roc-pulse {
+    gap: 10px;
+  }
+  .roc-kpi {
+    padding: 14px;
+    border-radius: 18px;
+  }
+  .roc-kpi .v {
+    font-size: 22px;
+  }
+  .roc-bar {
+    padding: 14px;
+  }
+  .roc-sel {
+    flex: 1 1 100%;
+  }
+  .roc-top-acts {
+    width: 100%;
+  }
+  .roc-top-acts .roc-btn {
+    flex: 1;
+  }
+  .roc-chips {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 640px) {
+  .roc-sheet,
+  .roc-sheet.wide {
+    border-radius: 24px;
+    max-height: calc(100vh - 32px);
+  }
+  .roc-mh {
+    padding: 14px 18px 12px;
+  }
+  .roc-mb {
+    padding: 4px 18px 18px;
+  }
+  .roc-mf {
+    flex-direction: column-reverse;
+    padding: 14px 18px 18px;
+  }
+  .roc-mf .roc-btn {
+    width: 100%;
+    min-height: 48px;
+  }
+  .roc-mf .lft {
+    display: none;
+  }
 }

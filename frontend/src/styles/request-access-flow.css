@@ -49,8 +49,13 @@
 }
 
 @keyframes rafFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes rafSlideUp {
@@ -58,6 +63,7 @@
     opacity: 0;
     transform: translateY(24px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -439,10 +445,27 @@
 }
 
 @keyframes rafShake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
+
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
 
 /* Verification Modal Header & Helpers */
@@ -520,92 +543,118 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .raf-card {
-    background: #14142b;
-    color: #ffffff;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
-  }
-  .raf-header {
-    background: #14142b;
-    border-bottom: 1px solid #2e2e54;
-  }
-  .raf-close-btn {
-    background: #1e1e3b;
-    color: #dedcf5;
-  }
-  .raf-close-btn:hover {
-    background: #2e2e54;
-    color: #ffffff;
-  }
-  .raf-step-label {
-    color: #aba8cf;
-  }
-  .raf-step-label.active {
-    color: #c79bff;
-  }
-  .raf-input {
-    background: #1e1e3b !important;
-    border-color: #38386a !important;
-    color: #ffffff !important;
-  }
-  .raf-label {
-    color: #f0edf9 !important;
-  }
-  .raf-prop-summary {
-    background: #1e1e3b !important;
-    border-color: #2e2e54 !important;
-  }
-  .raf-prop-title {
-    color: #ffffff !important;
-  }
-  .raf-prop-meta {
-    color: #aba8cf !important;
-  }
-  .raf-desc-muted {
-    color: #dedcf5 !important;
-  }
-  .raf-title {
-    color: #ffffff !important;
-  }
-  .raf-verify-hero h3 {
-    color: #ffffff !important;
-  }
-  .raf-verify-hero p {
-    color: #dedcf5 !important;
-  }
-  .raf-resend-btn {
-    color: #c79bff !important;
-  }
-  .raf-switch-link {
-    color: #aba8cf !important;
-  }
-  .raf-switch-link button {
-    color: #c79bff !important;
-  }
-  .raf-otp-box {
-    background: #1e1e3b !important;
-    border-color: #38386a !important;
-    color: #ffffff !important;
-  }
-  .raf-otp-box:focus {
-    border-color: #c79bff !important;
-  }
-  .raf-step-dot {
-    background: #2e2e54;
-    color: #aba8cf;
-  }
-  .raf-step-dot.active {
-    background: #c79bff;
-    color: #00003a;
-  }
-  .raf-step-dot.completed {
-    background: #34d399;
-    color: #00003a;
-  }
-  .raf-step-bar {
-    background: #2e2e54;
-  }
-  .raf-step-bar.completed {
-    background: #34d399;
+  .raf-overlay:not([data-theme="light"]) {
+    .raf-card {
+      background: #14142b;
+      color: #ffffff;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
+    .raf-header {
+      background: #14142b;
+      border-bottom: 1px solid #2e2e54;
+    }
+
+    .raf-close-btn {
+      background: #1e1e3b;
+      color: #dedcf5;
+    }
+
+    .raf-close-btn:hover {
+      background: #2e2e54;
+      color: #ffffff;
+    }
+
+    .raf-step-label {
+      color: #aba8cf;
+    }
+
+    .raf-step-label.active {
+      color: #c79bff;
+    }
+
+    .raf-input {
+      background: #1e1e3b !important;
+      border-color: #38386a !important;
+      color: #ffffff !important;
+    }
+
+    .raf-label {
+      color: #f0edf9 !important;
+    }
+
+    .raf-prop-summary {
+      background: #1e1e3b !important;
+      border-color: #2e2e54 !important;
+    }
+
+    .raf-prop-title {
+      color: #ffffff !important;
+    }
+
+    .raf-prop-meta {
+      color: #aba8cf !important;
+    }
+
+    .raf-desc-muted {
+      color: #dedcf5 !important;
+    }
+
+    .raf-title {
+      color: #ffffff !important;
+    }
+
+    .raf-verify-hero h3 {
+      color: #ffffff !important;
+    }
+
+    .raf-verify-hero p {
+      color: #dedcf5 !important;
+    }
+
+    .raf-resend-btn {
+      color: #c79bff !important;
+    }
+
+    .raf-switch-link {
+      color: #aba8cf !important;
+    }
+
+    .raf-switch-link button {
+      color: #c79bff !important;
+    }
+
+    .raf-otp-box {
+      background: #1e1e3b !important;
+      border-color: #38386a !important;
+      color: #ffffff !important;
+    }
+
+    .raf-otp-box:focus {
+      border-color: #c79bff !important;
+    }
+
+    .raf-step-dot {
+      background: #2e2e54;
+      color: #aba8cf;
+    }
+
+    .raf-step-dot.active {
+      background: #c79bff;
+      color: #00003a;
+    }
+
+    .raf-step-dot.completed {
+      background: #34d399;
+      color: #00003a;
+    }
+
+    .raf-step-bar {
+      background: #2e2e54;
+    }
+
+    .raf-step-bar.completed {
+      background: #34d399;
+    }
   }
 }

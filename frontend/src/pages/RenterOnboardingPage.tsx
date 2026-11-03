@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -16,11 +16,17 @@ import {
   ShieldCheck,
   Wifi,
   Droplet,
-  Car
+  Car,
+  Bed,
+  Bath,
+  ArrowUpRight
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { renterProfileService } from '../services/renterProfileService';
-import { RenterProfile } from '../types';
+import { listingsService } from '../services/listingsService';
+import { Listing, RenterProfile } from '../types';
+import { formatNaira } from '../utils/formatters';
+import { getListingPath } from '../utils/slug';
 import '../styles/onboarding.css';
 
 // Illustration assets provided via ImageKit
@@ -81,13 +87,6 @@ const TIMELINE_OPTIONS = [
   { id: 'exploring', title: 'Just exploring', sub: 'Reviewing market prices first', icon: Sparkles }
 ];
 
-const STATUS_STEPS = [
-  'Scanning physically inspected listings in Ibadan…',
-  'Matching your preferred neighbourhoods and budget…',
-  'Confirming direct landlord mandates…',
-  'Applying First 100 Free Access Waiver (₦5,000 value)…'
-];
-
 export const RenterOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -95,6 +94,10 @@ export const RenterOnboardingPage: React.FC = () => {
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const totalQuestions = 6;
+
+  // Real Listings State
+  const [allListings, setAllListings] = useState<Listing[]>([]);
+  const [isLoadingListings, setIsLoadingListings] = useState<boolean>(true);
 
   // Selected State
   const [goal, setGoal] = useState<string>('relocating');
@@ -109,8 +112,24 @@ export const RenterOnboardingPage: React.FC = () => {
 
   // Reveal state (Step 8)
   const [displayCount, setDisplayCount] = useState<number>(0);
+  const autoAdvanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentUser = authService.getCurrentUser();
+
+  // Load real properties from backend
+  useEffect(() => {
+    let mounted = true;
+    listingsService.getListings().then((data) => {
+      if (mounted) {
+        setAllListings(data || []);
+        setIsLoadingListings(false);
+      }
+    }).catch((err) => {
+      console.warn('Failed to load listings for onboarding:', err);
+      if (mounted) setIsLoadingListings(false);
+    });
+    return () => { mounted = false; };
+  }, []);
 
   // Load existing profile if user already saved preferences or editing
   useEffect(() => {
@@ -141,17 +160,28 @@ export const RenterOnboardingPage: React.FC = () => {
     void loadExisting();
   }, [currentUser]);
 
-  // Live match estimate computation
-  const liveMatches = useMemo(() => {
-    let base = 68;
-    base -= preferredAreas.length * 4;
-    base -= Math.max(0, (3 - propertyTypes.length)) * 4;
-    base -= mustHaves.length * 3;
-    if (budgetTier === 'under600') base -= 15;
-    if (budgetTier === '2500plus') base -= 6;
-    if (budgetTier === '600to1200') base -= 2;
-    return Math.max(12, Math.round(base));
-  }, [preferredAreas, propertyTypes, mustHaves, budgetTier]);
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimerRef.current) {
+        clearTimeout(autoAdvanceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Real Data Matching Engine
+  const matchResult = useMemo(() => {
+    const selectedTier = BUDGET_OPTIONS.find(b => b.id === budgetTier) || BUDGET_OPTIONS[1];
+    return renterProfileService.filterMatchingListings(allListings, {
+      preferredAreas,
+      propertyTypes,
+      budgetMin: selectedTier.min,
+      budgetMax: selectedTier.max,
+      mustHaves
+    });
+  }, [allListings, preferredAreas, propertyTypes, budgetTier, mustHaves]);
+
+  const liveMatches = matchResult.totalCount;
 
   // Step 7 Scanning sequence
   useEffect(() => {
@@ -178,7 +208,7 @@ export const RenterOnboardingPage: React.FC = () => {
   useEffect(() => {
     if (currentStep === 8) {
       const target = liveMatches;
-      const duration = 1000;
+      const duration = 1100;
       const start = performance.now();
 
       const animate = (now: number) => {
@@ -232,6 +262,30 @@ export const RenterOnboardingPage: React.FC = () => {
     }
   };
 
+  // Effortless single-select auto-advance with quick visual feedback
+  const autoAdvance = (nextStepTarget: number) => {
+    if (autoAdvanceTimerRef.current) clearTimeout(autoAdvanceTimerRef.current);
+    autoAdvanceTimerRef.current = setTimeout(() => {
+      setCurrentStep(nextStepTarget);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 280);
+  };
+
+  const handleSelectGoal = (id: string) => {
+    setGoal(id);
+    autoAdvance(2);
+  };
+
+  const handleSelectBudget = (id: string) => {
+    setBudgetTier(id);
+    autoAdvance(5);
+  };
+
+  const handleSelectTimeline = (id: string) => {
+    setTimeline(id);
+    autoAdvance(7);
+  };
+
   const toggleArea = (id: string) => {
     setPreferredAreas(prev =>
       prev.includes(id) ? (prev.length > 1 ? prev.filter(x => x !== id) : prev) : [...prev, id]
@@ -263,6 +317,25 @@ export const RenterOnboardingPage: React.FC = () => {
 
     return [goalTitle, ...areaTitles, ...typeTitles, budgetTitle, ...mustHaveTitles, timelineTitle];
   }, [goal, preferredAreas, propertyTypes, budgetTier, mustHaves, timeline]);
+
+  // Selected readable area names for radar and search link
+  const selectedAreaNames = useMemo(() => {
+    return preferredAreas
+      .map(id => NEIGHBORHOOD_OPTIONS.find(n => n.id === id)?.title || id)
+      .join(', ');
+  }, [preferredAreas]);
+
+  // Dynamic status messages using actual data context
+  const dynamicStatusSteps = useMemo(() => {
+    const countStr = allListings.length > 0 ? `${allListings.length}` : 'verified';
+    const areaStr = selectedAreaNames || 'Ibadan';
+    return [
+      `Scanning ${countStr} physically inspected listings in Ibadan…`,
+      `Matching your preferred areas (${areaStr}) & budget…`,
+      `Confirming direct landlord mandates…`,
+      `Applying First 100 Free Access Waiver (₦5,000 value)…`
+    ];
+  }, [allListings.length, selectedAreaNames]);
 
   return (
     <div className="onboarding-page-root">
@@ -304,16 +377,19 @@ export const RenterOnboardingPage: React.FC = () => {
           
           {/* STEP 1: Rental Goal */}
           {currentStep === 1 && (
-            <div>
+            <div className="onboarding-step-fade">
               <div className="onboarding-illus-wrap">
                 <div className="onboarding-illus-stage">
                   <img src={IMAGES.goal} alt="Search goal" className="onboarding-illus-img" />
                 </div>
               </div>
 
-              <span className="onboarding-q-kicker">Step 1 of 6</span>
+              <div className="onboarding-header-meta">
+                <span className="onboarding-q-kicker">Step 1 of 6 · Takes &lt; 60s</span>
+                <span className="onboarding-helper-badge">Select one</span>
+              </div>
               <h1 className="onboarding-q-title">Why are you searching in Ibadan?</h1>
-              <p className="onboarding-q-sub">This helps us tailor verified listings to your situation.</p>
+              <p className="onboarding-q-sub">This helps us tailor verified listings directly to your timeline and situation.</p>
 
               <div className="onboarding-choice-list">
                 {GOAL_OPTIONS.map(opt => {
@@ -323,7 +399,7 @@ export const RenterOnboardingPage: React.FC = () => {
                     <div
                       key={opt.id}
                       className={`onboarding-choice-card ${isSel ? 'sel' : ''}`}
-                      onClick={() => setGoal(opt.id)}
+                      onClick={() => handleSelectGoal(opt.id)}
                     >
                       <span className="ic">
                         <Icon size={18} strokeWidth={2} />
@@ -344,20 +420,25 @@ export const RenterOnboardingPage: React.FC = () => {
 
           {/* STEP 2: Neighborhoods */}
           {currentStep === 2 && (
-            <div>
+            <div className="onboarding-step-fade">
               <div className="onboarding-illus-wrap">
                 <div className="onboarding-illus-stage">
                   <img src={IMAGES.neighbourhoods} alt="Neighbourhoods" className="onboarding-illus-img" />
                 </div>
               </div>
 
-              <span className="onboarding-q-kicker">Step 2 of 6</span>
+              <div className="onboarding-header-meta">
+                <span className="onboarding-q-kicker">Step 2 of 6</span>
+                <span className="onboarding-helper-badge">Select all that apply</span>
+              </div>
               <h1 className="onboarding-q-title">Which areas are you interested in?</h1>
-              <p className="onboarding-q-sub">Select every neighborhood you would consider living in.</p>
+              <p className="onboarding-q-sub">Choose any neighborhoods you would consider living in.</p>
 
               <div className="onboarding-match-banner">
-                <span className="onboarding-status-dot" />
-                <span className="txt"><b>{liveMatches}</b> verified homes match so far</span>
+                <span className="onboarding-status-dot pulse" />
+                <span className="txt">
+                  <b>{liveMatches}</b> {matchResult.exactMatches.length > 0 ? 'verified homes match your search' : 'verified homes available'}
+                </span>
               </div>
 
               <div className="onboarding-pill-grid">
@@ -391,20 +472,25 @@ export const RenterOnboardingPage: React.FC = () => {
 
           {/* STEP 3: Property Type */}
           {currentStep === 3 && (
-            <div>
+            <div className="onboarding-step-fade">
               <div className="onboarding-illus-wrap">
                 <div className="onboarding-illus-stage">
                   <img src={IMAGES.propertyType} alt="Property type" className="onboarding-illus-img" />
                 </div>
               </div>
 
-              <span className="onboarding-q-kicker">Step 3 of 6</span>
+              <div className="onboarding-header-meta">
+                <span className="onboarding-q-kicker">Step 3 of 6</span>
+                <span className="onboarding-helper-badge">Select all that apply</span>
+              </div>
               <h1 className="onboarding-q-title">What type of home do you need?</h1>
-              <p className="onboarding-q-sub">Choose any layouts that work for you.</p>
+              <p className="onboarding-q-sub">Choose any layouts that work for your space requirements.</p>
 
               <div className="onboarding-match-banner">
-                <span className="onboarding-status-dot" />
-                <span className="txt"><b>{liveMatches}</b> verified homes match so far</span>
+                <span className="onboarding-status-dot pulse" />
+                <span className="txt">
+                  <b>{liveMatches}</b> {matchResult.exactMatches.length > 0 ? 'verified homes match so far' : 'verified homes available'}
+                </span>
               </div>
 
               <div className="onboarding-pill-grid">
@@ -439,20 +525,25 @@ export const RenterOnboardingPage: React.FC = () => {
 
           {/* STEP 4: Budget */}
           {currentStep === 4 && (
-            <div>
+            <div className="onboarding-step-fade">
               <div className="onboarding-illus-wrap">
                 <div className="onboarding-illus-stage">
                   <img src={IMAGES.budget} alt="Budget" className="onboarding-illus-img" />
                 </div>
               </div>
 
-              <span className="onboarding-q-kicker">Step 4 of 6</span>
+              <div className="onboarding-header-meta">
+                <span className="onboarding-q-kicker">Step 4 of 6</span>
+                <span className="onboarding-helper-badge">Select one</span>
+              </div>
               <h1 className="onboarding-q-title">What is your annual rent budget?</h1>
-              <p className="onboarding-q-sub">We only show verified listings within this price bracket.</p>
+              <p className="onboarding-q-sub">We prioritize physically inspected properties within this price range.</p>
 
               <div className="onboarding-match-banner">
-                <span className="onboarding-status-dot" />
-                <span className="txt"><b>{liveMatches}</b> verified homes match so far</span>
+                <span className="onboarding-status-dot pulse" />
+                <span className="txt">
+                  <b>{liveMatches}</b> {matchResult.exactMatches.length > 0 ? 'verified homes in this range' : 'verified homes available'}
+                </span>
               </div>
 
               <div className="onboarding-choice-list">
@@ -462,7 +553,7 @@ export const RenterOnboardingPage: React.FC = () => {
                     <div
                       key={opt.id}
                       className={`onboarding-choice-card ${isSel ? 'sel' : ''}`}
-                      onClick={() => setBudgetTier(opt.id)}
+                      onClick={() => handleSelectBudget(opt.id)}
                     >
                       <span className="ic">
                         <Coins size={18} strokeWidth={2} />
@@ -481,9 +572,9 @@ export const RenterOnboardingPage: React.FC = () => {
             </div>
           )}
 
-          {/* STEP 5: Must-Haves (Clean Minimal Stage) */}
+          {/* STEP 5: Must-Haves */}
           {currentStep === 5 && (
-            <div>
+            <div className="onboarding-step-fade">
               <div className="onboarding-illus-wrap">
                 <div className="onboarding-illus-stage">
                   <span className="onboarding-illus-shield">
@@ -492,13 +583,18 @@ export const RenterOnboardingPage: React.FC = () => {
                 </div>
               </div>
 
-              <span className="onboarding-q-kicker">Step 5 of 6</span>
+              <div className="onboarding-header-meta">
+                <span className="onboarding-q-kicker">Step 5 of 6</span>
+                <span className="onboarding-helper-badge">Select all that apply</span>
+              </div>
               <h1 className="onboarding-q-title">Any essential amenities?</h1>
-              <p className="onboarding-q-sub">Non-negotiable features for your everyday comfort.</p>
+              <p className="onboarding-q-sub">Non-negotiable features for your everyday comfort and peace of mind.</p>
 
               <div className="onboarding-match-banner">
-                <span className="onboarding-status-dot" />
-                <span className="txt"><b>{liveMatches}</b> verified homes match so far</span>
+                <span className="onboarding-status-dot pulse" />
+                <span className="txt">
+                  <b>{liveMatches}</b> verified homes match your preferences
+                </span>
               </div>
 
               <div className="onboarding-pill-grid">
@@ -533,20 +629,25 @@ export const RenterOnboardingPage: React.FC = () => {
 
           {/* STEP 6: Timeline */}
           {currentStep === 6 && (
-            <div>
+            <div className="onboarding-step-fade">
               <div className="onboarding-illus-wrap">
                 <div className="onboarding-illus-stage">
                   <img src={IMAGES.timeline} alt="Move-in timeline" className="onboarding-illus-img" />
                 </div>
               </div>
 
-              <span className="onboarding-q-kicker">Step 6 of 6</span>
+              <div className="onboarding-header-meta">
+                <span className="onboarding-q-kicker">Step 6 of 6</span>
+                <span className="onboarding-helper-badge">Select one</span>
+              </div>
               <h1 className="onboarding-q-title">When do you plan to move in?</h1>
-              <p className="onboarding-q-sub">We prioritize listings ready for key handover on your schedule.</p>
+              <p className="onboarding-q-sub">We prioritize listings ready for key handover on your desired schedule.</p>
 
               <div className="onboarding-match-banner">
-                <span className="onboarding-status-dot" />
-                <span className="txt"><b>{liveMatches}</b> verified homes match so far</span>
+                <span className="onboarding-status-dot pulse" />
+                <span className="txt">
+                  <b>{liveMatches}</b> verified homes ready for inspection
+                </span>
               </div>
 
               <div className="onboarding-choice-list">
@@ -557,7 +658,7 @@ export const RenterOnboardingPage: React.FC = () => {
                     <div
                       key={opt.id}
                       className={`onboarding-choice-card ${isSel ? 'sel' : ''}`}
-                      onClick={() => setTimeline(opt.id)}
+                      onClick={() => handleSelectTimeline(opt.id)}
                     >
                       <span className="ic">
                         <Icon size={18} strokeWidth={2} />
@@ -605,17 +706,18 @@ export const RenterOnboardingPage: React.FC = () => {
         <div className="onboarding-match-shell">
           <div className="onboarding-clean-loader">
             <img src={IMAGES.matching} alt="Matching" />
+            <div className="onboarding-radar-pulse" />
           </div>
 
           <h1 className="onboarding-q-title">
             Finding your matches
           </h1>
           <p className="onboarding-q-sub">
-            Filtering verified Ibadan listings based on your preferences…
+            Querying verified Ibadan listings based on your real preferences…
           </p>
 
           <div className="onboarding-status-list">
-            {STATUS_STEPS.map((label, idx) => {
+            {dynamicStatusSteps.map((label, idx) => {
               const isDone = scanStepIndex > idx;
               return (
                 <div key={label} className={`onboarding-status-item ${isDone ? 'done' : ''}`}>
@@ -634,7 +736,7 @@ export const RenterOnboardingPage: React.FC = () => {
         </div>
       )}
 
-      {/* STEP 8: Clean Minimal Reveal (NO SIGNUP FORM) */}
+      {/* STEP 8: Clean Minimal Reveal With Real Properties Preview */}
       {currentStep === 8 && (
         <div className="onboarding-reveal-shell">
           <div className="onboarding-reveal-illus">
@@ -648,18 +750,89 @@ export const RenterOnboardingPage: React.FC = () => {
             Your search is ready
           </h1>
           <p className="onboarding-q-sub">
-            We found verified properties in Ibadan matching your criteria.
+            We analyzed our database and found verified properties in Ibadan matching your criteria.
           </p>
 
           <div className="onboarding-match-count-big">{displayCount}</div>
-          <div className="onboarding-match-count-label">verified homes match your search</div>
+          <div className="onboarding-match-count-label">
+            {matchResult.exactMatches.length > 0 ? 'verified homes match your search' : 'verified homes available in Ibadan'}
+          </div>
 
-          {/* Minimal Preference Summary Chips */}
+          {/* Preference Summary Chips */}
           <div className="onboarding-chip-wrap">
             {summaryChips.map((chip, idx) => (
               <span key={idx} className="onboarding-rchip">{chip}</span>
             ))}
           </div>
+
+          {/* REAL PROPERTY PREVIEW CARDS */}
+          {matchResult.topPicks.length > 0 && (
+            <div className="onboarding-preview-section">
+              <div className="onboarding-preview-head">
+                <span className="onboarding-preview-title">Top Matched Homes</span>
+                <span className="onboarding-preview-badge">
+                  <ShieldCheck size={13} strokeWidth={2.5} />
+                  <span>100% Verified</span>
+                </span>
+              </div>
+
+              <div className="onboarding-preview-grid">
+                {matchResult.topPicks.map((prop) => {
+                  const photoUrl = prop.photos?.[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80';
+                  const propLink = getListingPath(prop);
+                  return (
+                    <div
+                      key={prop.id}
+                      className="onboarding-prop-card"
+                      onClick={() => navigate(propLink)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <div className="onboarding-prop-img-wrap">
+                        <img
+                          src={photoUrl}
+                          alt={prop.title}
+                          className="onboarding-prop-img"
+                          loading="lazy"
+                        />
+                        <span className="onboarding-prop-price-pill">
+                          {formatNaira(prop.price)}
+                          <span className="period">/yr</span>
+                        </span>
+                        {prop.verificationStatus === 'verified' && (
+                          <span className="onboarding-prop-verified-badge">
+                            <ShieldCheck size={11} strokeWidth={2.5} />
+                            <span>Inspected</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="onboarding-prop-info">
+                        <div className="onboarding-prop-title" title={prop.title}>
+                          {prop.title}
+                        </div>
+                        <div className="onboarding-prop-meta">
+                          <span className="area">
+                            <MapPin size={12} strokeWidth={2} />
+                            {prop.area || 'Ibadan'}
+                          </span>
+                          {prop.bedrooms !== undefined && (
+                            <span className="specs">
+                              <Bed size={12} strokeWidth={2} />
+                              {prop.bedrooms} bed
+                            </span>
+                          )}
+                          <span className="arrow">
+                            <ArrowUpRight size={13} strokeWidth={2} />
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Minimal Inspection Waiver Card */}
           <div className="onboarding-waiver-card">
@@ -673,11 +846,15 @@ export const RenterOnboardingPage: React.FC = () => {
           </div>
 
           {/* Clean Action Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
             <button
               type="button"
               className="onboarding-btn onboarding-btn-primary"
-              onClick={() => navigate('/search?personalized=true')}
+              onClick={() => {
+                const primaryArea = preferredAreas[0] ? (NEIGHBORHOOD_OPTIONS.find(n => n.id === preferredAreas[0])?.title || '') : '';
+                const queryStr = primaryArea ? `&area=${encodeURIComponent(primaryArea)}` : '';
+                navigate(`/search?personalized=true${queryStr}`);
+              }}
             >
               <span>View matching listings ({displayCount})</span>
               <ArrowRight size={16} strokeWidth={2} />

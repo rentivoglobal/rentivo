@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react';
 import { authService } from '../services/authService';
+import { listerOnboardingService } from '../services/listerOnboardingService';
 import { useAuth } from '../contexts/AuthContext';
 import { NavigationTab } from '../types';
 
@@ -214,9 +215,9 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
             navigate('/onboarding/renter', { replace: true });
             return;
           }
-          // If lister signup -> redirect to lister portal
-          if (res.user?.role === 'landlord' || res.user?.role === 'agent') {
-            navigate('/lister', { replace: true });
+          // If lister signup -> redirect to lister onboarding (mandatory verification)
+          if (initialRole === 'lister' || res.user?.role === 'landlord' || res.user?.role === 'agent') {
+            navigate('/onboarding/lister', { replace: true });
             return;
           }
         }
@@ -225,7 +226,12 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
         if (res.user?.role === 'admin') {
           navigate('/admin', { replace: true });
         } else if (res.user?.role === 'landlord' || res.user?.role === 'agent') {
-          navigate('/lister', { replace: true });
+          const onboarding = listerOnboardingService.getOnboarding(res.user.id);
+          if (!onboarding?.completed) {
+            navigate('/onboarding/lister', { replace: true });
+          } else {
+            navigate('/lister', { replace: true });
+          }
         } else {
           navigate('/search', { replace: true });
         }

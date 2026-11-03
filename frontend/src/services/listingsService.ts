@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { DB_TO_UI_TYPE, UI_TO_DB_TYPE, mapDbTypeToUi, mapUiTypeToDb, koboToNaira, nairaToKobo } from '../lib/mappers';
 import { localStore } from './localStore';
 import { authService } from './authService';
+import { slugifyPropertyTitle } from '../utils/slug';
 
 const LISTING_SELECT = `
   id, owner_user_id, title, description, category, property_type, status, is_approved,
@@ -104,20 +105,37 @@ export const listingsService = {
     return listings;
   },
 
-  async getListingById(id: string): Promise<Listing | undefined> {
+  async getListingById(idOrSlug: string): Promise<Listing | undefined> {
+    if (!idOrSlug) return undefined;
+    const clean = decodeURIComponent(idOrSlug).trim().toLowerCase();
+
     if (!isLiveBackend || !supabase) {
-      const found = localStore.getListingsRaw().find((l) => l.id === id);
+      const all = localStore.getListingsRaw();
+      const found = all.find((l) => l.id.toLowerCase() === clean || slugifyPropertyTitle(l.title) === clean);
       if (!found) return undefined;
       return { ...found, lister: { ...found.lister, phone: '', whatsapp: '' } };
     }
 
-    if (!UUID_REGEX.test(id)) {
-      return undefined;
+    if (UUID_REGEX.test(idOrSlug)) {
+      const { data, error } = await supabase.from('listings').select(LISTING_SELECT).eq('id', idOrSlug).maybeSingle();
+      if (!error && data) return mapRow(data as Record<string, unknown>);
     }
 
-    const { data, error } = await supabase.from('listings').select(LISTING_SELECT).eq('id', id).maybeSingle();
-    if (error || !data) return undefined;
-    return mapRow(data as Record<string, unknown>);
+    // Try finding by clean title slug in Supabase
+    const { data: allActive, error: activeErr } = await supabase
+      .from('listings')
+      .select(LISTING_SELECT)
+      .eq('status', 'active')
+      .eq('is_approved', true);
+
+    if (!activeErr && allActive) {
+      const matchedRow = allActive.find(
+        (row) => slugifyPropertyTitle(String((row as Record<string, unknown>).title || '')) === clean
+      );
+      if (matchedRow) return mapRow(matchedRow as Record<string, unknown>);
+    }
+
+    return undefined;
   },
 
   async getMyListings(): Promise<Listing[]> {

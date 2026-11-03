@@ -53,6 +53,7 @@ export interface ListerContact {
   fullName: string;
   phone: string;
   whatsapp: string;
+  email?: string;
   agencyName?: string;
   avatarUrl?: string;
   memberSince: string;
@@ -101,7 +102,8 @@ export interface Listing {
   createdAt: string;
   isAvailable: boolean;
   isApproved?: boolean;
-  moderationStatus?: 'pending_approval' | 'active' | 'rejected';
+  moderationStatus?: 'pending_approval' | 'pending_review' | 'active' | 'rejected' | 'delisted';
+  moderationNotes?: string;
 }
 
 export interface AccessRequest {
@@ -114,12 +116,16 @@ export interface AccessRequest {
   renterName: string;
   renterPhone: string;
   renterEmail: string;
+  notes?: string;
   status: RequestAccessStatus;
   feeAmount: number; // 5000 NGN or 0 if waived
   isPromotionWaiverApplied: boolean;
   createdAt: string;
   updatedAt: string;
   unlockedListerContact?: ListerContact;
+  resolutionReason?: 'confirmed' | 'unavailable_rented' | 'lister_unresponsive' | 'admin_cancelled';
+  resolutionNotes?: string;
+  resolvedAt?: string;
 }
 
 export interface FilterOptions {
@@ -154,6 +160,7 @@ export type NavigationTab =
   | 'lister'
   | 'listing_editor'
   | 'admin'
+  | 'field_inspection'
   | 'auth';
 
 export interface User {
@@ -259,6 +266,80 @@ export interface RenterProfile {
   onboardingCompleted: boolean;
   onboardingSkipped?: boolean;
   createdAt?: string;
+  updatedAt?: string;
+}
+
+export type AdminRoleTier = 'admin' | 'super_admin' | 'auditor';
+
+export interface AdminInvitation {
+  id: string;
+  email: string;
+  fullName: string;
+  role: AdminRoleTier;
+  token: string;
+  invitedBy?: string;
+  invitedByName?: string;
+  notes?: string;
+  status: 'pending' | 'accepted' | 'revoked' | 'expired';
+  expiresAt: string;
+  acceptedAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type ListerOnboardingRole = 'owner' | 'caretaker' | 'agent';
+
+export interface ListerResidentialAddress {
+  street: string;
+  landmark?: string;
+  area: string;
+  city: string;
+  state: string;
+}
+
+export type UtilityBillType = 'ibedc_electricity' | 'water_board' | 'waste_oyowma' | 'tenancy_receipt';
+
+export interface ListerUtilityBill {
+  billType: UtilityBillType;
+  referenceNumber?: string;
+  documentUrl?: string;
+  documentName?: string;
+  uploadedAt?: string;
+  status: 'submitted' | 'approved' | 'rejected';
+}
+
+export type ListerApprovalStatus = 'not_submitted' | 'pending' | 'approved' | 'rejected';
+
+export interface ListerOnboardingData {
+  userId: string;
+  userEmail?: string;
+  userName?: string;
+  role: ListerOnboardingRole;
+  phone: string;
+  whatsapp: string;
+  bankName: string;
+  bankCode?: string;
+  accountNumber: string;
+  accountName: string;
+  bankMatched: boolean;
+  trustLevel: 1 | 2 | 3;
+  residentialAddress: ListerResidentialAddress;
+  utilityBill: ListerUtilityBill;
+  isFamilyProperty?: boolean;
+  familyHeadName?: string;
+  familyHeadPhone?: string;
+  localReferenceName?: string;
+  localReferencePhone?: string;
+  localReferenceRole?: string;
+  localReferenceConsent?: boolean;
+  declarationAccepted?: boolean;
+  completed: boolean;
+  status: ListerApprovalStatus;
+  rejectionReason?: string;
+  submittedAt?: string;
+  completedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
   updatedAt?: string;
 }
 

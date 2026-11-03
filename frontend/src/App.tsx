@@ -18,15 +18,21 @@ import { AvailabilityActionPage } from './pages/AvailabilityActionPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { RenterOnboardingPage } from './pages/RenterOnboardingPage';
+import { ListerOnboardingPage } from './pages/ListerOnboardingPage';
 import { ListerVerificationPage } from './pages/ListerVerificationPage';
 import { VerifyPage } from './pages/VerifyPage';
+import { FieldInspectionPage } from './pages/FieldInspectionPage';
+import { AdminInviteAcceptPage } from './pages/AdminInviteAcceptPage';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { RentivoLoading } from './components/RentivoLoading';
+import { getListingPath, slugifyPropertyTitle } from './utils/slug';
 import { Listing, FilterOptions, NavigationTab, AccessRequest } from './types';
 import { listingsService } from './services/listingsService';
 import { locationsService } from './services/locationsService';
 import { requestsService } from './services/requestsService';
+import { listerOnboardingService } from './services/listerOnboardingService';
 import { useAuth } from './contexts/AuthContext';
 import { FOOTER_TABS, HASH_TO_PATH, STANDALONE_TABS, pathForTab, tabFromPathname } from './lib/navigation';
 
@@ -39,6 +45,18 @@ const HashRedirect: React.FC = () => {
     }
   }, [navigate]);
   return null;
+};
+
+const ListerPostingGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const ob = listerOnboardingService.getOnboarding(user?.id);
+  if (!ob?.completed) {
+    return <Navigate to="/onboarding/lister" replace />;
+  }
+  if (ob.status !== 'approved') {
+    return <Navigate to="/lister" replace />;
+  }
+  return <>{children}</>;
 };
 
 export const App: React.FC = () => {
@@ -151,8 +169,12 @@ export const App: React.FC = () => {
       pageTitle = 'Physical Verification Booking — Rentivo';
     } else if (path === '/lister/requests') {
       pageTitle = 'Inquiries & Activity — Rentivo Lister';
+    } else if (path === '/onboarding/lister') {
+      pageTitle = 'Lister Verification & Onboarding — Rentivo';
     } else if (path.startsWith('/lister')) {
       pageTitle = 'Lister Dashboard — Rentivo';
+    } else if (path.startsWith('/admin/invite')) {
+      pageTitle = 'Accept Admin Invitation — Rentivo';
     } else if (path.startsWith('/admin')) {
       pageTitle = 'Admin Operations — Rentivo';
     }
@@ -169,6 +191,14 @@ export const App: React.FC = () => {
         showToast('Please sign in as a landlord or agent to access the Lister Portal.');
       }
       return;
+    }
+    if ((tab === 'listing_editor' || tab === 'list_property') && user && (user.role === 'landlord' || user.role === 'agent')) {
+      const ob = listerOnboardingService.getOnboarding(user.id);
+      if (!ob?.completed) {
+        navigate('/onboarding/lister');
+        showToast('Please complete lister verification before posting properties.');
+        return;
+      }
     }
     if (tab === 'requests' && !user) {
       navigate(`/login?next=${encodeURIComponent(pathForTab(tab))}`);
@@ -206,6 +236,14 @@ export const App: React.FC = () => {
       return;
     }
     const nextUser = await import('./services/authService').then((m) => m.authService.getSessionUser());
+    if (nextUser && (nextUser.role === 'landlord' || nextUser.role === 'agent')) {
+      const ob = listerOnboardingService.getOnboarding(nextUser.id);
+      if (!ob?.completed) {
+        showToast('Signed in successfully. Please complete your lister onboarding.');
+        navigate('/onboarding/lister');
+        return;
+      }
+    }
     const target = tabToRedirect || (nextUser?.role === 'admin' ? 'admin' : nextUser && (nextUser.role === 'landlord' || nextUser.role === 'agent') ? 'lister' : 'search');
     showToast('Signed in successfully.');
     navigate(pathForTab(target));
@@ -218,12 +256,12 @@ export const App: React.FC = () => {
   };
 
   const handleSelectListing = (listing: Listing) => {
-    navigate(`/listings/${listing.id}`);
+    navigate(getListingPath(listing));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleRequestAccess = (listing: Listing) => {
-    navigate(`/listings/${listing.id}`);
+    navigate(getListingPath(listing));
   };
 
   const isPortalRoute = location.pathname.startsWith('/account') || location.pathname.startsWith('/lister') || location.pathname.startsWith('/admin');
@@ -303,8 +341,17 @@ export const App: React.FC = () => {
                   onSignOut={() => { void signOut(); navigate('/'); }}
                   onOpenAuth={handleOpenAuth}
                   onPostListing={() => {
-                    if (user?.role === 'landlord' || user?.role === 'agent') navigate('/lister/listings/new');
-                    else navigate('/signup?role=lister');
+                    if (user?.role === 'landlord' || user?.role === 'agent') {
+                      const ob = listerOnboardingService.getOnboarding(user?.id);
+                      if (!ob?.completed) {
+                        showToast('Please complete lister verification before posting properties.');
+                        navigate('/onboarding/lister');
+                      } else {
+                        navigate('/lister/listings/new');
+                      }
+                    } else {
+                      navigate('/signup?role=lister');
+                    }
                   }}
                   isPortalMode={false}
                 />
@@ -313,14 +360,16 @@ export const App: React.FC = () => {
           />
           <Route path="/browse" element={<Navigate to="/search" replace />} />
           <Route path="/properties" element={<Navigate to="/search" replace />} />
+          <Route path="/property/:slug" element={<ListingDetailRoute favorites={favorites} onToggleFavorite={handleToggleFavorite} onRequestAccess={handleRequestAccess} />} />
+          <Route path="/properties/:slug" element={<ListingDetailRoute favorites={favorites} onToggleFavorite={handleToggleFavorite} onRequestAccess={handleRequestAccess} />} />
           <Route path="/listings/:id" element={<ListingDetailRoute favorites={favorites} onToggleFavorite={handleToggleFavorite} onRequestAccess={handleRequestAccess} />} />
           <Route path="/listings/:id/request" element={<ListingRequestRedirect />} />
           <Route path="/requests/:id" element={<CheckoutRoute />} />
           <Route path="/requests" element={<Navigate to="/account/requests" replace />} />
           <Route path="/how-it-works" element={<HowItWorksPage onBrowseProperties={() => navigate('/search')} onPostListing={() => handleOpenAuth('signup', 'lister')} />} />
-          <Route path="/list-property" element={<ProtectedRoute listerOnly><Navigate to="/lister/listings/new" replace /></ProtectedRoute>} />
-          <Route path="/post-property" element={<ProtectedRoute listerOnly><Navigate to="/lister/listings/new" replace /></ProtectedRoute>} />
-          <Route path="/for-owners" element={<ProtectedRoute listerOnly><Navigate to="/lister/listings/new" replace /></ProtectedRoute>} />
+          <Route path="/list-property" element={<ProtectedRoute listerOnly><ListerPostingGuard><Navigate to="/lister/listings/new" replace /></ListerPostingGuard></ProtectedRoute>} />
+          <Route path="/post-property" element={<ProtectedRoute listerOnly><ListerPostingGuard><Navigate to="/lister/listings/new" replace /></ListerPostingGuard></ProtectedRoute>} />
+          <Route path="/for-owners" element={<ProtectedRoute listerOnly><ListerPostingGuard><Navigate to="/lister/listings/new" replace /></ListerPostingGuard></ProtectedRoute>} />
           <Route path="/terms" element={<TermsPage onBack={() => { if (window.history.length > 1) { navigate(-1); } else { navigate('/'); } }} onNavigateToTab={handleNavigate} />} />
           <Route path="/privacy" element={<PrivacyPage onBack={() => { if (window.history.length > 1) { navigate(-1); } else { navigate('/'); } }} onNavigateToTab={handleNavigate} />} />
           <Route path="/access-fee-terms" element={<AccessFeeTermsPage onBack={() => { if (window.history.length > 1) { navigate(-1); } else { navigate('/search'); } }} onBrowseListings={() => navigate('/search')} onNavigateToTab={handleNavigate} />} />
@@ -330,10 +379,13 @@ export const App: React.FC = () => {
           <Route path="/auth/verify" element={<Navigate to="/verify" replace />} />
           <Route path="/forgot-password" element={<AuthRoute mode="forgot" onSuccess={handleAuthSuccess} />} />
           <Route path="/reset-password" element={<ResetPasswordPage onSuccess={() => { showToast('Password updated. Sign in with your new password.'); navigate('/login'); }} onNavigateHome={() => navigate('/')} />} />
+          <Route path="/inspect/:token" element={<FieldInspectionPage />} />
+          <Route path="/verify-property/:token" element={<FieldInspectionPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/account" element={<Navigate to="/account/search" replace />} />
           <Route path="/account/profile" element={<Navigate to="/account/search" replace />} />
           <Route path="/onboarding/renter" element={<RenterOnboardingPage />} />
+          <Route path="/onboarding/lister" element={<ListerOnboardingPage />} />
           <Route path="/onboarding" element={<Navigate to="/onboarding/renter" replace />} />
           <Route
             path="/account/search"
@@ -355,8 +407,17 @@ export const App: React.FC = () => {
                   onSignOut={() => { void signOut(); navigate('/'); }}
                   onOpenAuth={handleOpenAuth}
                   onPostListing={() => {
-                    if (user?.role === 'landlord' || user?.role === 'agent') navigate('/lister/listings/new');
-                    else navigate('/signup?role=lister');
+                    if (user?.role === 'landlord' || user?.role === 'agent') {
+                      const ob = listerOnboardingService.getOnboarding(user?.id);
+                      if (!ob?.completed) {
+                        showToast('Please complete lister verification before posting properties.');
+                        navigate('/onboarding/lister');
+                      } else {
+                        navigate('/lister/listings/new');
+                      }
+                    } else {
+                      navigate('/signup?role=lister');
+                    }
                   }}
                   isPortalMode={true}
                 />
@@ -406,25 +467,34 @@ export const App: React.FC = () => {
           <Route path="/lister/verification/request" element={<ProtectedRoute listerOnly><ListerVerificationPage initialMode="request" onBack={() => navigate('/lister/verification')} /></ProtectedRoute>} />
           <Route path="/lister/account" element={<ProtectedRoute listerOnly><ListerRoute onReload={loadData} showToast={showToast} tab="profile" /></ProtectedRoute>} />
           <Route path="/lister/profile" element={<ProtectedRoute listerOnly><ListerRoute onReload={loadData} showToast={showToast} tab="profile" /></ProtectedRoute>} />
-          <Route path="/lister/listings/new" element={<ProtectedRoute listerOnly><ListingEditorPage initialListing={null} onSaveSuccess={() => { void loadData(); showToast('Listing published! It is now in your Lister Dashboard.'); navigate('/lister/listings'); }} onCancel={() => navigate('/lister')} /></ProtectedRoute>} />
+          <Route path="/lister/listings/new" element={<ProtectedRoute listerOnly><ListerPostingGuard><ListingEditorPage initialListing={null} onSaveSuccess={() => { void loadData(); showToast('Listing published! It is now in your Lister Dashboard.'); navigate('/lister/listings'); }} onCancel={() => navigate('/lister')} /></ListerPostingGuard></ProtectedRoute>} />
           <Route path="/lister/listings/:id/edit" element={<ProtectedRoute listerOnly><EditListingRoute onReload={loadData} showToast={showToast} /></ProtectedRoute>} />
           <Route
             path="/admin"
             element={
               <ProtectedRoute adminOnly>
-                <AdminQueuePage
-                  listings={listings}
-                  onApproveVerification={async (id) => {
-                    await listingsService.issueVerifiedBadge(id);
-                    await loadData();
-                    showToast('Verified badge issued.');
-                  }}
-                  onReload={loadData}
-                  onExit={() => navigate('/')}
-                />
+                <AdminSectionRoute listings={listings} onReload={loadData} showToast={showToast} />
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/verifications/:id"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminSectionRoute listings={listings} onReload={loadData} showToast={showToast} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/verification/:id"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminSectionRoute listings={listings} onReload={loadData} showToast={showToast} />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/admin/invite" element={<AdminInviteAcceptPage showToast={showToast} />} />
+          <Route path="/admin/invite/accept" element={<AdminInviteAcceptPage showToast={showToast} />} />
           <Route
             path="/admin/:section"
             element={
@@ -456,20 +526,32 @@ const ListingDetailRoute: React.FC<{
   onToggleFavorite: (id: string) => void;
   onRequestAccess: (listing: Listing) => void;
 }> = ({ favorites, onToggleFavorite, onRequestAccess }) => {
-  const { id } = useParams();
+  const { slug, id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const identifier = slug || id;
+
   useEffect(() => {
-    if (!id) return;
-    void listingsService.getListingById(id).then((found) => {
+    if (!identifier) return;
+    setLoading(true);
+    void listingsService.getListingById(identifier).then((found) => {
       setListing(found || null);
       setLoading(false);
+      // Canonicalize URL to clean /property/[slug] if accessed via ID or old /listings/ path
+      if (found) {
+        const canonicalSlug = slugifyPropertyTitle(found.title);
+        const expectedPath = `/property/${canonicalSlug}`;
+        if (location.pathname !== expectedPath && !location.pathname.startsWith('/property/')) {
+          window.history.replaceState(null, '', expectedPath);
+        }
+      }
     });
-  }, [id]);
+  }, [identifier, location.pathname]);
 
-  if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#000052' }}>Loading listing…</div>;
+  if (loading) return <RentivoLoading message="Loading verified property…" isFullScreen={true} />;
   if (!listing) {
     return (
       <div style={{ backgroundColor: '#F8FAFC', minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
@@ -498,7 +580,7 @@ const ListingDetailRoute: React.FC<{
       }}
       onRequestAccess={onRequestAccess}
       onSelectListing={(l) => {
-        navigate(`/listings/${l.id}`);
+        navigate(getListingPath(l));
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }}
     />
@@ -547,7 +629,7 @@ const CheckoutRoute: React.FC = () => {
   }, [params.id, isRequestUrl, navigate]);
 
   if (loading) {
-    return <div style={{ padding: 48, textAlign: 'center', color: '#000052' }}>Loading request…</div>;
+    return <RentivoLoading message="Securing your access request…" isFullScreen={true} />;
   }
 
   if (isRequestUrl && !request) {
@@ -606,13 +688,26 @@ const ListerRoute: React.FC<{
   tab?: 'home' | 'listings' | 'inquiries' | 'verification' | 'profile' | 'stats';
 }> = ({ onReload, showToast, tab }) => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   return (
     <ListerDashboardPage
       forcedTab={tab}
       onListingCreated={() => { void onReload(); showToast('Listing saved.'); }}
       onSelectListingToView={(listing) => navigate(`/listings/${listing.id}`)}
-      onOpenCreateListing={() => navigate('/lister/listings/new')}
+      onOpenCreateListing={() => {
+        const ob = listerOnboardingService.getOnboarding(user?.id);
+        if (!ob?.completed) {
+          showToast('Please complete lister verification before posting properties.');
+          navigate('/onboarding/lister');
+        } else if (ob.status === 'pending') {
+          showToast('Your lister application is under Admin review. You will be able to post properties once accepted.');
+        } else if (ob.status === 'rejected') {
+          showToast(`Application rejected: ${ob.rejectionReason || 'Please update your details'}`);
+          navigate('/onboarding/lister');
+        } else {
+          navigate('/lister/listings/new');
+        }
+      }}
       onOpenEditListing={(listing) => navigate(`/lister/listings/${listing.id}/edit`)}
       onNavigateToMarketplace={() => navigate('/search')}
       onOpenVerification={() => navigate('/lister/verification')}
@@ -647,14 +742,15 @@ const EditListingRoute: React.FC<{ onReload: () => Promise<void>; showToast: (ms
 };
 
 const AdminSectionRoute: React.FC<{ listings: Listing[]; onReload: () => Promise<void>; showToast: (msg: string) => void }> = ({ listings, onReload, showToast }) => {
-  const { section } = useParams();
+  const { section, id } = useParams();
   const navigate = useNavigate();
   return (
     <AdminQueuePage
       listings={listings}
-      initialSection={section as never}
-      onApproveVerification={async (id) => {
-        await listingsService.issueVerifiedBadge(id);
+      initialSection={(section as never) || 'verification'}
+      initialVerifId={id}
+      onApproveVerification={async (listingId) => {
+        await listingsService.issueVerifiedBadge(listingId);
         await onReload();
         showToast('Verified badge issued.');
       }}

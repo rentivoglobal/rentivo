@@ -10,15 +10,17 @@
   --ob-bg: #FFFFFF;
   --ob-subtle: #F8F9FA;
   --ob-surface: #FFFFFF;
-  --ob-surface-hover: #F3F4F6;
-  --ob-surface-active: #F8FAFC;
-  --ob-ink: #111827;
-  --ob-ink-muted: #6B7280;
+  --ob-surface-hover: #F9FAFB;
+  --ob-surface-active: #FAF8FF;
+  --ob-ink: #000052;
+  --ob-ink-muted: #5B6577;
   --ob-ink-faint: #9CA3AF;
   --ob-border: #E5E7EB;
   --ob-border-hover: #D1D5DB;
-  --ob-border-active: #111827;
+  --ob-border-active: #BE89FF;
   --ob-navy: #000052;
+  --ob-lilac: #BE89FF;
+  --ob-lilac-subtle: rgba(190, 137, 255, 0.12);
   --ob-success: #15803D;
   --ob-radius-lg: 16px;
   --ob-radius-md: 12px;
@@ -201,17 +203,48 @@
 }
 
 /* ==========================================================================
-   CLEAN HEADINGS
+   CLEAN HEADINGS & STEP ANIMATIONS
    ========================================================================== */
+.onboarding-step-fade {
+  animation: obStepIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes obStepIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onboarding-header-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .onboarding-q-kicker {
-  display: block;
-  text-align: center;
-  font-size: 0.75rem;
-  font-weight: 600;
+  display: inline-block;
+  font-size: 0.74rem;
+  font-weight: 700;
   color: var(--ob-ink-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+
+.onboarding-helper-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #4C1D95;
+  background: #F3E8FF;
+  padding: 2px 8px;
+  border-radius: var(--ob-radius-pill);
+  letter-spacing: 0.01em;
 }
 
 .onboarding-q-title {
@@ -241,7 +274,7 @@
 
 /* ==========================================================================
    MINIMAL LIVE MATCH BADGE
-   A quiet, elegant status tag without loud pulsing rings.
+   A quiet, elegant status tag with live pulsating indicator.
    ========================================================================== */
 .onboarding-match-banner {
   display: flex;
@@ -254,6 +287,7 @@
   padding: 6px 14px;
   margin: 0 auto 22px;
   width: fit-content;
+  transition: all 0.2s ease;
 }
 
 .onboarding-status-dot {
@@ -262,6 +296,24 @@
   border-radius: 999px;
   background: var(--ob-success);
   flex-shrink: 0;
+}
+
+.onboarding-status-dot.pulse {
+  position: relative;
+  box-shadow: 0 0 0 0 rgba(21, 128, 61, 0.4);
+  animation: obDotPulse 2s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+@keyframes obDotPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(21, 128, 61, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(21, 128, 61, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(21, 128, 61, 0);
+  }
 }
 
 .onboarding-match-banner b {
@@ -309,8 +361,9 @@
 }
 
 .onboarding-choice-card.sel {
-  border-color: var(--ob-border-active);
+  border-color: var(--ob-lilac);
   background: var(--ob-surface-active);
+  box-shadow: 0 4px 18px rgba(190, 137, 255, 0.14);
 }
 
 .onboarding-choice-card .ic {
@@ -328,9 +381,9 @@
 }
 
 .onboarding-choice-card.sel .ic {
-  background: var(--ob-ink);
+  background: var(--ob-navy);
   color: #FFFFFF;
-  border-color: var(--ob-ink);
+  border-color: var(--ob-navy);
 }
 
 .onboarding-choice-card .txt {
@@ -368,8 +421,8 @@
 }
 
 .onboarding-choice-card.sel .chk {
-  border-color: var(--ob-ink);
-  background: var(--ob-ink);
+  border-color: var(--ob-navy);
+  background: var(--ob-navy);
 }
 
 /* ==========================================================================
@@ -409,8 +462,9 @@
 }
 
 .onboarding-pill-card.sel {
-  border-color: var(--ob-border-active);
+  border-color: var(--ob-lilac);
   background: var(--ob-surface-active);
+  box-shadow: 0 4px 18px rgba(190, 137, 255, 0.14);
 }
 
 .onboarding-pill-card .top-row {
@@ -434,9 +488,9 @@
 }
 
 .onboarding-pill-card.sel .ic {
-  background: var(--ob-ink);
+  background: var(--ob-navy);
   color: #FFFFFF;
-  border-color: var(--ob-ink);
+  border-color: var(--ob-navy);
 }
 
 .onboarding-pill-card .chk {
@@ -453,8 +507,8 @@
 }
 
 .onboarding-pill-card.sel .chk {
-  border-color: var(--ob-ink);
-  background: var(--ob-ink);
+  border-color: var(--ob-navy);
+  background: var(--ob-navy);
 }
 
 .onboarding-pill-card .ttl {
@@ -666,11 +720,11 @@
 }
 
 /* ==========================================================================
-   STEP 8: MINIMAL REVEAL SCREEN
-   Restrained, editorial, elegant value capture.
+   STEP 8: MINIMAL REVEAL SCREEN & REAL PROPERTY PREVIEW
+   Restrained, editorial, elegant value capture with real property cards.
    ========================================================================== */
 .onboarding-reveal-shell {
-  max-width: 480px;
+  max-width: 560px;
   width: 100%;
   margin: 0 auto;
   padding: 32px 20px 60px;
@@ -702,7 +756,7 @@
 }
 
 .onboarding-match-count-big {
-  font-size: 3rem;
+  font-size: 3.25rem;
   font-weight: 800;
   color: var(--ob-ink);
   line-height: 1;
@@ -711,7 +765,7 @@
 }
 
 .onboarding-match-count-label {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--ob-ink-muted);
   margin-bottom: 22px;
 }
@@ -722,7 +776,7 @@
   flex-wrap: wrap;
   gap: 6px;
   justify-content: center;
-  margin-bottom: 26px;
+  margin-bottom: 24px;
 }
 
 .onboarding-rchip {
@@ -731,8 +785,178 @@
   border-radius: var(--ob-radius-pill);
   padding: 5px 12px;
   font-size: 0.78rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--ob-ink);
+}
+
+/* ==========================================================================
+   REAL PROPERTY PREVIEW SECTION (STEP 8)
+   ========================================================================== */
+.onboarding-preview-section {
+  margin: 24px 0 24px;
+  text-align: left;
+}
+
+.onboarding-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.onboarding-preview-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ob-ink);
+  letter-spacing: -0.01em;
+}
+
+.onboarding-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #15803D;
+  background: #DCFCE7;
+  padding: 3px 8px;
+  border-radius: var(--ob-radius-pill);
+}
+
+.onboarding-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 460px) {
+  .onboarding-preview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.onboarding-prop-card {
+  background: #FFFFFF;
+  border: 1px solid var(--ob-border);
+  border-radius: var(--ob-radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 82, 0.04);
+}
+
+.onboarding-prop-card:hover {
+  border-color: var(--ob-lilac);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(190, 137, 255, 0.16);
+}
+
+.onboarding-prop-img-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: #E5E7EB;
+  overflow: hidden;
+}
+
+.onboarding-prop-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.onboarding-prop-card:hover .onboarding-prop-img {
+  transform: scale(1.04);
+}
+
+.onboarding-prop-price-pill {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 82, 0.92);
+  color: #FFFFFF;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--ob-radius-pill);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.onboarding-prop-price-pill .period {
+  font-size: 0.68rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.onboarding-prop-verified-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(21, 128, 61, 0.94);
+  color: #FFFFFF;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--ob-radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  backdrop-filter: blur(4px);
+}
+
+.onboarding-prop-info {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.onboarding-prop-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ob-ink);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.onboarding-prop-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--ob-ink-muted);
+  margin-top: auto;
+}
+
+.onboarding-prop-meta span.area,
+.onboarding-prop-meta span.specs {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.onboarding-prop-meta span.arrow {
+  margin-left: auto;
+  color: var(--ob-ink-muted);
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.onboarding-prop-card:hover .onboarding-prop-meta span.arrow {
+  color: var(--ob-navy);
+  transform: translate(2px, -2px);
 }
 
 /* Minimal Inspection Waiver Card */
@@ -741,7 +965,7 @@
   border: 1px solid var(--ob-border);
   border-radius: var(--ob-radius-md);
   padding: 16px 18px;
-  margin-bottom: 26px;
+  margin-bottom: 16px;
   text-align: left;
   display: flex;
   align-items: center;
@@ -773,4 +997,25 @@
   font-size: 0.8rem;
   color: var(--ob-ink-muted);
   line-height: 1.35;
+}
+
+/* Radar pulse animation for Step 7 */
+.onboarding-radar-pulse {
+  position: absolute;
+  inset: -8px;
+  border-radius: var(--ob-radius-lg);
+  border: 1.5px solid var(--ob-lilac);
+  animation: obRadarPulse 2.2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes obRadarPulse {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
 }

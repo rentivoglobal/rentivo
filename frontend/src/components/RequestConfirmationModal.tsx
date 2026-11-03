@@ -77,7 +77,7 @@ export const RequestConfirmationModal: React.FC<RequestConfirmationModalProps> =
   };
 
   return (
-    <div className="rc-modal-scope">
+    <div className="rc-modal-scope" data-theme="light">
       <div className="rc-overlay" onClick={onClose} role="dialog" aria-modal="true">
         <div className="rc-dialog" onClick={(e) => e.stopPropagation()}>
           <button

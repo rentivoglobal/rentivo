@@ -79,5 +79,93 @@ export const verificationService = {
       });
     }
     return record;
+  },
+
+  async getById(id: string): Promise<LocalVerification | null> {
+    const list = await this.list();
+    return list.find(v => v.id === id || v.listingId === id) || null;
+  },
+
+  async update(id: string, updates: Partial<LocalVerification> & { decisionNotes?: string }): Promise<void> {
+    const items = localStore.getVerifications();
+    const targetListingId = id.replace(/^listing_ver_/, '');
+    const existingIndex = items.findIndex(v => v.id === id || v.listingId === id || v.listingId === targetListingId);
+
+    let updated: LocalVerification[];
+    if (existingIndex >= 0) {
+      updated = items.map((v, idx) =>
+        idx === existingIndex ? { ...v, ...updates, updatedAt: new Date().toISOString() } : v
+      );
+    } else {
+      const newRecord: LocalVerification = {
+        id: id.startsWith('listing_ver_') ? id : localStore.createId('ver'),
+        listingId: targetListingId,
+        requestedBy: 'admin',
+        status: updates.status || 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ...updates
+      };
+      updated = [newRecord, ...items];
+    }
+    localStore.saveVerifications(updated);
+
+    // Sync listing state
+    if (updates.status === 'completed' || updates.status === 'verified') {
+      await listingsService.issueVerifiedBadge(targetListingId).catch(() => {});
+    } else if (updates.status === 'changes_requested' || updates.status === 'changes') {
+      await listingsService.updateListing(targetListingId, { verificationStatus: 'changes_requested' as any }).catch(() => {});
+    } else if (updates.status === 'rejected') {
+      await listingsService.updateListing(targetListingId, { verificationStatus: 'rejected' as any }).catch(() => {});
+    }
+
+    if (isLiveBackend && supabase) {
+      try {
+        const payload: Record<string, any> = {
+          updated_at: new Date().toISOString()
+        };
+        if (updates.status) {
+          // Normalize status to Supabase enum ('pending', 'scheduled', 'in_progress', 'completed', 'rejected', 'changes_requested')
+          const normStatus = 
+            updates.status === 'verified' ? 'completed' :
+            updates.status === 'changes' ? 'changes_requested' :
+            updates.status;
+          payload.status = normStatus;
+        }
+        if (updates.inspector) payload.inspector_user_id = updates.inspector;
+        if (updates.scheduledDate) payload.scheduled_date = updates.scheduledDate;
+        if (updates.preferredTime) payload.preferred_time = updates.preferredTime;
+        
+        const noteContent = updates.auditorNotes || updates.decisionNotes || updates.requestedChangesNotes || updates.rejectionReason;
+        if (noteContent) {
+          payload.decision_notes = noteContent;
+          payload.decided_at = new Date().toISOString();
+        }
+
+        if (Object.keys(payload).length > 0) {
+          if (id.startsWith('listing_ver_')) {
+            await supabase.from('verification_requests').update(payload).eq('listing_id', targetListingId);
+          } else {
+            await supabase.from('verification_requests').update(payload).eq('id', id);
+          }
+        }
+
+        // Record into audit_logs
+        const currentUser = authService.getCurrentUser() || (await authService.getSessionUser());
+        await supabase.from('audit_logs').insert({
+          actor_user_id: currentUser?.id || null,
+          action: `verification.${updates.status || 'update'}`,
+          entity_type: 'verification_request',
+          entity_id: id.startsWith('listing_ver_') ? null : id,
+          metadata: {
+            listingId: targetListingId,
+            status: updates.status,
+            notes: noteContent || null
+          }
+        });
+      } catch (err) {
+        console.warn('Failed to update verification request in Supabase:', err);
+      }
+    }
   }
 };

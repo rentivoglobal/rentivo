@@ -215,8 +215,8 @@ IMAGEKIT_PRIVATE_KEY="private_..."
 # PAYSTACK CONFIGURATION
 # -------------------------------------------------------------
 VITE_PAYSTACK_PUBLIC_KEY="pk_live_..."
-PAYSTACK_SECRET_KEY="sk_live_..."
-PAYSTACK_WEBHOOK_SECRET="sk_live_..."
+PAYSTACK_SECRET_KEY="YOUR_PAYSTACK_SECRET_KEY"
+PAYSTACK_WEBHOOK_SECRET="YOUR_PAYSTACK_SECRET_KEY"
 
 # -------------------------------------------------------------
 # EMAIL (RESEND / SMTP) CONFIGURATION

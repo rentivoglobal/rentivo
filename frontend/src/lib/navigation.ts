@@ -113,6 +113,7 @@ export function tabFromPathname(pathname: string): NavigationTab {
   }
   if (pathname.startsWith('/lister')) return 'lister';
   if (pathname.startsWith('/admin')) return 'admin';
+  if (pathname.startsWith('/inspect')) return 'field_inspection';
   if (pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/forgot-password') || pathname.startsWith('/auth')) {
     return 'auth';
   }
@@ -125,6 +126,7 @@ export const STANDALONE_TABS: NavigationTab[] = [
   'lister',
   'listing_editor',
   'admin',
+  'field_inspection',
   'auth',
   'availability_action',
   'reset_password'

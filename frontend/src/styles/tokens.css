@@ -17,6 +17,10 @@
   --color-lilac-50: #FAF6FF;
   --color-lilac-100: #F1E5FF;
   --color-lilac-200: #E2CCFF;
+  --color-purple-text: #4C1D95;
+  --color-purple-text-subtle: #5B21B6;
+  --color-purple-badge-bg: #F3E8FF;
+  --color-purple-badge-border: #E9D5FF;
 
   /* Surfaces & Backgrounds */
   --color-surface: #FFFFFF;

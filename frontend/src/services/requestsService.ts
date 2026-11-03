@@ -6,6 +6,8 @@ import { authService } from './authService';
 import { listingsService } from './listingsService';
 import { emailNotificationService } from './emailNotificationService';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function mapRequest(row: Record<string, unknown>, listing?: Listing): AccessRequest {
   const listingRel = (row.listings as any) || (row.listing as any);
   const areaName = listing?.area || (listingRel?.areas as any)?.name || (Array.isArray(listingRel?.areas) ? listingRel?.areas[0]?.name : undefined) || String(row.listing_area || 'Ibadan');
@@ -24,6 +26,7 @@ function mapRequest(row: Record<string, unknown>, listing?: Listing): AccessRequ
     renterName: String(row.renter_name || ''),
     renterPhone: String(row.renter_phone || ''),
     renterEmail: String(row.renter_email || ''),
+    notes: String(row.request_notes || row.notes || ''),
     status: row.status as RequestAccessStatus,
     feeAmount: ACCESS_FEE_NAIRA,
     isPromotionWaiverApplied: Boolean(row.is_waived),
@@ -172,7 +175,7 @@ export const requestsService = {
   },
 
 
-  async createRequest(listing: Listing, renter: { name: string; phone: string; email: string }): Promise<AccessRequest> {
+  async createRequest(listing: Listing, renter: { name: string; phone: string; email: string; notes?: string }): Promise<AccessRequest> {
     if (!isLiveBackend || !supabase) {
       const requests = localStore.getRequests();
       const existing = requests.find(
@@ -190,6 +193,7 @@ export const requestsService = {
         renterName: renter.name,
         renterPhone: renter.phone,
         renterEmail: renter.email,
+        notes: renter.notes || '',
         status: 'availability_pending',
         feeAmount: ACCESS_FEE_NAIRA,
         isPromotionWaiverApplied: false,
@@ -216,7 +220,8 @@ export const requestsService = {
           listingId: listing.id,
           renterName: renter.name,
           renterPhone: renter.phone,
-          renterEmail: renter.email
+          renterEmail: renter.email,
+          notes: renter.notes || ''
         }
       });
       data = res.data;
@@ -237,13 +242,37 @@ export const requestsService = {
         renter_name: renter.name,
         renter_phone: renter.phone,
         renter_email: renter.email,
+        request_notes: renter.notes || null,
         status: 'availability_pending',
         token_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       })
       .select('*')
       .single();
     if (insertError) throw insertError;
-    return mapRequest(inserted as Record<string, unknown>, listing);
+
+    const mapped = mapRequest(inserted as Record<string, unknown>, listing);
+
+    // Fallback: Dispatch Landlord Vacancy Check email directly
+    void (async () => {
+      try {
+        if (listing.lister?.email) {
+          const token = localStore.createId('tok');
+          await emailNotificationService.sendLandlordVacancyCheckEmail({
+            listing,
+            recipientEmail: listing.lister.email,
+            recipientName: listing.lister.fullName,
+            renterName: renter.name,
+            renterNotes: renter.notes,
+            yesLink: `${APP_URL}/availability/action?token=${token}&decision=yes`,
+            noLink: `${APP_URL}/availability/action?token=${token}&decision=no`
+          });
+        }
+      } catch (emailErr) {
+        console.warn('Could not dispatch landlord vacancy email on fallback insert:', emailErr);
+      }
+    })();
+
+    return mapped;
   },
 
   async respond(requestId: string, decision: 'YES' | 'NO'): Promise<AccessRequest | undefined> {
@@ -271,6 +300,32 @@ export const requestsService = {
           console.warn('Could not dispatch availability email:', e);
         }
       })();
+    } else if (decision === 'NO' && result) {
+      void (async () => {
+        try {
+          const listing = await listingsService.getListingById(result.listingId);
+          if (listing) {
+            const allListings = await listingsService.getListings().catch(() => []);
+            const alternatives = allListings
+              .filter((l) => l.id !== listing.id && l.area === listing.area && l.isAvailable !== false)
+              .slice(0, 3)
+              .map((l) => ({
+                title: l.title,
+                area: l.area,
+                price: l.price,
+                type: l.type,
+                photo: l.photos[0] || 'https://ik.imagekit.io/3unwhixxd/Property%20type.png'
+              }));
+            await emailNotificationService.sendPropertyUnavailableEmail({
+              request: result,
+              listing,
+              alternatives
+            });
+          }
+        } catch (e) {
+          console.warn('Could not dispatch property unavailable email:', e);
+        }
+      })();
     }
 
     return result;
@@ -296,7 +351,6 @@ export const requestsService = {
     const reqId = (rpcRes as any)?.requestId;
     result = reqId ? await this.getRequestById(reqId) : (await this.getAllRequests())[0];
 
-
     if (decision === 'YES' && result) {
       void (async () => {
         try {
@@ -307,6 +361,32 @@ export const requestsService = {
           });
         } catch (e) {
           console.warn('Could not dispatch availability email from token verify:', e);
+        }
+      })();
+    } else if (decision === 'NO' && result) {
+      void (async () => {
+        try {
+          const listing = await listingsService.getListingById(result.listingId);
+          if (listing) {
+            const allListings = await listingsService.getListings().catch(() => []);
+            const alternatives = allListings
+              .filter((l) => l.id !== listing.id && l.area === listing.area && l.isAvailable !== false)
+              .slice(0, 3)
+              .map((l) => ({
+                title: l.title,
+                area: l.area,
+                price: l.price,
+                type: l.type,
+                photo: l.photos[0] || 'https://ik.imagekit.io/3unwhixxd/Property%20type.png'
+              }));
+            await emailNotificationService.sendPropertyUnavailableEmail({
+              request: result,
+              listing,
+              alternatives
+            });
+          }
+        } catch (e) {
+          console.warn('Could not dispatch property unavailable email from token verify:', e);
         }
       })();
     }
@@ -321,6 +401,70 @@ export const requestsService = {
     req.status = status;
     req.updatedAt = new Date().toISOString();
     localStore.saveRequests(requests);
+    return req;
+  },
+
+  async cancelAndDelistRequest(requestId: string, adminNotes?: string): Promise<AccessRequest | undefined> {
+    let req = await this.getRequestById(requestId);
+    if (!req) return undefined;
+
+    // 1. Update request status to unavailable and record resolution metadata
+    if (!isLiveBackend || !supabase) {
+      const requests = localStore.getRequests();
+      const target = requests.find((r) => r.id === requestId);
+      if (target) {
+        target.status = 'unavailable';
+        target.resolutionReason = 'lister_unresponsive';
+        target.resolutionNotes = adminNotes || 'Lister unresponsive during verification window. Listing delisted by admin.';
+        target.resolvedAt = new Date().toISOString();
+        target.updatedAt = new Date().toISOString();
+        localStore.saveRequests(requests);
+        req = target;
+      }
+    } else {
+      try {
+        await supabase
+          .from('availability_requests')
+          .update({
+            status: 'unavailable',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', requestId);
+      } catch (err) {
+        console.warn('Failed to update request status in db, updating localStore fallback:', err);
+      }
+      req.status = 'unavailable';
+      req.resolutionReason = 'lister_unresponsive';
+      req.resolutionNotes = adminNotes || 'Lister unresponsive during verification window. Listing delisted by admin.';
+      req.resolvedAt = new Date().toISOString();
+    }
+
+    // 2. Delist the listing from search
+    try {
+      const listing = await listingsService.getListingById(req.listingId);
+      if (listing) {
+        await listingsService.updateListing(req.listingId, {
+          isAvailable: false,
+          moderationStatus: 'delisted'
+        });
+      }
+
+      // 3. Dispatch automated empathetic email to the seeker
+      void (async () => {
+        try {
+          await emailNotificationService.sendListerUnresponsiveEmail({
+            request: req!,
+            listing: listing || null,
+            listerName: listing?.lister?.fullName || 'the property lister'
+          });
+        } catch (mailErr) {
+          console.warn('Failed to dispatch lister unresponsive email:', mailErr);
+        }
+      })();
+    } catch (listingErr) {
+      console.warn('Error delisting property during cancelAndDelistRequest:', listingErr);
+    }
+
     return req;
   },
 
@@ -494,6 +638,137 @@ export const requestsService = {
       }
     }
     return { success: true };
+  },
+
+  async getListerResponseTime(
+    listingId: string,
+    listerName?: string,
+    _ownerUserId?: string
+  ): Promise<{
+    avgMinutes: number;
+    sampleCount: number;
+    formattedText: string;
+    isListerSpecific: boolean;
+  }> {
+    try {
+      if (isLiveBackend && supabase && UUID_REGEX.test(listingId)) {
+        try {
+          const { data, error } = await supabase.rpc('get_lister_response_time', {
+            p_listing_id: listingId
+          });
+          if (!error && data) {
+            const res = data as {
+              avg_minutes?: number;
+              sample_count?: number;
+              is_lister_specific?: boolean;
+            };
+            const sampleCount = Number(res.sample_count) || 0;
+            const avgMinutes = Math.max(1, Math.round(Number(res.avg_minutes) || 24));
+            const isListerSpecific = Boolean(res.is_lister_specific);
+
+            let formattedText: string;
+            if (avgMinutes < 60) {
+              formattedText = `Lister confirms in ~${avgMinutes} min${avgMinutes > 1 ? 's' : ''}`;
+            } else {
+              const hrs = Math.max(1, Math.round(avgMinutes / 60));
+              formattedText = `Lister confirms in ~${hrs} hr${hrs > 1 ? 's' : ''}`;
+            }
+
+            return {
+              avgMinutes,
+              sampleCount,
+              formattedText,
+              isListerSpecific
+            };
+          }
+        } catch (rpcErr) {
+          console.warn('RPC get_lister_response_time fallback to client aggregation:', rpcErr);
+        }
+      }
+
+      const allRequests = await this.getAllRequests();
+
+      // 1. Check resolved requests specifically for this listing
+      let relevant = allRequests.filter(
+        (r) =>
+          r.listingId === listingId &&
+          (r.status === 'confirmed' || r.status === 'unavailable' || r.status === 'paid') &&
+          r.createdAt &&
+          r.updatedAt
+      );
+
+      let isListerSpecific = relevant.length > 0;
+
+      // 2. If listing has no history, search requests for the same lister across their portfolio
+      if (relevant.length === 0 && listerName) {
+        relevant = allRequests.filter((r) => {
+          const isResolved =
+            (r.status === 'confirmed' || r.status === 'unavailable' || r.status === 'paid') &&
+            r.createdAt &&
+            r.updatedAt;
+          if (!isResolved) return false;
+          return r.unlockedListerContact?.fullName?.toLowerCase() === listerName.toLowerCase();
+        });
+        if (relevant.length > 0) isListerSpecific = true;
+      }
+
+      // 3. Fallback to all platform-wide resolved requests to calculate the real Rentivo average
+      if (relevant.length === 0) {
+        relevant = allRequests.filter(
+          (r) =>
+            (r.status === 'confirmed' || r.status === 'unavailable' || r.status === 'paid') &&
+            r.createdAt &&
+            r.updatedAt
+        );
+        isListerSpecific = false;
+      }
+
+      // 4. Calculate elapsed minutes for each resolved request
+      const durations = relevant
+        .map((r) => {
+          const created = new Date(r.createdAt).getTime();
+          const updated = new Date(r.updatedAt).getTime();
+          if (isNaN(created) || isNaN(updated) || updated < created) return null;
+          const mins = Math.round((updated - created) / (1000 * 60));
+          // Exclude outliers > 24 hours (1440 mins) to prevent overnight delays from skewing daytime response times
+          return mins >= 1 && mins <= 1440 ? mins : null;
+        })
+        .filter((d): d is number => d !== null);
+
+      if (durations.length === 0) {
+        return {
+          avgMinutes: 24,
+          sampleCount: 0,
+          formattedText: 'Lister confirms in ~24 mins',
+          isListerSpecific: false
+        };
+      }
+
+      const avgMinutes = Math.max(1, Math.round(durations.reduce((a, b) => a + b, 0) / durations.length));
+
+      let formattedText: string;
+      if (avgMinutes < 60) {
+        formattedText = `Lister confirms in ~${avgMinutes} min${avgMinutes > 1 ? 's' : ''}`;
+      } else {
+        const hrs = Math.max(1, Math.round(avgMinutes / 60));
+        formattedText = `Lister confirms in ~${hrs} hr${hrs > 1 ? 's' : ''}`;
+      }
+
+      return {
+        avgMinutes,
+        sampleCount: durations.length,
+        formattedText,
+        isListerSpecific
+      };
+    } catch (err) {
+      console.warn('Could not calculate lister response time:', err);
+      return {
+        avgMinutes: 24,
+        sampleCount: 0,
+        formattedText: 'Lister confirms in ~24 mins',
+        isListerSpecific: false
+      };
+    }
   }
 };
 

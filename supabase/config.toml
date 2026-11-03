@@ -40,3 +40,6 @@ verify_jwt = true
 
 [functions.escalate-requests]
 verify_jwt = true
+
+[functions.resolve-bank-account]
+verify_jwt = false

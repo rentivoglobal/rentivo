@@ -15,7 +15,9 @@ import {
   Bath,
   Maximize2,
   Lock,
-  User as UserIcon
+  User as UserIcon,
+  Zap,
+  Check
 } from 'lucide-react';
 import { Listing, AccessRequest } from '../types';
 import { formatNaira } from '../utils/formatters';
@@ -23,6 +25,7 @@ import { reportsService } from '../services/reportsService';
 import { requestsService } from '../services/requestsService';
 import { listingsService } from '../services/listingsService';
 import { authService } from '../services/authService';
+import { getListingPath } from '../utils/slug';
 import { useAuth } from '../contexts/AuthContext';
 import { RequestConfirmationModal } from '../components/RequestConfirmationModal';
 import { RequestAccessModalFlow } from '../components/RequestAccessModalFlow';
@@ -130,6 +133,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
   const [isClampedDesc, setIsClampedDesc] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isHeartPopping, setIsHeartPopping] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [similarListings, setSimilarListings] = useState<Listing[]>(propSimilarListings || []);
 
   // Price Count-up Animation
@@ -175,6 +179,44 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
   useEffect(() => {
     void checkExistingRequest();
   }, [checkExistingRequest]);
+
+  // Dynamic Lister Confirmation Response Time calculation
+  const [responseSpeedMetric, setResponseSpeedMetric] = useState<{
+    avgMinutes: number;
+    sampleCount: number;
+    formattedText: string;
+    isListerSpecific: boolean;
+  }>({
+    avgMinutes: 24,
+    sampleCount: 0,
+    formattedText: 'Lister confirms in ~24 mins',
+    isListerSpecific: false
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    void requestsService
+      .getListerResponseTime(listing.id, listing.lister?.fullName, listing.ownerUserId)
+      .then((metric) => {
+        if (isMounted && metric) {
+          setResponseSpeedMetric(metric);
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [listing.id, listing.lister?.fullName, listing.ownerUserId]);
+
+  const isPendingCheck = Boolean(
+    existingRequest &&
+      (existingRequest.status === 'submitted' || existingRequest.status === 'availability_pending')
+  );
+
+  const elapsedCheckMinutes = useMemo(() => {
+    if (!existingRequest?.createdAt) return 0;
+    const elapsed = Math.floor((Date.now() - new Date(existingRequest.createdAt).getTime()) / 60000);
+    return Math.max(1, elapsed);
+  }, [existingRequest?.createdAt]);
 
   // Fullscreen Lightbox
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -286,6 +328,8 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(window.location.href);
       }
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2200);
       showToast('Link copied to clipboard');
     } catch {
       showToast('Link copied to clipboard');
@@ -337,19 +381,19 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
   const amenitiesList = listing.amenities && listing.amenities.length > 0
     ? listing.amenities
     : [
-        'Prepaid meter',
-        'Borehole water',
-        'Fenced & gated compound',
-        '24hr security',
-        'Parking space',
-        'Tarred access road',
-        'Inverter backup',
-        'Tiled floors',
-        'Fitted kitchen'
-      ];
+      'Prepaid meter',
+      'Borehole water',
+      'Fenced & gated compound',
+      '24hr security',
+      'Parking space',
+      'Tarred access road',
+      'Inverter backup',
+      'Tiled floors',
+      'Fitted kitchen'
+    ];
 
   return (
-    <div className="prop-detail-page" ref={pageContainerRef}>
+    <div className="prop-detail-page" data-theme="light" ref={pageContainerRef}>
       {/* -------------------------------------------------------------
           HEADER (FIXED, TRANSITIONS TO SOLID ON SCROLL)
          ------------------------------------------------------------- */}
@@ -393,12 +437,13 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
 
           <button
             type="button"
-            className="round-btn"
+            className={`round-btn ${isCopied ? 'copied' : ''}`}
             id="shareBtn"
             onClick={handleShare}
             aria-label="Share"
+            title={isCopied ? 'Copied to clipboard!' : 'Share listing'}
           >
-            <Share2 />
+            {isCopied ? <Check size={18} strokeWidth={2.5} /> : <Share2 />}
           </button>
 
           <button
@@ -539,6 +584,32 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
             <span className="pill pill-cat">
               {listing.category === 'commercial' ? 'Commercial' : 'Residential'} · {listing.type}
             </span>
+            {isPendingCheck ? (
+              <span
+                className="nudge-pill-speed"
+                style={{
+                  background: '#fffbeb',
+                  borderColor: '#fde68a',
+                  color: '#b45309'
+                }}
+                title="Your inquiry has been dispatched to this lister and is currently awaiting their confirmation."
+              >
+                <Clock size={13} strokeWidth={2.2} />
+                Check in progress · {elapsedCheckMinutes}m ago
+              </span>
+            ) : (
+              <span
+                className="nudge-pill-speed"
+                title={
+                  responseSpeedMetric.sampleCount > 0
+                    ? `Calculated from ${responseSpeedMetric.sampleCount} past confirmation${responseSpeedMetric.sampleCount > 1 ? 's' : ''} for this ${responseSpeedMetric.isListerSpecific ? 'lister' : 'platform'}`
+                    : 'Average confirmation speed for verified listers in Ibadan'
+                }
+              >
+                <Zap size={13} fill="currentColor" />
+                {responseSpeedMetric.formattedText}
+              </span>
+            )}
             <span className="posted-note">Posted 3 days ago</span>
           </div>
 
@@ -713,7 +784,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
                     onClick={() => {
                       if (onSelectListing) onSelectListing(s);
                       else {
-                        navigate(`/listings/${s.id}`);
+                        navigate(getListingPath(s));
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }
                     }}
@@ -772,8 +843,8 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
                     {existingRequest.status === 'confirmed'
                       ? 'Availability Confirmed!'
                       : existingRequest.status === 'paid'
-                      ? 'Contact Unlocked'
-                      : 'Request Awaiting Confirmation'}
+                        ? 'Contact Unlocked'
+                        : 'Request Awaiting Confirmation'}
                   </strong>
                   <div style={{ color: 'var(--ink-soft)', marginTop: 2 }}>
                     Saved to your portal. View all your requested properties in My Requests.

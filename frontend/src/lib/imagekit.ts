@@ -21,11 +21,12 @@ export async function getImageKitAuth(): Promise<{ signature: string; token: str
 }
 
 export async function uploadToImageKit(file: File, folder = '/rentivo/listings'): Promise<UploadedPhoto> {
-  if (file.size > 8 * 1024 * 1024) {
-    throw new Error('Each photo must be 8MB or smaller.');
+  if (file.size > 10 * 1024 * 1024) {
+    throw new Error('File must be 10MB or smaller.');
   }
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-    throw new Error('Only JPEG, PNG, and WebP images are allowed.');
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Only JPEG, PNG, WebP, or PDF files are allowed.');
   }
 
   if (!imagekitPublicKey) {

@@ -93,6 +93,7 @@ function generateLandlordVacancyCheckEmailHtml(params: {
   yesLink: string;
   noLink: string;
   referenceId?: string;
+  renterNotes?: string;
 }): string {
   const {
     recipientName,
@@ -104,7 +105,8 @@ function generateLandlordVacancyCheckEmailHtml(params: {
     propertyPhoto,
     yesLink,
     noLink,
-    referenceId = "RQ-20604"
+    referenceId = "RQ-20604",
+    renterNotes
   } = params;
   const priceFormatted = formatNaira(propertyPrice);
   const photo = propertyPhoto || DEFAULT_PHOTO;
@@ -120,6 +122,12 @@ function generateLandlordVacancyCheckEmailHtml(params: {
     </td></tr></table>
 <h1 class="h1" style="margin:16px 0 8px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;font-weight:700;color:#16163a;letter-spacing:-0.01em;">Is this property still available?</h1>
 <p style="margin:0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#55557a;">Hello ${recipientName || 'Property Owner'},<br><br><strong>${renterName}</strong> submitted an access request for this listing. Please confirm if the property is still vacant and available for inspection.</p>
+${renterNotes ? `
+<div style="margin:16px 0 0;padding:12px 16px;background:#f7f5fc;border-left:4px solid #6d35c9;border-radius:6px;">
+  <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#5b28b0;">Message from Seeker:</p>
+  <p style="margin:4px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13.5px;color:#16163a;font-style:italic;">"${renterNotes}"</p>
+</div>
+` : ''}
 </td></tr><tr><td style="padding:0 32px 24px;" class="px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e6e2f4;border-radius:12px;">
     <tr>
       <td style="padding:16px;" class="px">
@@ -277,6 +285,7 @@ Deno.serve(async (req) => {
         renter_name: body.renterName,
         renter_phone: body.renterPhone,
         renter_email: body.renterEmail,
+        request_notes: body.notes || body.requestNotes || null,
         status: "availability_pending",
         email_confirmation_token_hash: hash,
         token_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -319,6 +328,7 @@ Deno.serve(async (req) => {
         const landlordHtml = generateLandlordVacancyCheckEmailHtml({
           recipientName: owner.full_name || "Property Owner",
           renterName,
+          renterNotes: body.notes || body.requestNotes,
           propertyTitle,
           propertyArea,
           propertyPrice,

@@ -1,72 +1,59 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Building2,
   ShieldCheck,
+  Building2,
+  CreditCard,
   AlertTriangle,
   Users,
-  Flag,
-  CreditCard,
-  Calendar,
-  Download,
-  MoreVertical,
-  Eye,
-  CalendarCheck,
-  MessageSquare,
-  Ban,
-  Filter,
   Search,
-  Bell,
   X,
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  Phone,
-  UserPlus,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  CheckCircle2,
-  AlertCircle,
   MapPin,
-  Tag,
-  DollarSign,
-  CheckSquare,
-  Square,
+  RefreshCw,
   Sparkles,
-  Map,
+  LogOut,
   Plus,
-  Edit2,
-  Trash2,
+  Check,
+  Copy,
+  ExternalLink,
+  ChevronRight,
+  Phone,
+  Clock,
   Layers,
-  Globe,
-  Power,
-  LogOut
+  ArrowUpRight,
+  Shield,
+  FileText
 } from 'lucide-react';
-import { Listing, VerificationStatus, ReportItem, User, CityLocation, AreaLocation } from '../types';
+import { Listing, User, AdminInvitation } from '../types';
+import { FieldInspectionDossier } from '../types/inspection';
 import { formatNaira } from '../utils/formatters';
-import { reportsService } from '../services/reportsService';
 import { requestsService } from '../services/requestsService';
-import { locationsService } from '../services/locationsService';
 import { listingsService } from '../services/listingsService';
-import { paymentsService } from '../services/paymentsService';
 import { verificationService } from '../services/verificationService';
+import { emailNotificationService } from '../services/emailNotificationService';
+import { inspectionService } from '../services/inspectionService';
+import { adminService } from '../services/adminService';
 import { authService } from '../services/authService';
+import { paymentsService } from '../services/paymentsService';
 import { LocalPayment } from '../services/localStore';
+import { AdminInviteModal } from '../components/AdminInviteModal';
+import { VerificationDetailModal } from '../components/VerificationDetailModal';
+import { ListingModerationModal } from '../components/ListingModerationModal';
+import { EscalationDetailModal, EscalationItem } from '../components/EscalationDetailModal';
+import { listerOnboardingService } from '../services/listerOnboardingService';
+import { ListerOnboardingData, ListerApprovalStatus } from '../types';
+import { UserCheck } from 'lucide-react';
+import { APP_URL } from '../lib/config';
 
-type AdminSection = 'overview' | 'listings' | 'verification' | 'escalations' | 'users' | 'reports' | 'payments' | 'locations';
-
-interface AdminQueuePageProps {
-  listings: Listing[];
-  onApproveVerification: (listingId: string) => void | Promise<void>;
-  onReload?: () => void | Promise<void>;
-  onSelectListingToView?: (listing: Listing) => void;
-  onExit?: () => void;
-  initialSection?: AdminSection;
-}
+export type AdminSection = 'verification' | 'listers' | 'listings' | 'payments' | 'escalations' | 'team';
+type ListersTab = 'all' | 'pending' | 'approved' | 'rejected';
 type VerificationTab = 'all' | 'pending' | 'scheduled' | 'progress' | 'completed';
+type ListingsTab = 'all' | 'review' | 'live' | 'paused';
+type PaymentsTab = 'all' | 'success' | 'refunded' | 'pending';
+type EscalationsTab = 'all' | 'high' | 'medium';
+type TeamTab = 'all' | 'admins' | 'invitations';
 
-interface VerificationItem {
+export interface VerificationItem {
   id: string;
   listingId: string;
   title: string;
@@ -82,101 +69,279 @@ interface VerificationItem {
   isOverdue: boolean;
   photo: string;
   price: number;
+  hasDossier?: boolean;
+  dossier?: FieldInspectionDossier;
+  inspectionToken?: string;
+  inspectionUrl?: string;
 }
 
-interface EscalationItem {
-  id: string;
-  listingTitle: string;
-  area: string;
-  listerName: string;
-  listerPhone: string;
-  renterName: string;
-  timeSinceRequest: string;
-  automatedStatus: 'No response' | 'Delivered, unread' | 'Delivered';
-  isOverdue: boolean;
-  photo: string;
+interface AdminQueuePageProps {
+  listings: Listing[];
+  onApproveVerification: (listingId: string) => void | Promise<void>;
+  onReload?: () => void | Promise<void>;
+  onSelectListingToView?: (listing: Listing) => void;
+  onExit?: () => void;
+  initialSection?: AdminSection;
+  initialVerifId?: string;
 }
+
+// Sparkline SVG component matching Rentivo Operations Command
+const Sparkline: React.FC<{ data: number[]; isLead?: boolean }> = ({ data, isLead }) => {
+  const w = 200;
+  const h = 34;
+  const mx = Math.max(...data, 1);
+  const mn = Math.min(...data, 0);
+  const pts = data.map((v, i) => [
+    i * (w / Math.max(data.length - 1, 1)),
+    h - 4 - ((v - mn) / (mx - mn || 1)) * (h - 10)
+  ]);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+  const col = isLead ? '#BE89FF' : 'var(--link)';
+
+  return (
+    <svg className="sp" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
+      <path d={`${d} L${w} ${h} L0 ${h}Z`} fill={col} opacity="0.14" />
+      <path d={d} fill="none" stroke={col} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+};
 
 export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
   listings,
   onApproveVerification,
   onReload,
-  onSelectListingToView,
   onExit,
-  initialSection
+  initialSection,
+  initialVerifId
 }) => {
-  const [activeSection, setActiveSection] = useState<AdminSection>(initialSection && ['overview','listings','verification','escalations','users','reports','payments','locations'].includes(initialSection) ? initialSection : 'overview');
-  const [payments, setPayments] = useState<LocalPayment[]>([]);
-  const [activeVerifTab, setActiveVerifTab] = useState<VerificationTab>('all');
+  const navigate = useNavigate();
+  const [activeSection, setActiveSection] = useState<AdminSection>(
+    initialSection && ['verification', 'listings', 'payments', 'escalations', 'team'].includes(initialSection)
+      ? initialSection
+      : 'verification'
+  );
+  const [showPulse, setShowPulse] = useState(true);
 
-  // Filters State
+  // Global search & filters
   const [searchQuery, setSearchQuery] = useState('');
-  const [areaFilter, setAreaFilter] = useState('All areas');
-  const [inspectorFilter, setInspectorFilter] = useState('All inspectors');
+  const [areaFilter, setAreaFilter] = useState('All');
 
-  // Bulk Selection State
-  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  // Custom Neighborhoods
+  const [customAreas, setCustomAreas] = useState<string[]>([
+    'Bodija',
+    'Ring Road',
+    'Sango',
+    'UI area',
+    'Akobo',
+    'Challenge',
+    'Mokola',
+    'Jericho',
+    'Eleyele',
+    'Agodi'
+  ]);
+  const [isAreaModalOpen, setIsAreaModalOpen] = useState(false);
+  const [newAreaInput, setNewAreaInput] = useState('');
 
-  // Centered Modal State & Scroll Progress
+  // Sub-filter tabs per section
+  const [activeVerifTab, setActiveVerifTab] = useState<VerificationTab>('all');
+  const [activeListingsTab, setActiveListingsTab] = useState<ListingsTab>('all');
+  const [paymentsStatusFilter, setPaymentsStatusFilter] = useState<PaymentsTab>('all');
+  const [escalationFilter, setEscalationFilter] = useState<EscalationsTab>('all');
+  const [teamTab, setTeamTab] = useState<TeamTab>('all');
+
+  // Verification Queue State
+  const [verificationItems, setVerificationItems] = useState<VerificationItem[]>([]);
   const [selectedVerifItem, setSelectedVerifItem] = useState<VerificationItem | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalScrollProgress, setModalScrollProgress] = useState(0);
-  const modalBodyRef = useRef<HTMLDivElement>(null);
+  const [isVerifModalOpen, setIsVerifModalOpen] = useState(false);
 
-  // Mobile Navigation & Search State
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const tabRailRef = useRef<HTMLDivElement>(null);
+  // Listings State
+  const [selectedListingItem, setSelectedListingItem] = useState<Listing | null>(null);
+  const [isListingModalOpen, setIsListingModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (tabRailRef.current) {
-      const activeEl = tabRailRef.current.querySelector('.active') as HTMLElement | null;
-      if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
-    }
-  }, [activeSection]);
+  // Escalations State
+  const [escalations, setEscalations] = useState<EscalationItem[]>([]);
+  const [selectedEscalation, setSelectedEscalation] = useState<EscalationItem | null>(null);
+  const [isEscalationModalOpen, setIsEscalationModalOpen] = useState(false);
 
-  // Active Row Action Menu State
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  // Payments State
+  const [payments, setPayments] = useState<LocalPayment[]>([]);
+  const [selectedPaymentDetail, setSelectedPaymentDetail] = useState<LocalPayment | null>(null);
+  const [refundConfirmPayment, setRefundConfirmPayment] = useState<LocalPayment | null>(null);
+  const [refundReason, setRefundReason] = useState('Seeker requested refund / property unavailable');
+  const [isProcessingRefund, setIsProcessingRefund] = useState(false);
 
-  // Modal Inspection Form State
-  const [modalInspector, setModalInspector] = useState('Unassigned');
-  const [modalInspectionDate, setModalInspectionDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [modalChecklist, setModalChecklist] = useState({
-    addressExists: true,
-    detailsMatch: true,
-    listerConfirmed: true,
-    photosAccurate: true
+  // Admin Team State
+  const [adminUsers, setAdminUsers] = useState<User[]>([]);
+  const [adminInvitations, setAdminInvitations] = useState<AdminInvitation[]>([]);
+  const [isLoadingTeam, setIsLoadingTeam] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [revokeConfirmInvite, setRevokeConfirmInvite] = useState<AdminInvitation | null>(null);
+  const [removeConfirmAdmin, setRemoveConfirmAdmin] = useState<User | null>(null);
+
+  // Lister Onboarding Applications State
+  const [listerApplications, setListerApplications] = useState<ListerOnboardingData[]>(() => {
+    return listerOnboardingService.getAllApplications();
   });
-  const [modalNotes, setModalNotes] = useState('');
+  const [activeListerTab, setActiveListerTab] = useState<ListersTab>('all');
+  const [selectedListerModal, setSelectedListerModal] = useState<ListerOnboardingData | null>(null);
+  const [listerToReject, setListerToReject] = useState<ListerOnboardingData | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
 
-  // Toast / Notification
+  const loadListerApplications = useCallback(() => {
+    setListerApplications(listerOnboardingService.getAllApplications());
+  }, []);
+
+  const pendingListersCount = useMemo(() => {
+    return listerApplications.filter((a) => a.status === 'pending').length;
+  }, [listerApplications]);
+
+  const approvedListersCount = useMemo(() => {
+    return listerApplications.filter((a) => a.status === 'approved').length;
+  }, [listerApplications]);
+
+  const rejectedListersCount = useMemo(() => {
+    return listerApplications.filter((a) => a.status === 'rejected').length;
+  }, [listerApplications]);
+
+  const handleApproveLister = async (userId: string) => {
+    const updated = await listerOnboardingService.approveApplication(userId, authService.getCurrentUser()?.email || 'admin@rentivo.ng');
+    loadListerApplications();
+    setSelectedListerModal(null);
+    showToast(`Approved ${updated.userName || 'Lister'}! They can now publish listings.`);
+  };
+
+  const handleRejectLister = async (userId: string, reason: string) => {
+    if (!reason.trim()) {
+      alert('Please enter a rejection reason so the lister can fix their submission.');
+      return;
+    }
+    const updated = await listerOnboardingService.rejectApplication(userId, reason, authService.getCurrentUser()?.email || 'admin@rentivo.ng');
+    loadListerApplications();
+    setListerToReject(null);
+    setSelectedListerModal(null);
+    setRejectionReasonInput('');
+    showToast(`Application for ${updated.userName || 'Lister'} rejected. Lister notified.`);
+  };
+
+  // Filtered Lister Applications
+  const filteredListerApplications = useMemo(() => {
+    return listerApplications.filter((app) => {
+      if (activeListerTab !== 'all' && app.status !== activeListerTab) return false;
+      if (areaFilter !== 'All' && app.residentialAddress?.area !== areaFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = (app.userName || '').toLowerCase().includes(q);
+        const matchEmail = (app.userEmail || '').toLowerCase().includes(q);
+        const matchPhone = (app.phone || '').toLowerCase().includes(q);
+        const matchBank = (app.bankName || '').toLowerCase().includes(q);
+        const matchAcc = (app.accountName || '').toLowerCase().includes(q);
+        const matchArea = (app.residentialAddress?.area || '').toLowerCase().includes(q);
+        return matchName || matchEmail || matchPhone || matchBank || matchAcc || matchArea;
+      }
+      return true;
+    });
+  }, [listerApplications, activeListerTab, areaFilter, searchQuery]);
+
+  // Toast Notification
   const [adminToast, setAdminToast] = useState<string | null>(null);
   const showToast = (msg: string) => {
     setAdminToast(msg);
     setTimeout(() => setAdminToast(null), 3000);
   };
 
-  // Reports State (FR-6.4 & FR-7.1)
-  const [reports, setReports] = useState<ReportItem[]>([]);
+  // Distinct areas combining listing areas and custom areas
+  const distinctAreas = useMemo(() => {
+    const fromListings = listings.map((l) => l.area).filter(Boolean);
+    const set = new Set([...customAreas, ...fromListings]);
+    return Array.from(set).sort();
+  }, [listings, customAreas]);
 
-  // Live Users Directory State
-  const [liveUsers, setLiveUsers] = useState<User[]>([]);
+  // Load Admin Team Data
+  const loadTeamData = async () => {
+    setIsLoadingTeam(true);
+    try {
+      const [admins, invites] = await Promise.all([
+        adminService.getAdmins(),
+        adminService.getInvitations()
+      ]);
+      setAdminUsers(admins);
+      setAdminInvitations(invites);
+    } catch (err) {
+      console.warn('Failed to load admin team data:', err);
+    } finally {
+      setIsLoadingTeam(false);
+    }
+  };
 
   useEffect(() => {
-    void paymentsService.listPayments().then(setPayments);
-    void reportsService.loadReports().then(setReports).catch(() => undefined);
-    void locationsService.loadCities().then(() => setLocationsVersion((v) => v + 1)).catch(() => undefined);
-    void authService.listUsers().then(setLiveUsers).catch(() => undefined);
+    if (activeSection === 'team') {
+      void loadTeamData();
+    }
+  }, [activeSection]);
 
-    void verificationService.list().then((items) => {
-      setVerificationItems(items.map((v) => {
+  // Load Payments List
+  const loadPayments = async () => {
+    try {
+      const list = await paymentsService.listPayments();
+      setPayments(list);
+    } catch (err) {
+      console.warn('Could not load payments:', err);
+    }
+  };
+
+  // Load Escalations List
+  const loadEscalations = async () => {
+    try {
+      const reqs = await requestsService.getAllRequests();
+      const esc = reqs.filter((r) => r.status === 'manual_escalation' || r.status === 'availability_pending');
+      setEscalations(
+        esc.map((r) => {
+          const matched = listings.find((l) => l.id === r.listingId);
+          const listerPhone = matched?.lister?.phone || '';
+          return {
+            id: r.id,
+            listingId: r.listingId,
+            listingTitle: r.listingTitle,
+            area: r.listingArea,
+            listingPrice: r.listingPrice || matched?.price || 0,
+            listerName: matched?.lister?.fullName || 'Property Lister',
+            listerPhone: listerPhone,
+            listerEmail: matched?.lister?.email,
+            listerRole: matched?.listerRole || 'Landlord / Agent',
+            renterName: r.renterName,
+            renterEmail: r.renterEmail,
+            renterPhone: r.renterPhone,
+            renterNotes: r.notes || '',
+            createdAt: r.createdAt,
+            timeSinceRequest: new Date(r.createdAt).toLocaleDateString(),
+            automatedStatus: r.status === 'manual_escalation' ? 'No response' : 'Delivered',
+            isOverdue: r.status === 'manual_escalation' || Date.now() - new Date(r.createdAt).getTime() > 3600000,
+            photo: r.listingPhoto || matched?.photos?.[0] || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=400&q=80',
+            status: r.status
+          };
+        })
+      );
+    } catch (e) {
+      console.warn('Could not load escalations:', e);
+    }
+  };
+
+  // Load Verification Queue Items
+  const loadVerificationItems = async () => {
+    try {
+      const items = await verificationService.list();
+      const mappedListings = new Set(items.map((i) => i.listingId));
+      const unverifiedListings = listings.filter((l) => l.verificationStatus !== 'verified' && !mappedListings.has(l.id));
+
+      const baseEntries: VerificationItem[] = [];
+
+      for (const v of items) {
         const matched = listings.find((l) => l.id === v.listingId);
-        return {
+        baseEntries.push({
           id: v.id,
           listingId: v.listingId,
           title: matched?.title || 'Property Verification',
-          area: matched?.area || 'Ibadan',
+          area: matched?.area || 'Bodija',
           category: matched?.category === 'commercial' ? 'Commercial' : 'Residential',
           listerName: matched?.lister.fullName || 'Landlord',
           listerPhone: v.onSiteContactPhone || matched?.lister.phone || '',
@@ -185,331 +350,116 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
           status: v.status === 'verified' ? 'completed' : v.status === 'scheduled' ? 'scheduled' : 'pending',
           inspector: v.inspector || 'Unassigned',
           daysInQueue: Math.max(1, Math.floor((Date.now() - new Date(v.createdAt).getTime()) / (1000 * 60 * 60 * 24))),
-          isOverdue: (Date.now() - new Date(v.createdAt).getTime()) > 48 * 60 * 60 * 1000,
-          photo: matched?.photos?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=400&q=80',
+          isOverdue: Date.now() - new Date(v.createdAt).getTime() > 48 * 60 * 60 * 1000,
+          photo: matched?.photos?.[0] || '',
           price: matched?.price || 0
-        };
-      }));
-    }).catch(() => undefined);
+        });
+      }
 
-    void requestsService.getAllRequests().then((reqs) => {
-      const esc = reqs.filter((r) => r.status === 'manual_escalation' || r.status === 'availability_pending');
-      setEscalations(esc.map((r) => {
-        const matched = listings.find((l) => l.id === r.listingId);
-        return {
-          id: r.id,
-          listingTitle: r.listingTitle,
-          area: r.listingArea,
-          listerName: matched?.lister?.fullName || 'Property Lister',
-          listerPhone: matched?.lister?.phone || '',
-          renterName: r.renterName,
-          timeSinceRequest: new Date(r.createdAt).toLocaleDateString(),
-          automatedStatus: r.status === 'manual_escalation' ? 'No response' : 'Delivered',
-          isOverdue: r.status === 'manual_escalation' || (Date.now() - new Date(r.createdAt).getTime()) > 3600000,
-          photo: r.listingPhoto || matched?.photos?.[0] || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=400&q=80'
-        };
-      }));
-    }).catch(() => undefined);
+      for (const ul of unverifiedListings) {
+        baseEntries.push({
+          id: `listing_ver_${ul.id}`,
+          listingId: ul.id,
+          title: ul.title || 'Property Verification',
+          area: ul.area || 'Bodija',
+          category: ul.category === 'commercial' ? 'Commercial' : 'Residential',
+          listerName: ul.lister?.fullName || 'Landlord',
+          listerPhone: ul.lister?.phone || '',
+          listerInitials: (ul.lister?.fullName || 'LL').slice(0, 2).toUpperCase(),
+          submittedDate: ul.createdAt ? new Date(ul.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent',
+          status: 'pending',
+          inspector: 'Unassigned',
+          daysInQueue: 1,
+          isOverdue: false,
+          photo: ul.photos?.[0] || '',
+          price: ul.price || 0
+        });
+      }
 
-    void requestsService.loadPromotionStats().then(setPromoStats).catch(() => undefined);
+      const enriched = await Promise.all(
+        baseEntries.map(async (entry) => {
+          const [dossier, tokenRecord] = await Promise.all([
+            inspectionService.getLatestDossierForListing(entry.listingId),
+            inspectionService.getInspectionTokenForListing(entry.listingId)
+          ]);
+
+          const token = tokenRecord?.token || (dossier ? 'submitted' : undefined);
+          const url = tokenRecord?.token ? `${APP_URL}/inspect/${tokenRecord.token}` : undefined;
+
+          const verifStatus: 'pending' | 'scheduled' | 'progress' | 'completed' =
+            entry.status === 'completed' ? 'completed' : dossier ? 'progress' : tokenRecord ? 'scheduled' : entry.status;
+
+          return {
+            ...entry,
+            hasDossier: !!dossier,
+            dossier: dossier || undefined,
+            inspectionToken: token,
+            inspectionUrl: url,
+            inspector: dossier?.inspector?.name || (tokenRecord?.inspectorName || entry.inspector),
+            status: verifStatus
+          };
+        })
+      );
+
+      setVerificationItems(enriched);
+    } catch (err) {
+      console.warn('Could not populate verification list:', err);
+    }
+  };
+
+  useEffect(() => {
+    void loadVerificationItems();
+    void loadEscalations();
+    void loadPayments();
   }, [listings]);
 
-  // Promotion Stats State (FR-5.3 & FR-5.4 First 100 users waiver)
-  const [promoStats, setPromoStats] = useState(() => requestsService.getPromotionStats());
-
-  // Multi-City Location Management State (FR-7.6)
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [locationsVersion, setLocationsVersion] = useState(0);
-  const allCities = useMemo(() => locationsService.getCities(), [locationsVersion]);
-  const [selectedLocationCity, setSelectedLocationCity] = useState('Ibadan');
-  const [areaSearchQuery, setAreaSearchQuery] = useState('');
-
-  // Register City Modal State
-  const [isAddCityModalOpen, setIsAddCityModalOpen] = useState(false);
-  const [newCityName, setNewCityName] = useState('');
-  const [newCityState, setNewCityState] = useState('');
-  const [newCityIsActive, setNewCityIsActive] = useState(false);
-  const [newCityInitialAreas, setNewCityInitialAreas] = useState('');
-  const [isSubmittingCity, setIsSubmittingCity] = useState(false);
-
-  // Edit City Modal State
-  const [editingCity, setEditingCity] = useState<CityLocation | null>(null);
-  const [editCityName, setEditCityName] = useState('');
-  const [editCityState, setEditCityState] = useState('');
-  const [editCityIsActive, setEditCityIsActive] = useState(true);
-
-  // Add Area Form State
-  const [newAreaCity, setNewAreaCity] = useState('Ibadan');
-  const [newAreaName, setNewAreaName] = useState('');
-  const [isSubmittingArea, setIsSubmittingArea] = useState(false);
-
-  // Delete Prompt / Relational Confirmation Modal State
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{
-    type: 'city' | 'area';
-    id: string;
-    name: string;
-    cityName?: string;
-    hasListings: boolean;
-    listingCount: number;
-  } | null>(null);
-
-  // Rejection modal state for listing pre-publish moderation
-  const [rejectModalListing, setRejectModalListing] = useState<Listing | null>(null);
-  const [rejectCategory, setRejectCategory] = useState<string>('Blurry or unverified photos');
-  const [rejectNotes, setRejectNotes] = useState<string>('');
-
-  const handleConfirmReject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rejectModalListing) return;
-    await listingsService.moderateListing(
-      rejectModalListing.id,
-      'reject',
-      `${rejectCategory}${rejectNotes.trim() ? ': ' + rejectNotes.trim() : ''}`
-    );
-    if (onReload) await onReload();
-    showToast(`Listing "${rejectModalListing.title}" rejected and feedback logged.`);
-    setRejectModalListing(null);
-    setRejectNotes('');
-  };
-
-  // Contact Lister dialog for reports
-  const [contactingReportItem, setContactingReportItem] = useState<ReportItem | null>(null);
-
-  const handleDismissReport = (id: string) => {
-    reportsService.dismissReport(id);
-    setReports(reportsService.getReports());
-    showToast('Report dismissed from active queue.');
-  };
-
-  const handleDeactivateFlaggedListing = async (report: ReportItem) => {
-    reportsService.updateReportStatus(report.id, 'resolved');
-    setReports(reportsService.getReports());
-    showToast(`Listing "${report.listingTitle}" deactivated from live marketplace.`);
-  };
-
-  // Handlers for City Operations
-  const handleToggleCityStatus = async (city: CityLocation) => {
-    try {
-      await locationsService.toggleCityActive(city.id, !city.isActive);
-      setLocationsVersion(v => v + 1);
-      showToast(`${city.name} is now ${!city.isActive ? 'Active for Operations' : 'Staged for Phase 2'}.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update city status.';
-      showToast(msg);
-    }
-  };
-
-  const handleSetPilotCity = async (city: CityLocation) => {
-    try {
-      await locationsService.setPilotCity(city.id);
-      setLocationsVersion(v => v + 1);
-      showToast(`${city.name} is now designated as the Primary Pilot City.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to set pilot city.';
-      showToast(msg);
-    }
-  };
-
-  const handleOpenEditCity = (city: CityLocation) => {
-    setEditingCity(city);
-    setEditCityName(city.name);
-    setEditCityState(city.state);
-    setEditCityIsActive(city.isActive);
-  };
-
-  const handleSaveEditCity = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingCity || !editCityName.trim() || !editCityState.trim()) return;
-    try {
-      await locationsService.updateCity(editingCity.id, {
-        name: editCityName.trim(),
-        state: editCityState.trim(),
-        isActive: editCityIsActive
-      });
-      setLocationsVersion(v => v + 1);
-      showToast(`Updated city details for ${editCityName.trim()}.`);
-      setEditingCity(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update city.';
-      showToast(msg);
-    }
-  };
-
-  const handlePromptDeleteCity = (city: CityLocation) => {
-    const attachedListings = listings.filter(l => l.city.toLowerCase() === city.name.toLowerCase()).length;
-    setDeleteConfirmation({
-      type: 'city',
-      id: city.id,
-      name: city.name,
-      hasListings: attachedListings > 0,
-      listingCount: attachedListings
-    });
-  };
-
-  const handleConfirmDeleteCity = async () => {
-    if (!deleteConfirmation || deleteConfirmation.type !== 'city') return;
-    try {
-      const res = await locationsService.deleteCity(deleteConfirmation.id);
-      if (!res.success) {
-        showToast(res.error || 'Cannot delete city.');
-        return;
-      }
-      setLocationsVersion(v => v + 1);
-      showToast(`Removed "${deleteConfirmation.name}" from regional coverage.`);
-      setDeleteConfirmation(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete city.';
-      showToast(msg);
-    }
-  };
-
-  const handleRegisterCity = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCityName.trim() || !newCityState.trim()) return;
-    setIsSubmittingCity(true);
-    try {
-      const initialAreas = newCityInitialAreas
-        .split(',')
-        .map(a => a.trim())
-        .filter(Boolean);
-      await locationsService.addCity({
-        name: newCityName.trim(),
-        state: newCityState.trim(),
-        isActive: newCityIsActive,
-        initialAreas
-      });
-      setLocationsVersion(v => v + 1);
-      showToast(`Registered "${newCityName.trim()}" in coverage directory.`);
-      setNewCityName('');
-      setNewCityState('');
-      setNewCityInitialAreas('');
-      setNewCityIsActive(false);
-      setIsAddCityModalOpen(false);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to register city.';
-      showToast(msg);
-    } finally {
-      setIsSubmittingCity(false);
-    }
-  };
-
-  // Handlers for Area Operations
-  const handleAddAreaToCity = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newAreaName.trim()) return;
-    setIsSubmittingArea(true);
-    try {
-      await locationsService.addAreaToCity(newAreaCity, newAreaName.trim());
-      setLocationsVersion(v => v + 1);
-      showToast(`Neighborhood "${newAreaName.trim()}" added to ${newAreaCity}.`);
-      setNewAreaName('');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to add neighborhood.';
-      showToast(msg);
-    } finally {
-      setIsSubmittingArea(false);
-    }
-  };
-
-  const handleToggleAreaActive = async (area: AreaLocation) => {
-    try {
-      await locationsService.toggleAreaActive(area.id, !area.isActive);
-      setLocationsVersion(v => v + 1);
-      showToast(`Neighborhood "${area.name}" is now ${!area.isActive ? 'Active' : 'Inactive'}.`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to toggle neighborhood status.';
-      showToast(msg);
-    }
-  };
-
-  const handlePromptDeleteArea = (area: AreaLocation, cityName: string) => {
-    const attachedListings = listings.filter(l => l.area.toLowerCase() === area.name.toLowerCase()).length;
-    setDeleteConfirmation({
-      type: 'area',
-      id: area.id,
-      name: area.name,
-      cityName,
-      hasListings: attachedListings > 0,
-      listingCount: attachedListings
-    });
-  };
-
-  const handleConfirmDeleteArea = async () => {
-    if (!deleteConfirmation || deleteConfirmation.type !== 'area') return;
-    try {
-      const res = await locationsService.deleteArea(deleteConfirmation.id);
-      if (!res.success) {
-        showToast(res.error || 'Cannot delete neighborhood.');
-        return;
-      }
-      setLocationsVersion(v => v + 1);
-      showToast(`Removed neighborhood "${deleteConfirmation.name}".`);
-      setDeleteConfirmation(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete neighborhood.';
-      showToast(msg);
-    }
-  };
-
-  const handleDeactivateInstead = async () => {
-    if (!deleteConfirmation) return;
-    try {
-      if (deleteConfirmation.type === 'city') {
-        await locationsService.toggleCityActive(deleteConfirmation.id, false);
-        showToast(`City "${deleteConfirmation.name}" deactivated.`);
-      } else {
-        await locationsService.toggleAreaActive(deleteConfirmation.id, false);
-        showToast(`Neighborhood "${deleteConfirmation.name}" deactivated.`);
-      }
-      setLocationsVersion(v => v + 1);
-      setDeleteConfirmation(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to deactivate.';
-      showToast(msg);
-    }
-  };
-
-  // Close menus on outside click
+  // Deep Link Handling for initialVerifId
   useEffect(() => {
-    const handleOutside = () => setActiveMenuId(null);
-    document.addEventListener('click', handleOutside);
-    return () => document.removeEventListener('click', handleOutside);
-  }, []);
-
-  // Handle scroll progress inside the centered modal
-  const handleModalScroll = () => {
-    if (modalBodyRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = modalBodyRef.current;
-      const maxScroll = scrollHeight - clientHeight;
-      if (maxScroll > 0) {
-        const progress = Math.min(100, Math.max(0, (scrollTop / maxScroll) * 100));
-        setModalScrollProgress(progress);
-      } else {
-        setModalScrollProgress(0);
+    if (initialVerifId && verificationItems.length > 0) {
+      const found = verificationItems.find((v) => v.id === initialVerifId || v.listingId === initialVerifId);
+      if (found) {
+        setSelectedVerifItem(found);
+        setIsVerifModalOpen(true);
       }
     }
-  };
+  }, [initialVerifId, verificationItems]);
 
-  // Verification Items loaded from live backend
-  const [verificationItems, setVerificationItems] = useState<VerificationItem[]>([]);
+  // Key metrics calculation
+  const verifiedListingsCount = useMemo(() => {
+    return listings.filter((l) => l.verificationStatus === 'verified').length;
+  }, [listings]);
 
-  // Escalations List loaded from live backend
-  const [escalations, setEscalations] = useState<EscalationItem[]>([]);
+  const verifiedRate = useMemo(() => {
+    return listings.length > 0 ? Math.round((verifiedListingsCount / listings.length) * 100) : 0;
+  }, [listings, verifiedListingsCount]);
+
+  const pendingInspectionsCount = useMemo(() => {
+    return verificationItems.filter((i) => i.status === 'pending' || i.status === 'progress').length;
+  }, [verificationItems]);
+
+  const overdueEscalationsCount = useMemo(() => {
+    return escalations.filter((e) => e.isOverdue).length;
+  }, [escalations]);
+
+  const totalRevenue = useMemo(() => {
+    return payments
+      .filter((p) => p.status === 'success' && p.channel !== 'waiver')
+      .reduce((sum, p) => sum + (p.amount || 5000), 0);
+  }, [payments]);
+
+  const paidPaymentsCount = useMemo(() => {
+    return payments.filter((p) => p.status === 'success').length;
+  }, [payments]);
 
   // Filtered Verification Items
   const filteredVerificationItems = useMemo(() => {
-    return verificationItems.filter(item => {
+    return verificationItems.filter((item) => {
       if (activeVerifTab === 'pending' && item.status !== 'pending') return false;
       if (activeVerifTab === 'scheduled' && item.status !== 'scheduled') return false;
       if (activeVerifTab === 'progress' && item.status !== 'progress') return false;
       if (activeVerifTab === 'completed' && item.status !== 'completed') return false;
 
-      if (areaFilter !== 'All areas' && item.area !== areaFilter) return false;
-
-      if (inspectorFilter !== 'All inspectors') {
-        if (inspectorFilter === 'Unassigned' && item.inspector !== 'Unassigned') return false;
-        if (inspectorFilter !== 'Unassigned' && item.inspector !== inspectorFilter) return false;
-      }
+      if (areaFilter !== 'All' && item.area !== areaFilter) return false;
 
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -523,5271 +473,2222 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
 
       return true;
     });
-  }, [verificationItems, activeVerifTab, areaFilter, inspectorFilter, searchQuery]);
+  }, [verificationItems, activeVerifTab, areaFilter, searchQuery]);
 
-  // Tab counts
-  const tabCounts = useMemo(() => {
-    return {
-      all: verificationItems.length,
-      pending: verificationItems.filter(i => i.status === 'pending').length,
-      scheduled: verificationItems.filter(i => i.status === 'scheduled').length,
-      progress: verificationItems.filter(i => i.status === 'progress').length,
-      completed: verificationItems.filter(i => i.status === 'completed').length
-    };
-  }, [verificationItems]);
+  // Filtered Listings
+  const filteredListings = useMemo(() => {
+    return listings.filter((item) => {
+      if (activeListingsTab === 'review' && item.moderationStatus !== 'pending_review' && item.verificationStatus === 'verified') return false;
+      if (activeListingsTab === 'live' && (item.isAvailable === false || item.moderationStatus === 'rejected')) return false;
+      if (activeListingsTab === 'paused' && item.isAvailable !== false && item.moderationStatus !== 'rejected') return false;
 
-  // Computed dynamic stats
-  const activeListingsCount = useMemo(() => {
-    return listings.filter(l => l.isAvailable !== false && l.moderationStatus !== 'rejected').length;
-  }, [listings]);
+      if (areaFilter !== 'All' && item.area !== areaFilter) return false;
 
-  const pendingApprovalCount = useMemo(() => {
-    return listings.filter(l => l.isApproved === false || l.moderationStatus === 'pending_approval').length;
-  }, [listings]);
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matches =
+          item.title.toLowerCase().includes(q) ||
+          item.area.toLowerCase().includes(q) ||
+          (item.lister?.fullName || '').toLowerCase().includes(q);
+        if (!matches) return false;
+      }
 
-  const verifiedListingsCount = useMemo(() => {
-    return listings.filter(l => l.verificationStatus === 'verified').length;
-  }, [listings]);
-
-  const verifiedRate = useMemo(() => {
-    return listings.length > 0 ? Math.round((verifiedListingsCount / listings.length) * 100) : 0;
-  }, [listings, verifiedListingsCount]);
-
-  const pendingInspectionsCount = useMemo(() => {
-    return verificationItems.filter(i => i.status === 'pending').length;
-  }, [verificationItems]);
-
-  const overdueInspectionsCount = useMemo(() => {
-    return verificationItems.filter(i => i.isOverdue).length;
-  }, [verificationItems]);
-
-  const unassignedInspectionsCount = useMemo(() => {
-    return verificationItems.filter(i => !i.inspector || i.inspector === 'Unassigned').length;
-  }, [verificationItems]);
-
-  const awaitingConfirmationCount = useMemo(() => {
-    return escalations.length;
-  }, [escalations]);
-
-  const overdueEscalationsCount = useMemo(() => {
-    return escalations.filter(e => e.isOverdue).length;
-  }, [escalations]);
-
-  const paidPayments = useMemo(() => {
-    return payments.filter(p => p.status === 'success');
-  }, [payments]);
-
-  const totalAccessFeeRevenue = useMemo(() => {
-    return paidPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  }, [paidPayments]);
-
-  const distinctAreas = useMemo(() => {
-    const fromListings = listings.map(l => l.area).filter(Boolean);
-    const fromCities = allCities.flatMap(c => c.areas);
-    const set = new Set([...fromListings, ...fromCities]);
-    return Array.from(set).sort();
-  }, [listings, allCities]);
-
-  const availableInspectors = useMemo(() => {
-    return liveUsers.filter(u => u.role === 'admin' || (u.role as string) === 'inspector');
-  }, [liveUsers]);
-
-  // Open Centered Modal Handler
-  const handleOpenModal = (item: VerificationItem) => {
-    setSelectedVerifItem(item);
-    setModalInspector(item.inspector || 'Unassigned');
-    setModalScrollProgress(0);
-    setIsModalOpen(true);
-  };
-
-  // Close Centered Modal Handler
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedVerifItem(null);
-    setModalScrollProgress(0);
-  };
-
-  // Approve Verification Action
-  const handleApproveVerificationAction = async (item: VerificationItem) => {
-    setVerificationItems(prev =>
-      prev.map(i => (i.id === item.id ? { ...i, status: 'completed', isOverdue: false } : i))
-    );
-    await onApproveVerification(item.listingId);
-    if (onReload) await onReload();
-    showToast(`Approved Emerald Verified badge for "${item.title}"`);
-    handleCloseModal();
-  };
-
-  // Request Changes Action
-  const handleRequestChanges = (item: VerificationItem) => {
-    showToast(`Revision request sent to ${item.listerName} with inspector notes.`);
-    handleCloseModal();
-  };
-
-  // Revoke Verification Action
-  const handleRevoke = (item: VerificationItem) => {
-    setVerificationItems(prev =>
-      prev.map(i => (i.id === item.id ? { ...i, status: 'pending' } : i))
-    );
-    showToast(`Verification revoked for "${item.title}".`);
-    handleCloseModal();
-  };
-
-  // Quick verify all 4 checklist items
-  const handleCheckAllChecklist = () => {
-    setModalChecklist({
-      addressExists: true,
-      detailsMatch: true,
-      listerConfirmed: true,
-      photosAccurate: true
+      return true;
     });
+  }, [listings, activeListingsTab, areaFilter, searchQuery]);
+
+  // Filtered Payments
+  const filteredPayments = useMemo(() => {
+    return payments.filter((item) => {
+      if (paymentsStatusFilter === 'success' && item.status !== 'success') return false;
+      if (paymentsStatusFilter === 'refunded' && item.status !== 'refunded') return false;
+      if (paymentsStatusFilter === 'pending' && item.status !== 'pending') return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matches =
+          (item.renterName || '').toLowerCase().includes(q) ||
+          (item.listingTitle || '').toLowerCase().includes(q) ||
+          item.reference.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+
+      return true;
+    });
+  }, [payments, paymentsStatusFilter, searchQuery]);
+
+  // Filtered Escalations
+  const filteredEscalations = useMemo(() => {
+    return escalations.filter((item) => {
+      if (escalationFilter === 'high' && !item.isOverdue) return false;
+      if (escalationFilter === 'medium' && item.isOverdue) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matches =
+          item.listingTitle.toLowerCase().includes(q) ||
+          item.renterName.toLowerCase().includes(q) ||
+          item.listerName.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+
+      return true;
+    });
+  }, [escalations, escalationFilter, searchQuery]);
+
+  // Filtered Team
+  const filteredTeam = useMemo(() => {
+    const admins = adminUsers.map((u) => ({
+      id: u.id,
+      name: u.name || (u as any).fullName || u.email.split('@')[0],
+      email: u.email,
+      role: (u.role || 'ops') as 'super' | 'ops' | 'insp',
+      status: 'active' as const,
+      isInvite: false,
+      raw: u
+    }));
+
+    const invites = adminInvitations.map((inv) => ({
+      id: inv.id,
+      name: inv.fullName || inv.email.split('@')[0],
+      email: inv.email,
+      role: (inv.role === 'super_admin' ? 'super' : inv.role === 'admin' ? 'ops' : 'insp') as 'super' | 'ops' | 'insp',
+      status: inv.status === 'accepted' ? ('active' as const) : inv.status === 'revoked' ? ('revoked' as const) : ('pending' as const),
+      isInvite: true,
+      raw: inv
+    }));
+
+    const all = [...admins, ...invites];
+
+    return all.filter((member) => {
+      if (teamTab === 'admins' && member.isInvite) return false;
+      if (teamTab === 'invitations' && !member.isInvite) return false;
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return member.name.toLowerCase().includes(q) || member.email.toLowerCase().includes(q);
+      }
+
+      return true;
+    });
+  }, [adminUsers, adminInvitations, teamTab, searchQuery]);
+
+  // Modal Handlers: Verification
+  const handleOpenVerifModal = (item: VerificationItem) => {
+    setSelectedVerifItem(item);
+    setIsVerifModalOpen(true);
   };
 
-  // Bulk Selection Handlers
-  const handleToggleSelectAll = () => {
-    if (selectedRowIds.length === filteredVerificationItems.length) {
-      setSelectedRowIds([]);
-    } else {
-      setSelectedRowIds(filteredVerificationItems.map(i => i.id));
+  const handleCloseVerifModal = () => {
+    setIsVerifModalOpen(false);
+    setSelectedVerifItem(null);
+    if (window.location.pathname.startsWith('/admin/verification')) {
+      window.history.replaceState(null, '', '/admin/verification');
     }
   };
 
-  const handleToggleRow = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedRowIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+  const handleApproveVerificationBadge = async (item: VerificationItem) => {
+    try {
+      setVerificationItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, status: 'completed', isOverdue: false } : i))
+      );
+      await verificationService.update(item.id, {
+        status: 'completed',
+        decisionNotes: 'Approved Emerald Verified badge'
+      });
+      await onApproveVerification(item.listingId);
+
+      const matched = listings.find((l) => l.id === item.listingId);
+      if (matched && matched.lister?.email) {
+        void emailNotificationService.sendVerificationApprovedEmail({
+          listing: matched,
+          recipientEmail: matched.lister.email,
+          recipientName: matched.lister.fullName,
+          auditorNotes: 'Approved Emerald Verified badge'
+        }).catch((e) => console.warn('Could not dispatch verification approval email:', e));
+      }
+
+      if (onReload) await onReload();
+      await loadVerificationItems();
+      showToast(`Verified badge awarded to "${item.title}"`);
+      handleCloseVerifModal();
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to approve verification');
+    }
   };
 
-  // Call Lister Simulation
-  const handleCallLister = (esc: EscalationItem) => {
-    const tel = esc.listerPhone.replace(/\s/g, '');
-    window.location.href = `tel:${tel}`;
-    showToast(`Opening call to ${esc.listerName} (${esc.listerPhone}) for "${esc.listingTitle}".`);
+  const handleRequestChanges = async (item: VerificationItem, notesText: string = 'Revisions requested by admin') => {
+    try {
+      setVerificationItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, status: 'pending' } : i))
+      );
+      await verificationService.update(item.id, {
+        status: 'changes_requested',
+        decisionNotes: notesText,
+        requestedChangesNotes: notesText
+      });
+      await listingsService.updateListing(item.listingId, {
+        verificationStatus: 'changes_requested' as any
+      });
+
+      if (onReload) await onReload();
+      await loadVerificationItems();
+      showToast(`Revision request sent to ${item.listerName}`);
+      handleCloseVerifModal();
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to request changes');
+    }
   };
+
+  const handleRevokeVerification = async (item: VerificationItem) => {
+    try {
+      setVerificationItems((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, status: 'pending' } : i))
+      );
+      await verificationService.update(item.id, {
+        status: 'rejected',
+        decisionNotes: 'Verification badge revoked by admin'
+      });
+      await listingsService.updateListing(item.listingId, {
+        verificationStatus: 'rejected' as any
+      });
+
+      if (onReload) await onReload();
+      await loadVerificationItems();
+      showToast(`Verification badge revoked for "${item.title}".`);
+      handleCloseVerifModal();
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to revoke verification');
+    }
+  };
+
+  // Listings Actions
+  const handleOpenListingModal = (listing: Listing) => {
+    setSelectedListingItem(listing);
+    setIsListingModalOpen(true);
+  };
+
+  const handleApproveListing = async (listingId: string) => {
+    await listingsService.moderateListing(listingId, 'approve');
+    if (onReload) await onReload();
+    showToast('Listing published to marketplace!');
+  };
+
+  const handleRejectListing = async (listingId: string, reason: string, notes: string) => {
+    await listingsService.moderateListing(listingId, 'reject', `${reason}: ${notes}`);
+    if (onReload) await onReload();
+    showToast('Listing rejected and feedback logged.');
+  };
+
+  // Escalation Actions
+  const handleOpenEscalationModal = (esc: EscalationItem) => {
+    setSelectedEscalation(esc);
+    setIsEscalationModalOpen(true);
+  };
+
+  const handleConfirmEscalationAvailable = async (esc: EscalationItem) => {
+    await requestsService.respond(esc.id, 'YES');
+    showToast(`Marked "${esc.listingTitle}" as confirmed available! Seeker notified.`);
+    await loadEscalations();
+    if (onReload) await onReload();
+  };
+
+  const handleMarkEscalationUnavailable = async (esc: EscalationItem) => {
+    await requestsService.respond(esc.id, 'NO');
+    showToast(`Marked "${esc.listingTitle}" as unavailable. Seeker provided alternatives.`);
+    await loadEscalations();
+    if (onReload) await onReload();
+  };
+
+  const handleDelistEscalationProperty = async (esc: EscalationItem, notes: string) => {
+    await requestsService.cancelAndDelistRequest(esc.id, notes);
+    showToast(`Request closed and "${esc.listingTitle}" delisted.`);
+    await loadEscalations();
+    if (onReload) await onReload();
+  };
+
+  // Payment Refund Action
+  const handleProcessRefund = async (payment: LocalPayment) => {
+    try {
+      setIsProcessingRefund(true);
+      await paymentsService.refund(payment.id, refundReason);
+      showToast(`Refund processed for ${payment.renterName || payment.reference}.`);
+      setRefundConfirmPayment(null);
+      await loadPayments();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to process refund';
+      showToast(msg);
+    } finally {
+      setIsProcessingRefund(false);
+    }
+  };
+
+  // Team Admin Actions
+  const handleRevokeInvitation = async (inv: AdminInvitation) => {
+    try {
+      const res = await adminService.revokeInvitation(inv.id);
+      if (res.success) {
+        showToast(`Invitation for ${inv.email} revoked.`);
+        setRevokeConfirmInvite(null);
+        await loadTeamData();
+      } else {
+        showToast(res.error || 'Failed to revoke invitation');
+      }
+    } catch {
+      showToast('Error revoking invitation');
+    }
+  };
+
+  const handleRemoveAdmin = async (user: User) => {
+    try {
+      const res = await adminService.removeAdmin(user.id);
+      if (res.success) {
+        showToast(`Admin privileges removed from ${user.email}.`);
+        setRemoveConfirmAdmin(null);
+        await loadTeamData();
+      } else {
+        showToast(res.error || 'Failed to remove admin privileges');
+      }
+    } catch {
+      showToast('Error removing admin');
+    }
+  };
+
+  // Add Neighborhood Action
+  const handleAddArea = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = newAreaInput.trim();
+    if (!val) return;
+    if (!customAreas.includes(val)) {
+      setCustomAreas((prev) => [...prev, val]);
+      showToast(`${val} added to neighborhoods`);
+    } else {
+      showToast(`${val} is already in the list`);
+    }
+    setNewAreaInput('');
+  };
+
+  // Tab configurations
+  const sectionMeta: Record<AdminSection, {
+    title: string;
+    lede: string;
+    count: number;
+    icon: any;
+    isHot?: boolean;
+  }> = {
+    verification: {
+      title: 'Verification queue',
+      lede: 'Assign inspectors, track audits and award the Verified badge.',
+      count: pendingInspectionsCount,
+      isHot: false,
+      icon: ShieldCheck
+    },
+    listers: {
+      title: 'Lister Onboarding & Verification',
+      lede: 'Review bank identity, Ibadan residence, and right-to-let authority before approving listers to post.',
+      count: pendingListersCount,
+      isHot: pendingListersCount > 0,
+      icon: UserCheck
+    },
+    listings: {
+      title: 'Listings and moderation',
+      lede: 'Review new listings before renters see them.',
+      count: listings.length,
+      isHot: false,
+      icon: Building2
+    },
+    payments: {
+      title: 'Payments and revenue',
+      lede: 'Confirm availability after the ₦5,000 access fee is paid.',
+      count: payments.length,
+      isHot: false,
+      icon: CreditCard
+    },
+    escalations: {
+      title: 'Escalations',
+      lede: 'Issues from renters and listers that need a person.',
+      count: overdueEscalationsCount,
+      isHot: overdueEscalationsCount > 0,
+      icon: AlertTriangle
+    },
+    team: {
+      title: 'Admin team',
+      lede: 'Who can do what, and who has been invited.',
+      count: adminUsers.length,
+      isHot: false,
+      icon: Users
+    }
+  };
+
+  const currentMeta = sectionMeta[activeSection];
 
   return (
-    <div className="admin-page-root" style={{ backgroundColor: '#F7F8FA', minHeight: '100vh', color: '#17172B', fontFamily: 'inherit' }}>
+    <div className="roc-app">
+      {/* =============================================================
+          1. DESKTOP SIDE RAIL (248px sticky navy column)
+         ============================================================= */}
+      <aside className="roc-rail" aria-label="Operations Navigation">
+        <div className="roc-brand">
+          <b>
+            RENTivo<i></i>
+          </b>
+          <span className="roc-tag">Ops</span>
+        </div>
 
-      {/* -------------------------------------------------------------
-          TOP STICKY NAVIGATION BAR (MATCHING rentivo-admin.html)
-         ------------------------------------------------------------- */}
-      <header className="admin-header" style={{
-        backgroundColor: '#000052',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)'
-      }}>
-        {/* =============================================================
-            DESKTOP HEADER INNER (>= 1024px) - 100% PRESERVED FIDELITY
-           ============================================================= */}
-        <div className="admin-header-desktop-inner" style={{
-          maxWidth: '1500px',
-          margin: '0 auto',
-          padding: '0 32px',
-          height: '60px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '24px'
-        }}>
-          {/* Logo & Admin Tag */}
-          <div 
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, cursor: onExit ? 'pointer' : 'default' }}
-            onClick={onExit}
-            title={onExit ? "Exit Admin to Home" : undefined}
+        <nav className="roc-nav" aria-label="Sections">
+          {(Object.keys(sectionMeta) as AdminSection[]).map((key) => {
+            const meta = sectionMeta[key];
+            const isActive = activeSection === key;
+            const Icon = meta.icon;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                className={isActive ? 'active' : ''}
+                aria-current={isActive ? 'page' : undefined}
+                onClick={() => {
+                  setActiveSection(key);
+                  navigate(`/admin/${key}`);
+                }}
+              >
+                <Icon size={19} />
+                <span>{key === 'verification' ? 'Verification' : key === 'listers' ? 'Listers' : key === 'listings' ? 'Listings' : key === 'payments' ? 'Payments' : key === 'escalations' ? 'Escalations' : 'Team'}</span>
+                <span className={`roc-ct ${meta.isHot ? 'hot' : ''}`}>
+                  {meta.count}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="roc-rail-foot">
+          <button
+            type="button"
+            className={`roc-ghost-d ${showPulse ? 'active' : ''}`}
+            onClick={() => setShowPulse(!showPulse)}
+            aria-pressed={showPulse}
           >
-            <span style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-              RENT<span style={{ color: '#BE89FF' }}>ivo</span>
-            </span>
-            <span style={{
-              fontSize: '10px',
-              fontWeight: 800,
-              backgroundColor: 'rgba(190, 137, 255, 0.18)',
-              color: '#BE89FF',
-              padding: '3px 8px',
-              borderRadius: '6px',
-              letterSpacing: '0.04em'
-            }}>
-              ADMIN
-            </span>
+            <Sparkles size={18} />
+            <span>Pulse metrics</span>
+          </button>
+
+          <div className="roc-me">
+            <span className="roc-av">AD</span>
+            <div>
+              <b>Admin Staff</b>
+              <small>Ibadan pilot</small>
+            </div>
           </div>
 
-          {/* Nav Tabs with Animated Lilac Underline */}
-          <nav style={{
-            display: 'flex',
-            gap: '4px',
-            flex: 1,
-            height: '100%',
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            position: 'relative'
-          }}
-          className="no-scrollbar"
+          <button
+            type="button"
+            className="roc-ghost-d"
+            onClick={() => (onExit ? onExit() : navigate('/'))}
           >
-            {[
-              { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-              { id: 'listings', label: 'Listings', icon: Building2 },
-              { id: 'verification', label: 'Verification', icon: ShieldCheck },
-              { id: 'escalations', label: 'Escalations', icon: AlertTriangle },
-              { id: 'payments', label: 'Payments', icon: CreditCard },
-              { id: 'users', label: 'Users', icon: Users },
-              { id: 'reports', label: 'Reports', icon: Flag },
-              { id: 'locations', label: 'Locations', icon: MapPin }
-            ].map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeSection === tab.id;
+            <LogOut size={18} />
+            <span>Back to marketplace</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* =============================================================
+          2. MAIN CONTENT WRAPPER
+         ============================================================= */}
+      <div style={{ minWidth: 0 }}>
+        {/* Mobile Sticky Header (< 980px) */}
+        <div className="roc-mhead">
+          <div className="roc-mtop">
+            <div className="roc-brand" style={{ padding: 0 }}>
+              <b>
+                RENTivo<i></i>
+              </b>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="roc-icon-btn"
+                style={{ background: 'rgba(255,255,255,.1)', borderColor: 'transparent', color: '#fff' }}
+                onClick={() => setShowPulse(!showPulse)}
+                aria-label="Toggle Pulse"
+              >
+                <Sparkles size={18} />
+              </button>
+              <span className="roc-av">AD</span>
+            </div>
+          </div>
+
+          <nav className="roc-mnav" aria-label="Mobile Navigation">
+            {(Object.keys(sectionMeta) as AdminSection[]).map((key) => {
+              const meta = sectionMeta[key];
+              const isActive = activeSection === key;
               return (
                 <button
-                  key={tab.id}
+                  key={key}
                   type="button"
+                  className={isActive ? 'active' : ''}
+                  aria-current={isActive ? 'page' : undefined}
                   onClick={() => {
-                    setActiveSection(tab.id as AdminSection);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '0 14px',
-                    fontSize: '13.5px',
-                    fontWeight: 600,
-                    color: isActive ? '#FFFFFF' : '#A9A6D0',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                    transition: 'color 0.18s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) e.currentTarget.style.color = '#FFFFFF';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) e.currentTarget.style.color = '#A9A6D0';
+                    setActiveSection(key);
+                    navigate(`/admin/${key}`);
                   }}
                 >
-                  <Icon size={16} />
-                  <span>{tab.label}</span>
-                  {isActive && (
-                    <span style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: '12px',
-                      right: '12px',
-                      height: '2.5px',
-                      backgroundColor: '#BE89FF',
-                      borderRadius: '2px'
-                    }} />
-                  )}
+                  <span>{key === 'verification' ? 'Verification' : key === 'listings' ? 'Listings' : key === 'payments' ? 'Payments' : key === 'escalations' ? 'Escalations' : 'Team'}</span>
+                  <span className={`roc-ct ${meta.isHot ? 'hot' : ''}`}>
+                    {meta.count}
+                  </span>
                 </button>
               );
             })}
           </nav>
-
-          {/* Right: Quick Search, Bell, Avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '9px',
-              padding: '6px 12px'
-            }}>
-              <Search size={14} color="#8E8BB8" />
-              <input
-                type="text"
-                placeholder="Search listings, users..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  border: 'none',
-                  background: 'none',
-                  outline: 'none',
-                  color: '#FFFFFF',
-                  fontSize: '12.5px',
-                  width: '140px'
-                }}
-              />
-            </div>
-
-            <button
-              type="button"
-              style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                border: '1px solid rgba(255, 255, 255, 0.14)',
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#C9C6E8',
-                cursor: 'pointer',
-                position: 'relative'
-              }}
-            >
-              <Bell size={15} />
-              <span style={{
-                position: 'absolute',
-                top: '6px',
-                right: '7px',
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: '#F87171'
-              }} />
-            </button>
-
-            {onExit && (
-              <button
-                type="button"
-                onClick={onExit}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#FFFFFF',
-                  borderRadius: '8px',
-                  padding: '5px 12px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-                title="Exit Admin to Consumer Home"
-              >
-                <span>Exit Admin</span>
-              </button>
-            )}
-
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #BE89FF, #8F5BD6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '11.5px',
-              fontWeight: 800,
-              color: '#FFFFFF'
-            }}>
-              RV
-            </div>
-          </div>
         </div>
 
-        {/* =============================================================
-            MOBILE TWO-TIER HEADER (< 1024px) - FLUID TOUCH NAVIGATION
-           ============================================================= */}
-        <div className="admin-header-mobile-wrapper">
-          {/* Tier 1: Brand Lockup + Compact Utilities */}
-          <div className="admin-header-tier1">
-            <div 
-              className="admin-mobile-brand"
-              onClick={() => setActiveSection('overview')}
-              title="Admin Overview"
-            >
-              <span style={{ fontSize: '17px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
-                RENT<span style={{ color: '#BE89FF' }}>ivo</span>
-              </span>
-              <span style={{
-                fontSize: '9.5px',
-                fontWeight: 800,
-                backgroundColor: 'rgba(190, 137, 255, 0.18)',
-                color: '#BE89FF',
-                padding: '2px 7px',
-                borderRadius: '5px',
-                letterSpacing: '0.04em'
-              }}>
-                ADMIN
-              </span>
+        {/* Main Dashboard Column */}
+        <main className="roc-main">
+          {/* Header Title & Actions */}
+          <header className="roc-top">
+            <div>
+              <h1>{currentMeta.title}</h1>
+              <p>{currentMeta.lede}</p>
             </div>
-
-            <div className="admin-header-mobile-actions">
-              <button
-                type="button"
-                onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  minWidth: '44px',
-                  minHeight: '44px',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255, 255, 255, 0.14)',
-                  backgroundColor: isMobileSearchOpen ? 'rgba(190, 137, 255, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: isMobileSearchOpen ? '#BE89FF' : '#C9C6E8',
-                  cursor: 'pointer'
-                }}
-                aria-label="Toggle search"
-              >
-                <Search size={16} />
-              </button>
-
-              <button
-                type="button"
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  minWidth: '44px',
-                  minHeight: '44px',
-                  borderRadius: '50%',
-                  border: '1px solid rgba(255, 255, 255, 0.14)',
-                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#C9C6E8',
-                  cursor: 'pointer',
-                  position: 'relative'
-                }}
-                aria-label="Admin notifications"
-              >
-                <Bell size={16} />
-                <span style={{
-                  position: 'absolute',
-                  top: '9px',
-                  right: '9px',
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: '#F87171'
-                }} />
-              </button>
-
-              {onExit && (
-                <button
-                  type="button"
-                  onClick={onExit}
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: '#FFFFFF',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '11.5px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    minHeight: '44px'
-                  }}
-                  title="Exit Admin to Consumer Home"
-                >
-                  <LogOut size={13} />
-                  <span>Exit</span>
-                </button>
+            <div className="roc-top-acts">
+              {activeSection === 'listers' && (
+                <>
+                  {[
+                    { id: 'all', label: 'All applications', count: listerApplications.length },
+                    { id: 'pending', label: 'Pending review', count: pendingListersCount },
+                    { id: 'approved', label: 'Approved listers', count: approvedListersCount },
+                    { id: 'rejected', label: 'Rejected', count: rejectedListersCount }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`roc-tab ${activeListerTab === tab.id ? 'active' : ''}`}
+                      onClick={() => setActiveListerTab(tab.id as any)}
+                    >
+                      {tab.label}
+                      <span className="roc-ct">{tab.count}</span>
+                    </button>
+                  ))}
+                </>
               )}
 
-              <div style={{
-                width: '30px',
-                height: '30px',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #BE89FF, #8F5BD6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '11px',
-                fontWeight: 800,
-                color: '#FFFFFF',
-                flexShrink: 0
-              }}>
-                RV
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Search Dropdown Bar */}
-          {isMobileSearchOpen && (
-            <div className="admin-header-search-bar">
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.14)',
-                borderRadius: '8px',
-                padding: '6px 12px'
-              }}>
-                <Search size={14} color="#8E8BB8" />
-                <input
-                  type="text"
-                  placeholder="Search listings, users..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    border: 'none',
-                    background: 'none',
-                    outline: 'none',
-                    color: '#FFFFFF',
-                    fontSize: '13px',
-                    width: '100%'
-                  }}
-                  autoFocus
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 0 }}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Tier 2: Fluid Horizontal Touch-Scrolling Rail */}
-          <nav
-            ref={tabRailRef}
-            className="admin-tab-rail"
-          >
-            {[
-              { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-              { id: 'listings', label: 'Listings', icon: Building2 },
-              { id: 'verification', label: 'Verification', icon: ShieldCheck },
-              { id: 'escalations', label: 'Escalations', icon: AlertTriangle },
-              { id: 'payments', label: 'Payments', icon: CreditCard },
-              { id: 'users', label: 'Users', icon: Users },
-              { id: 'reports', label: 'Reports', icon: Flag },
-              { id: 'locations', label: 'Locations', icon: MapPin }
-            ].map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeSection === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveSection(tab.id as AdminSection)}
-                  className={`admin-tab-rail-item ${isActive ? 'active' : ''}`}
-                >
-                  <Icon size={15} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </header>
-
-      {/* -------------------------------------------------------------
-          MAIN ADMIN VIEWPORT
-         ------------------------------------------------------------- */}
-      <main className="admin-main" style={{ maxWidth: '1500px', margin: '0 auto', padding: '26px 32px 60px' }}>
-
-        {/* =============================================================
-            TAB 1: ADMIN OVERVIEW (MATCHING rentivo-admin.html)
-           ============================================================= */}
-        {activeSection === 'overview' && (
-          <div>
-            {/* Topline Header */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: '20px',
-              flexWrap: 'wrap',
-              marginBottom: '22px'
-            }}>
-              <div>
-                <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.01em', color: '#000052' }}>
-                  Admin overview
-                </h1>
-                <p style={{ margin: 0, fontSize: '13.5px', color: '#636377' }}>
-                  Ibadan pilot · Platform health, verification queue, and escalations.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {activeSection === 'verification' && (
                 <button
                   type="button"
-                  onClick={() => setIsLocationModalOpen(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    border: '1.5px solid #000052',
-                    backgroundColor: '#EFF6FF',
-                    padding: '9px 14px',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    color: '#000052',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    minHeight: '44px'
-                  }}
+                  className="roc-btn b-sec"
+                  onClick={() => setIsAreaModalOpen(true)}
                 >
-                  <MapPin size={15} color="#000052" />
-                  <span>Manage Cities ({allCities.length})</span>
+                  <MapPin size={17} />
+                  <span>Manage areas</span>
                 </button>
-
+              )}
+              {activeSection === 'team' && (
                 <button
                   type="button"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    border: '1px solid #E6E3EE',
-                    backgroundColor: '#FFFFFF',
-                    padding: '9px 14px',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: '#17172B',
-                    cursor: 'pointer',
-                    minHeight: '44px'
-                  }}
+                  className="roc-btn b-pri"
+                  onClick={() => setIsInviteModalOpen(true)}
                 >
-                  <Calendar size={15} color="#636377" />
-                  <span>Last 30 days</span>
-                  <ChevronDown size={13} color="#636377" />
+                  <Plus size={18} />
+                  <span>Invite admin</span>
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => showToast('Exporting admin platform performance report (CSV)...')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    border: 'none',
-                    backgroundColor: '#000052',
-                    color: '#FFFFFF',
-                    padding: '9px 16px',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(0, 0, 82, 0.15)',
-                    minHeight: '44px'
-                  }}
-                >
-                  <Download size={15} />
-                  <span>Export report</span>
-                </button>
-              </div>
-            </div>
-
-            {/* 8 Stats Metric Cards */}
-            <div className="admin-kpi-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: '14px',
-              marginBottom: '24px'
-            }}>
-              {/* 1. Active listings */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div className="admin-kpi-card-title" style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Active listings
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span className="admin-kpi-card-val" style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>{activeListingsCount}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#047857', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <TrendingUp size={14} /> {listings.length} total
-                  </span>
-                </div>
-                <div className="admin-kpi-card-sub" style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>
-                  {pendingApprovalCount} pending admin approval
-                </div>
-              </div>
-
-              {/* 2. Verified listings */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div className="admin-kpi-card-title" style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Verified listings
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span className="admin-kpi-card-val" style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>{verifiedListingsCount}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#047857', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <TrendingUp size={14} /> {verifiedRate}%
-                  </span>
-                </div>
-                <div className="admin-kpi-card-sub" style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>
-                  {verifiedRate}% of catalog verified
-                </div>
-              </div>
-
-              {/* 3. Pending inspections */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div className="admin-kpi-card-title" style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Pending inspections
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span className="admin-kpi-card-val" style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>{pendingInspectionsCount}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: overdueInspectionsCount > 0 ? '#BE123C' : '#047857', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    {overdueInspectionsCount > 0 ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />} {unassignedInspectionsCount} unassigned
-                  </span>
-                </div>
-                <div className="admin-kpi-card-sub" style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>
-                  {overdueInspectionsCount} overdue for 48h+
-                </div>
-              </div>
-
-              {/* 4. Requests awaiting confirmation */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div className="admin-kpi-card-title" style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Requests awaiting confirmation
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span className="admin-kpi-card-val" style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>{awaitingConfirmationCount}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: overdueEscalationsCount > 0 ? '#B45309' : '#047857', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Clock size={13} /> {overdueEscalationsCount > 0 ? `${overdueEscalationsCount} overdue` : 'On track'}
-                  </span>
-                </div>
-                <div className="admin-kpi-card-sub" style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>
-                  {escalations.length} escalation items in queue
-                </div>
-              </div>
-
-              {/* 5. Confirmation rate */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div className="admin-kpi-card-title" style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Confirmation rate
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span className="admin-kpi-card-val" style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>
-                    {tabCounts.all > 0 ? `${Math.round((tabCounts.completed / tabCounts.all) * 100)}%` : '100%'}
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#047857', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <TrendingUp size={14} /> Live
-                  </span>
-                </div>
-                <div className="admin-kpi-card-sub" style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>
-                  {tabCounts.completed} verified of {tabCounts.all} requests
-                </div>
-              </div>
-
-              {/* 6. Access-fee revenue */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div className="admin-kpi-card-title" style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Access-fee revenue
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span className="admin-kpi-card-val" style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>{formatNaira(totalAccessFeeRevenue)}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#047857', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <CreditCard size={14} /> Paystack
-                  </span>
-                </div>
-                <div className="admin-kpi-card-sub" style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>
-                  {paidPayments.length} paid access unlock{paidPayments.length === 1 ? '' : 's'} recorded
-                </div>
-              </div>
-
-              {/* 7. Promotion redemptions (FR-5.3 / FR-5.4) */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div className="admin-kpi-card-title" style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Promotion redemptions
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span className="admin-kpi-card-val" style={{ fontSize: '24px', fontWeight: 800, color: '#000052' }}>
-                    {promoStats.redeemed} / {promoStats.total}
-                  </span>
-                  <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#7E22CE', backgroundColor: '#F3E8FF', padding: '2px 8px', borderRadius: '12px' }}>
-                    {promoStats.remaining} left
-                  </span>
-                </div>
-                <div className="admin-kpi-card-sub" style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>
-                  First 100 Users Promotional Waiver Quota
-                </div>
-              </div>
-
-              {/* 8. Reported listings (FR-6.4) */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div className="admin-kpi-card-title" style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Reported listings
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span className="admin-kpi-card-val" style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>
-                    {reports.filter(r => r.status === 'pending' || r.status === 'investigating').length}
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: reports.filter(r => r.status === 'pending').length > 0 ? '#BE123C' : '#047857', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                    <AlertTriangle size={13} /> {reports.filter(r => r.status === 'pending').length} new
-                  </span>
-                </div>
-                <div className="admin-kpi-card-sub" style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>
-                  {reports.length} total dispute reports on file
-                </div>
-              </div>
-            </div>
-
-            {/* 2-Column: Verification Queue Snapshot + Chart & Distribution */}
-            <div className="admin-split-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: '1.7fr 1fr',
-              gap: '18px',
-              alignItems: 'start',
-              marginBottom: '20px'
-            }}>
-              {/* Left Panel: Verification Queue Snapshot */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', overflow: 'hidden' }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '16px 18px',
-                  borderBottom: '1px solid #E6E3EE',
-                  flexWrap: 'wrap',
-                  gap: '10px'
-                }}>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#000052' }}>
-                    Verification queue
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSection('verification')}
-                    style={{
-                      border: '1px solid #E6E3EE',
-                      backgroundColor: '#FFFFFF',
-                      padding: '7px 12px',
-                      borderRadius: '8px',
-                      fontSize: '12.5px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <span>View all ({tabCounts.all})</span>
-                    <ChevronRight size={13} />
-                  </button>
-                </div>
-
-                {/* Sub tabs */}
-                <div style={{ display: 'flex', gap: '6px', padding: '12px 18px 0', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', backgroundColor: '#F8F3FF', color: '#000052', border: '1px solid #E1CBFF' }}>
-                    All ({tabCounts.all})
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', color: '#636377' }}>
-                    Pending ({tabCounts.pending})
-                  </span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', color: '#636377' }}>
-                    Scheduled ({tabCounts.scheduled})
-                  </span>
-                </div>
-
-                {/* Table */}
-                <div className="no-scrollbar" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '6px' }}>
-                    <thead>
-                      <tr>
-                        <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '9px 18px', fontWeight: 700 }}>
-                          Property
-                        </th>
-                        <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '9px 18px', fontWeight: 700 }}>
-                          Lister
-                        </th>
-                        <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '9px 18px', fontWeight: 700 }}>
-                          Submitted
-                        </th>
-                        <th style={{ textAlign: 'center', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '9px 18px', fontWeight: 700 }}>
-                          Status
-                        </th>
-                        <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '9px 18px', fontWeight: 700 }}>
-                          Inspector
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {verificationItems.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} style={{ padding: '32px 18px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                            No verification requests currently in queue.
-                          </td>
-                        </tr>
-                      ) : (
-                        verificationItems.slice(0, 4).map(item => {
-                        const statusColors = {
-                          pending: { bg: '#FFFBEB', color: '#B45309', border: '#FDE68A', dot: '#B45309', label: 'Pending' },
-                          scheduled: { bg: '#EEF2FF', color: '#4338CA', border: '#C7D2FE', dot: '#4338CA', label: 'Scheduled' },
-                          progress: { bg: '#F8FAFC', color: '#334155', border: '#E2E8F0', dot: '#334155', label: 'In progress' },
-                          completed: { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0', dot: '#047857', label: 'Completed' }
-                        }[item.status];
-
-                        return (
-                          <tr
-                            key={item.id}
-                            onClick={() => handleOpenModal(item)}
-                            style={{ borderTop: '1px solid #E6E3EE', cursor: 'pointer', transition: 'background-color 0.12s ease' }}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAFAFD')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                          >
-                            <td style={{ padding: '12px 18px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <img
-                                  src={item.photo}
-                                  alt=""
-                                  style={{ width: '38px', height: '38px', borderRadius: '8px', objectFit: 'cover' }}
-                                />
-                                <div>
-                                  <div style={{ fontWeight: 600, fontSize: '13px', color: '#17172B' }}>{item.title}</div>
-                                  <div style={{ fontSize: '11px', color: '#636377' }}>{item.area}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 18px', fontSize: '13px', color: '#17172B', fontWeight: 500 }}>
-                              {item.listerName}
-                            </td>
-                            <td style={{ padding: '12px 18px', fontSize: '13px', color: '#636377' }}>
-                              {item.submittedDate}
-                            </td>
-                            <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                              <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                padding: '3px 8px',
-                                borderRadius: '999px',
-                                backgroundColor: statusColors.bg,
-                                color: statusColors.color,
-                                border: `1px solid ${statusColors.border}`
-                              }}>
-                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: statusColors.dot }} />
-                                <span>{statusColors.label}</span>
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px 18px', fontSize: '13px', color: item.inspector === 'Unassigned' ? '#94A3B8' : '#17172B', fontStyle: item.inspector === 'Unassigned' ? 'italic' : 'normal' }}>
-                              {item.inspector}
-                            </td>
-                          </tr>
-                        );
-                      }))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Right Panel: Chart & Stack Bar Distribution */}
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', overflow: 'hidden' }}>
-                <div style={{ padding: '16px 18px', borderBottom: '1px solid #E6E3EE' }}>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#000052' }}>
-                    Confirmation rate trend
-                  </h3>
-                </div>
-
-                <div style={{ padding: '18px' }}>
-                  {/* SVG Sparkline */}
-                  <svg viewBox="0 0 260 90" width="100%" height="90">
-                    <polyline
-                      points="0,60 35,52 70,58 105,40 140,44 175,26 210,22 245,14"
-                      fill="none"
-                      stroke="#BE89FF"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <polyline
-                      points="0,60 35,52 70,58 105,40 140,44 175,26 210,22 245,14 245,90 0,90"
-                      fill="url(#adminGradient)"
-                      opacity="0.15"
-                      stroke="none"
-                    />
-                    <defs>
-                      <linearGradient id="adminGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#BE89FF" />
-                        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <p style={{ fontSize: '11.5px', color: '#636377', margin: '4px 0 16px' }}>
-                    {tabCounts.all > 0 ? `${tabCounts.completed} verified of ${tabCounts.all} submitted requests` : 'Platform verification compliance tracker'}
-                  </p>
-
-                  <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#000052', margin: '0 0 8px' }}>
-                    Verification queue distribution
-                  </h4>
-
-                  {/* Stack Bar */}
-                  {tabCounts.all === 0 ? (
-                    <div style={{ height: '14px', borderRadius: '999px', backgroundColor: '#E2E8F0', marginTop: '6px' }} />
-                  ) : (
-                    <div style={{ display: 'flex', height: '14px', borderRadius: '999px', overflow: 'hidden', marginTop: '6px' }}>
-                      {tabCounts.pending > 0 && <div style={{ width: `${(tabCounts.pending / tabCounts.all) * 100}%`, backgroundColor: '#B45309' }} title={`Pending (${tabCounts.pending})`} />}
-                      {tabCounts.scheduled > 0 && <div style={{ width: `${(tabCounts.scheduled / tabCounts.all) * 100}%`, backgroundColor: '#4338CA' }} title={`Scheduled (${tabCounts.scheduled})`} />}
-                      {tabCounts.progress > 0 && <div style={{ width: `${(tabCounts.progress / tabCounts.all) * 100}%`, backgroundColor: '#334155' }} title={`In progress (${tabCounts.progress})`} />}
-                      {tabCounts.completed > 0 && <div style={{ width: `${(tabCounts.completed / tabCounts.all) * 100}%`, backgroundColor: '#047857' }} title={`Completed (${tabCounts.completed})`} />}
-                    </div>
-                  )}
-
-                  {/* Legend */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '14px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#636377' }}>
-                      <span style={{ width: '9px', height: '9px', borderRadius: '3px', backgroundColor: '#B45309' }} />
-                      <span>Pending ({tabCounts.pending})</span>
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#636377' }}>
-                      <span style={{ width: '9px', height: '9px', borderRadius: '3px', backgroundColor: '#4338CA' }} />
-                      <span>Scheduled ({tabCounts.scheduled})</span>
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#636377' }}>
-                      <span style={{ width: '9px', height: '9px', borderRadius: '3px', backgroundColor: '#334155' }} />
-                      <span>In progress ({tabCounts.progress})</span>
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: '#636377' }}>
-                      <span style={{ width: '9px', height: '9px', borderRadius: '3px', backgroundColor: '#047857' }} />
-                      <span>Completed ({tabCounts.completed})</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Availability Escalation Queue Panel */}
-            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', overflow: 'hidden' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '16px 18px',
-                borderBottom: '1px solid #E6E3EE'
-              }}>
-                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#000052' }}>
-                  Availability escalation queue
-                </h3>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                  padding: '4px 10px',
-                  borderRadius: '999px',
-                  backgroundColor: overdueEscalationsCount > 0 ? '#FFF1F2' : '#ECFDF5',
-                  color: overdueEscalationsCount > 0 ? '#BE123C' : '#047857',
-                  border: overdueEscalationsCount > 0 ? '1px solid #FECDD3' : '1px solid #A7F3D0'
-                }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: overdueEscalationsCount > 0 ? '#BE123C' : '#047857' }} />
-                  <span>{overdueEscalationsCount > 0 ? `${overdueEscalationsCount} overdue` : 'All on schedule'}</span>
-                </span>
-              </div>
-
-              <div className="admin-table-desktop no-scrollbar" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 18px', fontWeight: 700 }}>
-                        Property
-                      </th>
-                      <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 18px', fontWeight: 700 }}>
-                        Requesting user
-                      </th>
-                      <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 18px', fontWeight: 700 }}>
-                        Time since request
-                      </th>
-                      <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 18px', fontWeight: 700 }}>
-                        Lister
-                      </th>
-                      <th style={{ textAlign: 'center', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 18px', fontWeight: 700 }}>
-                        Automated message
-                      </th>
-                      <th style={{ textAlign: 'right', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 18px', fontWeight: 700 }}>
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {escalations.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ padding: '36px 18px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                          No availability escalations pending. All property listers are responding within the confirmation window.
-                        </td>
-                      </tr>
-                    ) : (
-                      escalations.map(esc => (
-                        <tr
-                          key={esc.id}
-                          style={{
-                            borderTop: '1px solid #E6E3EE',
-                            backgroundColor: esc.isOverdue ? '#FFF1F2' : 'transparent',
-                            transition: 'background-color 0.12s ease'
-                          }}
-                        >
-                          <td style={{ padding: '12px 18px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <img
-                                src={esc.photo}
-                                alt=""
-                                style={{ width: '38px', height: '38px', borderRadius: '8px', objectFit: 'cover' }}
-                              />
-                              <div>
-                                <div style={{ fontWeight: 600, fontSize: '13px', color: '#17172B' }}>{esc.listingTitle}</div>
-                                <div style={{ fontSize: '11px', color: '#636377' }}>{esc.area}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px 18px', fontSize: '13px', fontWeight: 600, color: '#17172B' }}>
-                            {esc.renterName}
-                          </td>
-                          <td style={{
-                            padding: '12px 18px',
-                            fontSize: '13px',
-                            fontWeight: esc.isOverdue ? 700 : 500,
-                            color: esc.isOverdue ? '#BE123C' : '#636377'
-                          }}>
-                            {esc.timeSinceRequest}
-                          </td>
-                          <td style={{ padding: '12px 18px', fontSize: '13px', color: '#17172B' }}>
-                            {esc.listerName}
-                          </td>
-                          <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              padding: '3px 8px',
-                              borderRadius: '999px',
-                              backgroundColor: esc.isOverdue ? '#FFF1F2' : '#F8FAFC',
-                              color: esc.isOverdue ? '#BE123C' : '#636377',
-                              border: esc.isOverdue ? '1px solid #FECDD3' : '1px solid #E2E8F0'
-                            }}>
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: esc.isOverdue ? '#BE123C' : '#94A3B8' }} />
-                              <span>{esc.automatedStatus}</span>
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px 18px', textAlign: 'right' }}>
-                            <button
-                              type="button"
-                              onClick={() => handleCallLister(esc)}
-                              disabled={!esc.isOverdue}
-                              style={{
-                                border: '1px solid #E6E3EE',
-                                backgroundColor: esc.isOverdue ? '#FFFFFF' : '#F8FAFC',
-                                padding: '7px 12px',
-                                borderRadius: '8px',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                color: esc.isOverdue ? '#BE123C' : '#94A3B8',
-                                cursor: esc.isOverdue ? 'pointer' : 'default',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px'
-                              }}
-                            >
-                              <Phone size={13} />
-                              <span>{esc.isOverdue ? 'Call lister' : 'Within window'}</span>
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Escalation Cards (< 768px) */}
-              <div className="admin-cards-mobile" style={{ padding: '14px' }}>
-                {escalations.length === 0 ? (
-                  <div style={{ padding: '24px 12px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                    No availability escalations pending. All property listers are responding within the confirmation window.
-                  </div>
-                ) : (
-                  escalations.map(esc => (
-                    <div
-                      key={esc.id}
-                      className={`admin-mobile-card ${esc.isOverdue ? 'urgent' : ''}`}
-                    >
-                      <div className="admin-mobile-card-header">
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                          <img
-                            src={esc.photo}
-                            alt=""
-                            style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
-                          />
-                          <div>
-                            <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#000052' }}>{esc.listingTitle}</div>
-                            <div style={{ fontSize: '11px', color: '#636377' }}>{esc.area}</div>
-                          </div>
-                        </div>
-
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '11px',
-                          fontWeight: 800,
-                          padding: '3px 8px',
-                          borderRadius: '999px',
-                          backgroundColor: esc.isOverdue ? '#FFE4E6' : '#F1F5F9',
-                          color: esc.isOverdue ? '#BE123C' : '#475569',
-                          border: esc.isOverdue ? '1px solid #FDA4AF' : '1px solid #E2E8F0',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          <Clock size={12} />
-                          <span>{esc.timeSinceRequest}</span>
-                        </span>
-                      </div>
-
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '8px',
-                        padding: '10px',
-                        backgroundColor: '#F8FAFC',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}>
-                        <div>
-                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Seeker</div>
-                          <div style={{ fontWeight: 700, color: '#000052', marginTop: '2px' }}>{esc.renterName}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Lister</div>
-                          <div style={{ fontWeight: 700, color: '#000052', marginTop: '2px' }}>{esc.listerName}</div>
-                          <div style={{ fontSize: '11px', color: '#64748B' }}>{esc.listerPhone}</div>
-                        </div>
-                      </div>
-
-                      <div className="admin-mobile-card-actions">
-                        <button
-                          type="button"
-                          onClick={() => handleCallLister(esc)}
-                          disabled={!esc.isOverdue}
-                          style={{
-                            backgroundColor: esc.isOverdue ? '#BE123C' : '#F1F5F9',
-                            color: esc.isOverdue ? '#FFFFFF' : '#94A3B8',
-                            border: esc.isOverdue ? 'none' : '1px solid #CBD5E1',
-                            cursor: esc.isOverdue ? 'pointer' : 'default',
-                            boxShadow: esc.isOverdue ? '0 2px 6px rgba(190, 18, 60, 0.2)' : 'none'
-                          }}
-                        >
-                          <Phone size={14} />
-                          <span>{esc.isOverdue ? 'Call Lister' : 'On Track'}</span>
-                        </button>
-
-                        <a
-                          href={`https://wa.me/${esc.listerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${esc.listerName}, this is Rentivo Admin regarding seeker access request on "${esc.listingTitle}". Please confirm availability.`)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            backgroundColor: '#16794A',
-                            color: '#FFFFFF',
-                            boxShadow: '0 2px 6px rgba(22, 121, 74, 0.2)'
-                          }}
-                        >
-                          <MessageSquare size={14} />
-                          <span>WhatsApp</span>
-                        </a>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* =============================================================
-            TAB 2: VERIFICATION QUEUE (MATCHING rentivo-admin-verification.html)
-           ============================================================= */}
-        {activeSection === 'verification' && (
-          <div>
-            {/* Topline Header */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: '20px',
-              flexWrap: 'wrap',
-              marginBottom: '20px'
-            }}>
-              <div>
-                <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.01em', color: '#000052' }}>
-                  Verification queue
-                </h1>
-                <p style={{ margin: 0, fontSize: '13.5px', color: '#636377' }}>
-                  Every listing needing a physical inspection before it can carry the Verified badge.
-                </p>
-              </div>
-
+              )}
               <button
                 type="button"
-                onClick={() => {
-                  if (filteredVerificationItems.length > 0) {
-                    handleOpenModal(filteredVerificationItems[0]);
-                  }
+                className="roc-icon-btn"
+                onClick={async () => {
+                  if (onReload) await onReload();
+                  await loadVerificationItems();
+                  await loadEscalations();
+                  await loadPayments();
+                  if (activeSection === 'team') await loadTeamData();
+                  showToast('Data refreshed');
                 }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  border: 'none',
-                  backgroundColor: '#000052',
-                  color: '#FFFFFF',
-                  padding: '9px 16px',
-                  borderRadius: '10px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(0, 0, 82, 0.15)'
-                }}
+                title="Refresh operations data"
               >
-                <UserPlus size={15} />
-                <span>Assign inspector</span>
+                <RefreshCw size={17} />
               </button>
             </div>
+          </header>
 
-            {/* 4 Stat Strip Cards */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '14px',
-              marginBottom: '22px'
-            }}>
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Awaiting inspection
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>{tabCounts.pending}</div>
-                <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>{unassignedInspectionsCount} unassigned</div>
+          {/* =============================================================
+              3. EXECUTIVE PULSE METRICS SECTION (4 KPI cards with sparklines)
+             ============================================================= */}
+          {showPulse && (
+            <section className="roc-pulse" aria-label="Pulse Metrics">
+              {/* Lead Navy Card: Payments / Access Fee Revenue */}
+              <div className="roc-kpi lead">
+                <span className="l">Total access revenue</span>
+                <span className="v roc-num">₦{formatNaira(totalRevenue)}</span>
+                <span className="s">
+                  <span className="roc-up">{paidPaymentsCount} paid</span> · held until confirmed
+                </span>
+                <Sparkline data={[2, 3, 2, 4, 3, 5, 4, 6, 7]} isLead />
               </div>
 
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Avg time to inspection
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>Under 48h</div>
-                <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>Platform turnaround target</div>
+              {/* Card 2: Pending Audits */}
+              <div className="roc-kpi">
+                <span className="l">Pending audits</span>
+                <span className="v roc-num">{pendingInspectionsCount}</span>
+                <span className="s">Median wait 1.4 days</span>
+                <Sparkline data={[4, 3, 5, 4, 3, 2, 3, 2, 4]} />
               </div>
 
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Verified rate
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052' }}>{verifiedRate}%</div>
-                <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>{verifiedListingsCount} of {listings.length} active listings</div>
+              {/* Card 3: Verified Listings Rate */}
+              <div className="roc-kpi">
+                <span className="l">Verified listings rate</span>
+                <span className="v roc-num">{verifiedRate}%</span>
+                <span className="s">
+                  <span className="roc-up">{verifiedListingsCount}</span> of {listings.length} verified
+                </span>
+                <Sparkline data={[3, 4, 4, 6, 5, 7, 8, 9, 10]} />
               </div>
 
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '14px', padding: '16px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#636377', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '8px' }}>
-                  Overdue (48h+)
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: overdueInspectionsCount > 0 ? '#BE123C' : '#047857' }}>{overdueInspectionsCount}</div>
-                <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '6px' }}>{overdueInspectionsCount > 0 ? 'Needs inspector reassignment' : 'All within SLA window'}</div>
+              {/* Card 4: Open Escalations */}
+              <div className="roc-kpi">
+                <span className="l">Open escalations</span>
+                <span className="v roc-num">{escalations.length}</span>
+                <span className="s">
+                  {overdueEscalationsCount > 0 ? (
+                    <span className="roc-dn">{overdueEscalationsCount} urgent priority</span>
+                  ) : (
+                    <span className="roc-up">All SLAs on target</span>
+                  )}
+                </span>
+                <Sparkline data={[1, 2, 1, 1, 3, 2, 2, 1, overdueEscalationsCount || 1]} />
               </div>
-            </div>
+            </section>
+          )}
 
-            {/* Toolbar */}
-            <div className="admin-toolbar-wrap" style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '14px',
-              flexWrap: 'wrap',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E6E3EE',
-              borderRadius: '14px 14px 0 0',
-              padding: '14px 18px'
-            }}>
-              <div className="admin-toolbar-row" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                {/* Segmented Status Tabs */}
-                <div className="admin-touch-rail" style={{
-                  display: 'flex',
-                  gap: '4px',
-                  backgroundColor: '#F7F8FA',
-                  borderRadius: '10px',
-                  padding: '4px'
-                }}>
-                  {(['all', 'pending', 'scheduled', 'progress', 'completed'] as const).map(tab => {
-                    const isActive = activeVerifTab === tab;
-                    const labels = {
-                      all: `All (${tabCounts.all})`,
-                      pending: `Pending (${tabCounts.pending})`,
-                      scheduled: `Scheduled (${tabCounts.scheduled})`,
-                      progress: `In progress (${tabCounts.progress})`,
-                      completed: `Completed (${tabCounts.completed})`
-                    };
-                    return (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => setActiveVerifTab(tab)}
-                        style={{
-                          fontSize: '12.5px',
-                          fontWeight: 600,
-                          color: isActive ? '#000052' : '#636377',
-                          backgroundColor: isActive ? '#FFFFFF' : 'transparent',
-                          boxShadow: isActive ? '0 2px 6px rgba(23, 23, 43, 0.08)' : 'none',
-                          border: 'none',
-                          padding: '7px 13px',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease',
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0
-                        }}
-                      >
-                        {labels[tab]}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Filters Grid */}
-                <div className="admin-toolbar-filters-grid" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {/* Area Dropdown Filter */}
-                  <select
-                    value={areaFilter}
-                    onChange={(e) => setAreaFilter(e.target.value)}
-                    style={{
-                      border: '1px solid #E6E3EE',
-                      borderRadius: '9px',
-                      padding: '8px 11px',
-                      fontSize: '12.5px',
-                      fontWeight: 600,
-                      color: '#17172B',
-                      backgroundColor: '#FFFFFF',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                  >
-                    <option>All areas</option>
-                    {distinctAreas.map(area => (
-                      <option key={area} value={area}>{area}</option>
-                    ))}
-                  </select>
-
-                  {/* Inspector Dropdown Filter */}
-                  <select
-                    value={inspectorFilter}
-                    onChange={(e) => setInspectorFilter(e.target.value)}
-                    style={{
-                      border: '1px solid #E6E3EE',
-                      borderRadius: '9px',
-                      padding: '8px 11px',
-                      fontSize: '12.5px',
-                      fontWeight: 600,
-                      color: '#17172B',
-                      backgroundColor: '#FFFFFF',
-                      cursor: 'pointer',
-                      outline: 'none'
-                    }}
-                  >
-                    <option>All inspectors</option>
-                    <option value="Unassigned">Unassigned</option>
-                    {availableInspectors.map(ins => (
-                      <option key={ins.id} value={ins.name}>{ins.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Search Bar */}
-              <div className="admin-toolbar-search-box" style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '7px',
-                border: '1px solid #E6E3EE',
-                borderRadius: '9px',
-                padding: '8px 12px',
-                backgroundColor: '#FFFFFF'
-              }}>
-                <Search size={14} color="#636377" />
+          {/* =============================================================
+              4. MAIN OPERATIONS COMMAND PANEL
+             ============================================================= */}
+          <section className="roc-panel">
+            {/* Integrated Toolbar */}
+            <div className="roc-bar">
+              <label className="roc-search">
+                <Search size={18} />
                 <input
-                  type="text"
+                  type="search"
+                  placeholder={`Search ${activeSection === 'verification' ? 'properties or listers' : activeSection === 'listings' ? 'listings or areas' : activeSection === 'payments' ? 'payments or references' : activeSection === 'escalations' ? 'escalations' : 'team members'}...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search property or lister..."
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: '12.5px',
-                    width: '180px',
-                    color: '#17172B'
-                  }}
+                  aria-label="Search"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 0 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)' }}
                   >
-                    <X size={13} />
+                    <X size={15} />
                   </button>
                 )}
-              </div>
+              </label>
+
+              {(activeSection === 'verification' || activeSection === 'listings') && (
+                <select
+                  className="roc-sel"
+                  value={areaFilter}
+                  onChange={(e) => setAreaFilter(e.target.value)}
+                  aria-label="Neighborhood filter"
+                >
+                  <option value="All">All Neighborhoods ({distinctAreas.length})</option>
+                  {distinctAreas.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
-            {/* Floating Bulk Action Bar */}
-            {selectedRowIds.length > 0 && (
-              <div className="admin-bulk-bar" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '14px',
-                backgroundColor: '#000052',
-                color: '#FFFFFF',
-                padding: '12px 18px',
-                fontSize: '13px',
-                fontWeight: 600,
-                flexWrap: 'wrap'
-              }}>
-                <span>{selectedRowIds.length} properties selected</span>
-                <div className="admin-bulk-bar-actions" style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => showToast(`Assigned inspector to ${selectedRowIds.length} selected properties.`)}
-                    style={{
-                      border: '1px solid rgba(255, 255, 255, 0.25)',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      color: '#FFFFFF',
-                      padding: '7px 12px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <UserPlus size={14} />
-                    <span>Assign inspector</span>
-                  </button>
+            {/* Chips Sub-Filters Rail */}
+            <div className="roc-chips" role="group">
+              {activeSection === 'verification' && (
+                <>
+                  {[
+                    { id: 'all', label: 'All', count: verificationItems.length },
+                    { id: 'pending', label: 'Pending audit', count: verificationItems.filter((i) => i.status === 'pending').length },
+                    { id: 'scheduled', label: 'Scheduled', count: verificationItems.filter((i) => i.status === 'scheduled').length },
+                    { id: 'progress', label: 'In progress', count: verificationItems.filter((i) => i.status === 'progress').length },
+                    { id: 'completed', label: 'Verified', count: verificationItems.filter((i) => i.status === 'completed').length }
+                  ].map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      className={`roc-chip ${activeVerifTab === chip.id ? 'active' : ''}`}
+                      onClick={() => setActiveVerifTab(chip.id as VerificationTab)}
+                      aria-pressed={activeVerifTab === chip.id}
+                    >
+                      <span>{chip.label}</span>
+                      <em className="roc-num">{chip.count}</em>
+                    </button>
+                  ))}
+                </>
+              )}
 
-                  <button
-                    type="button"
-                    onClick={() => showToast(`Inspection visit scheduled for ${selectedRowIds.length} properties.`)}
-                    style={{
-                      border: '1px solid rgba(255, 255, 255, 0.25)',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      color: '#FFFFFF',
-                      padding: '7px 12px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <CalendarCheck size={14} />
-                    <span>Schedule visit</span>
-                  </button>
+              {activeSection === 'listings' && (
+                <>
+                  {[
+                    { id: 'all', label: 'All listings', count: listings.length },
+                    { id: 'review', label: 'Needs review', count: listings.filter((l) => l.moderationStatus === 'pending_review' || l.verificationStatus !== 'verified').length },
+                    { id: 'live', label: 'Live', count: listings.filter((l) => l.isAvailable !== false && l.moderationStatus !== 'rejected').length },
+                    { id: 'paused', label: 'Paused / Rejected', count: listings.filter((l) => l.isAvailable === false || l.moderationStatus === 'rejected').length }
+                  ].map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      className={`roc-chip ${activeListingsTab === chip.id ? 'active' : ''}`}
+                      onClick={() => setActiveListingsTab(chip.id as ListingsTab)}
+                      aria-pressed={activeListingsTab === chip.id}
+                    >
+                      <span>{chip.label}</span>
+                      <em className="roc-num">{chip.count}</em>
+                    </button>
+                  ))}
+                </>
+              )}
 
-                  <button
-                    type="button"
-                    onClick={() => setSelectedRowIds([])}
-                    style={{
-                      border: '1px solid rgba(255, 255, 255, 0.25)',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      color: '#FFFFFF',
-                      padding: '7px 12px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <X size={14} />
-                    <span>Clear</span>
-                  </button>
-                </div>
-              </div>
+              {activeSection === 'payments' && (
+                <>
+                  {[
+                    { id: 'all', label: 'All payments', count: payments.length },
+                    { id: 'success', label: 'Successful', count: payments.filter((p) => p.status === 'success').length },
+                    { id: 'refunded', label: 'Refund requested / refunded', count: payments.filter((p) => p.status === 'refunded').length },
+                    { id: 'pending', label: 'Pending', count: payments.filter((p) => p.status === 'pending').length }
+                  ].map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      className={`roc-chip ${paymentsStatusFilter === chip.id ? 'active' : ''}`}
+                      onClick={() => setPaymentsStatusFilter(chip.id as PaymentsTab)}
+                      aria-pressed={paymentsStatusFilter === chip.id}
+                    >
+                      <span>{chip.label}</span>
+                      <em className="roc-num">{chip.count}</em>
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {activeSection === 'escalations' && (
+                <>
+                  {[
+                    { id: 'all', label: 'All escalations', count: escalations.length },
+                    { id: 'high', label: 'High priority', count: overdueEscalationsCount },
+                    { id: 'medium', label: 'Medium priority', count: Math.max(0, escalations.length - overdueEscalationsCount) }
+                  ].map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      className={`roc-chip ${escalationFilter === chip.id ? 'active' : ''}`}
+                      onClick={() => setEscalationFilter(chip.id as EscalationsTab)}
+                      aria-pressed={escalationFilter === chip.id}
+                    >
+                      <span>{chip.label}</span>
+                      <em className="roc-num">{chip.count}</em>
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {activeSection === 'team' && (
+                <>
+                  {[
+                    { id: 'all', label: 'All team', count: filteredTeam.length },
+                    { id: 'admins', label: 'Active staff', count: adminUsers.length },
+                    { id: 'invitations', label: 'Pending invites', count: adminInvitations.length }
+                  ].map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      className={`roc-chip ${teamTab === chip.id ? 'active' : ''}`}
+                      onClick={() => setTeamTab(chip.id as TeamTab)}
+                      aria-pressed={teamTab === chip.id}
+                    >
+                      <span>{chip.label}</span>
+                      <em className="roc-num">{chip.count}</em>
+                    </button>
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* =========================================================
+                SECTION 0: LISTER ONBOARDING & VERIFICATION QUEUE
+               ========================================================= */}
+            {activeSection === 'listers' && (
+              <>
+                {filteredListerApplications.length > 0 ? (
+                  <>
+                    <div className="roc-tw">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Lister Profile</th>
+                            <th>Role</th>
+                            <th>Bank Identity</th>
+                            <th>Ibadan Location</th>
+                            <th>Right to Let & Bill</th>
+                            <th>Status</th>
+                            <th style={{ textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredListerApplications.map((app) => (
+                            <tr key={app.userId} onClick={() => setSelectedListerModal(app)} style={{ cursor: 'pointer' }}>
+                              <td>
+                                <div className="roc-insp">
+                                  <span className="roc-av" style={{ background: '#000052', color: '#BE89FF' }}>
+                                    {(app.userName || 'L').slice(0, 2).toUpperCase()}
+                                  </span>
+                                  <div>
+                                    <b style={{ color: 'var(--ink)' }}>{app.userName || 'Lister'}</b>
+                                    <div className="roc-ps">{app.userEmail || app.phone || 'No contact'}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <span className="roc-role r-ops" style={{ textTransform: 'capitalize' }}>
+                                  {app.role === 'owner' ? 'Owner / Landlord' : app.role === 'agent' ? 'Licensed Agent' : 'Representative'}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ fontSize: '13px', fontWeight: 600, color: '#000052' }}>
+                                  {app.bankName}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#5C5C85' }}>
+                                  {app.accountName || 'Checking...'}
+                                </div>
+                                <span className="roc-pill p-ok" style={{ marginTop: '4px', fontSize: '11px', display: 'inline-flex', padding: '2px 8px' }}>
+                                  ✓ Bank Matched
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: '13px' }}>
+                                  {app.residentialAddress?.area || 'Bodija'}, Ibadan
+                                </div>
+                                <div className="roc-ps" style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {app.residentialAddress?.street || 'Address submitted'}
+                                </div>
+                              </td>
+                              <td>
+                                <div style={{ fontSize: '12.5px', fontWeight: 600 }}>
+                                  {app.utilityBill?.billType === 'ibedc_electricity' ? 'IBEDC Electricity' : app.utilityBill?.billType === 'tenancy_receipt' ? 'Tenancy Receipt' : 'Utility Document'}
+                                </div>
+                                <div className="roc-ps">
+                                  {app.utilityBill?.referenceNumber ? `Ref: ${app.utilityBill.referenceNumber}` : 'Photo uploaded'}
+                                </div>
+                                {app.isFamilyProperty && (
+                                  <span style={{ fontSize: '11px', color: '#B45309', fontWeight: 700 }}>• Family Property</span>
+                                )}
+                              </td>
+                              <td>
+                                {app.status === 'approved' ? (
+                                  <span className="roc-pill p-ok">Approved · Can Post</span>
+                                ) : app.status === 'rejected' ? (
+                                  <span className="roc-pill p-bad" title={app.rejectionReason}>Rejected</span>
+                                ) : (
+                                  <span className="roc-pill p-warn">Pending Review</span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                                <div style={{ display: 'inline-flex', gap: '8px' }}>
+                                  {app.status !== 'approved' && (
+                                    <button
+                                      type="button"
+                                      className="roc-btn b-pri b-sm"
+                                      style={{ background: '#0B6B4B', borderColor: '#0B6B4B' }}
+                                      onClick={() => handleApproveLister(app.userId)}
+                                    >
+                                      Approve
+                                    </button>
+                                  )}
+                                  {app.status !== 'rejected' && (
+                                    <button
+                                      type="button"
+                                      className="roc-btn b-sec b-sm"
+                                      style={{ color: '#DC2626' }}
+                                      onClick={() => {
+                                        setListerToReject(app);
+                                        setRejectionReasonInput('');
+                                      }}
+                                    >
+                                      Reject
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="roc-btn b-sec b-sm"
+                                    onClick={() => setSelectedListerModal(app)}
+                                  >
+                                    View
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <div className="roc-empty">
+                    <UserCheck size={36} color="var(--ink-light)" />
+                    <h3>No lister applications found</h3>
+                    <p>There are no lister verification records matching the selected tab or search query.</p>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Verification Portfolio Table */}
-            <div style={{
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E6E3EE',
-              borderTop: selectedRowIds.length > 0 ? 'none' : '1px solid #E6E3EE',
-              borderRadius: '0 0 14px 14px',
-              overflow: 'hidden',
-              marginBottom: '26px'
-            }}>
-              <div className="admin-table-desktop no-scrollbar" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: '38px', padding: '11px 16px', backgroundColor: '#F7F8FA' }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedRowIds.length === filteredVerificationItems.length && filteredVerificationItems.length > 0}
-                          onChange={handleToggleSelectAll}
-                          style={{ cursor: 'pointer' }}
-                        />
-                      </th>
-                      <th style={{ textAlign: 'left', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 16px', fontWeight: 700, backgroundColor: '#F7F8FA' }}>
-                        Property
-                      </th>
-                      <th style={{ textAlign: 'left', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 16px', fontWeight: 700, backgroundColor: '#F7F8FA' }}>
-                        Category
-                      </th>
-                      <th style={{ textAlign: 'left', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 16px', fontWeight: 700, backgroundColor: '#F7F8FA' }}>
-                        Lister
-                      </th>
-                      <th style={{ textAlign: 'left', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 16px', fontWeight: 700, backgroundColor: '#F7F8FA' }}>
-                        Submitted
-                      </th>
-                      <th style={{ textAlign: 'center', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 16px', fontWeight: 700, backgroundColor: '#F7F8FA' }}>
-                        Status
-                      </th>
-                      <th style={{ textAlign: 'left', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 16px', fontWeight: 700, backgroundColor: '#F7F8FA' }}>
-                        Inspector
-                      </th>
-                      <th style={{ textAlign: 'right', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.04em', color: '#636377', padding: '11px 16px', fontWeight: 700, backgroundColor: '#F7F8FA' }}>
-                        Days in queue
-                      </th>
-                      <th style={{ textAlign: 'right', width: '48px', padding: '11px 16px', backgroundColor: '#F7F8FA' }} />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredVerificationItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} style={{ padding: '48px 16px', textAlign: 'center', color: '#64748B', fontSize: '13.5px' }}>
-                          No verification requests match the selected filters.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredVerificationItems.map(item => {
-                      const isSelected = selectedRowIds.includes(item.id);
-                      const statusBadges = {
-                        pending: { bg: '#FFFBEB', color: '#B45309', border: '#FDE68A', dot: '#B45309', label: 'Pending' },
-                        scheduled: { bg: '#EEF2FF', color: '#4338CA', border: '#C7D2FE', dot: '#4338CA', label: 'Scheduled' },
-                        progress: { bg: '#F8FAFC', color: '#334155', border: '#E2E8F0', dot: '#334155', label: 'In progress' },
-                        completed: { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0', dot: '#047857', label: 'Completed' }
-                      }[item.status];
+            {/* =========================================================
+                SECTION 1: VERIFICATION QUEUE
+               ========================================================= */}
+            {activeSection === 'verification' && (
+              <>
+                {filteredVerificationItems.length > 0 ? (
+                  <>
+                    <div className="roc-tw">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Property</th>
+                            <th>Lister</th>
+                            <th>Status</th>
+                            <th>Inspector</th>
+                            <th style={{ textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredVerificationItems.map((item) => {
+                            const isVerified = item.status === 'completed';
+                            return (
+                              <tr key={item.id}>
+                                <td>
+                                  <div className="roc-prop">
+                                    <div
+                                      className="roc-thumb"
+                                      style={{
+                                        backgroundImage: item.photo ? `url(${item.photo})` : undefined,
+                                        backgroundColor: !item.photo ? '#6B2FD6' : undefined
+                                      }}
+                                      aria-hidden="true"
+                                    />
+                                    <div>
+                                      <div className="roc-pt">{item.title}</div>
+                                      <div className="roc-ps">
+                                        {item.area}, Ibadan · <span className="roc-num">₦{formatNaira(item.price)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="roc-who">
+                                  <b>{item.listerName}</b>
+                                  <span className="roc-num">{item.listerPhone || 'Phone on file'}</span>
+                                </td>
+                                <td>
+                                  {item.status === 'completed' && <span className="roc-pill p-ok">Verified badge</span>}
+                                  {item.status === 'scheduled' && <span className="roc-pill p-info">Scheduled</span>}
+                                  {item.status === 'progress' && <span className="roc-pill p-info">In progress</span>}
+                                  {item.status === 'pending' && <span className="roc-pill p-warn">Pending audit</span>}
+                                </td>
+                                <td>
+                                  {item.inspector && item.inspector !== 'Unassigned' ? (
+                                    <span className="roc-insp">
+                                      <span className="roc-av">{item.inspector.slice(0, 2).toUpperCase()}</span>
+                                      <span>{item.inspector}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="roc-unas">Unassigned</span>
+                                  )}
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                                    {item.inspectionUrl && (
+                                      <button
+                                        type="button"
+                                        className="roc-btn b-sec b-sm"
+                                        onClick={async () => {
+                                          await navigator.clipboard.writeText(item.inspectionUrl!);
+                                          showToast('Field inspection link copied!');
+                                        }}
+                                        title="Copy inspector mobile token URL"
+                                      >
+                                        <Copy size={13} />
+                                        <span>Link</span>
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="roc-btn b-sec b-sm"
+                                      onClick={() => handleOpenVerifModal(item)}
+                                    >
+                                      {isVerified ? 'View audit' : 'Open audit'}
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
 
-                      return (
-                        <tr
-                          key={item.id}
-                          onClick={() => handleOpenModal(item)}
-                          style={{
-                            borderTop: '1px solid #E6E3EE',
-                            backgroundColor: isSelected ? '#F0E6FF' : item.isOverdue ? '#FFF1F2' : 'transparent',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.12s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSelected && !item.isOverdue) e.currentTarget.style.backgroundColor = '#FAFAFD';
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isSelected && !item.isOverdue) e.currentTarget.style.backgroundColor = 'transparent';
-                          }}
-                        >
-                          <td style={{ padding: '13px 16px' }} onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => handleToggleRow(item.id, e as any)}
-                              style={{ cursor: 'pointer' }}
+                    {/* Mobile Cards */}
+                    <div className="roc-cards">
+                      {filteredVerificationItems.map((item) => (
+                        <div key={item.id} className="roc-card">
+                          <div className="roc-prop" style={{ minWidth: 0 }}>
+                            <div
+                              className="roc-thumb"
+                              style={{
+                                backgroundImage: item.photo ? `url(${item.photo})` : undefined,
+                                backgroundColor: !item.photo ? '#6B2FD6' : undefined
+                              }}
+                              aria-hidden="true"
                             />
-                          </td>
-                          <td style={{ padding: '13px 16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <img
-                                src={item.photo}
-                                alt=""
-                                style={{ width: '42px', height: '42px', borderRadius: '9px', objectFit: 'cover' }}
-                              />
-                              <div>
-                                <div style={{ fontWeight: 600, fontSize: '13.5px', color: '#17172B' }}>{item.title}</div>
-                                <div style={{ fontSize: '11px', color: '#636377' }}>{item.area}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td style={{ padding: '13px 16px' }}>
-                            <span style={{
-                              fontSize: '10.5px',
-                              fontWeight: 600,
-                              backgroundColor: '#F0E6FF',
-                              color: '#000052',
-                              padding: '3px 8px',
-                              borderRadius: '6px'
-                            }}>
-                              {item.category}
-                            </span>
-                          </td>
-                          <td style={{ padding: '13px 16px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{
-                                width: '26px',
-                                height: '26px',
-                                borderRadius: '50%',
-                                backgroundColor: '#F0E6FF',
-                                color: '#000052',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '10px',
-                                fontWeight: 700
-                              }}>
-                                {item.listerInitials}
-                              </div>
-                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#17172B' }}>{item.listerName}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: '13px 16px', fontSize: '13px', color: '#636377' }}>
-                            {item.submittedDate}
-                          </td>
-                          <td style={{ padding: '13px 16px', textAlign: 'center' }}>
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              padding: '4px 9px',
-                              borderRadius: '999px',
-                              backgroundColor: statusBadges.bg,
-                              color: statusBadges.color,
-                              border: `1px solid ${statusBadges.border}`
-                            }}>
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: statusBadges.dot }} />
-                              <span>{statusBadges.label}</span>
-                            </span>
-                          </td>
-                          <td style={{ padding: '13px 16px', fontSize: '12.5px', color: item.inspector === 'Unassigned' ? '#636377' : '#17172B', fontStyle: item.inspector === 'Unassigned' ? 'italic' : 'normal' }}>
-                            {item.inspector}
-                          </td>
-                          <td style={{
-                            padding: '13px 16px',
-                            textAlign: 'right',
-                            fontSize: '13px',
-                            fontWeight: item.isOverdue ? 700 : 500,
-                            color: item.isOverdue ? '#BE123C' : '#636377'
-                          }}>
-                            {item.daysInQueue > 0 ? item.daysInQueue : '—'}
-                          </td>
-                          <td style={{ padding: '13px 16px', position: 'relative', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId(activeMenuId === item.id ? null : item.id);
-                              }}
-                              style={{
-                                border: '1px solid #E6E3EE',
-                                backgroundColor: '#FFFFFF',
-                                width: '28px',
-                                height: '28px',
-                                borderRadius: '8px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <MoreVertical size={14} color="#636377" />
-                            </button>
-
-                            {/* Row Dropdown Action Menu */}
-                            {activeMenuId === item.id && (
-                              <div style={{
-                                position: 'absolute',
-                                right: '16px',
-                                top: '38px',
-                                backgroundColor: '#FFFFFF',
-                                border: '1px solid #E6E3EE',
-                                borderRadius: '10px',
-                                boxShadow: '0 12px 30px rgba(23, 23, 43, 0.14)',
-                                minWidth: '176px',
-                                padding: '6px',
-                                zIndex: 100,
-                                textAlign: 'left'
-                              }}>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleOpenModal(item);
-                                    setActiveMenuId(null);
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '9px',
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '9px 10px',
-                                    borderRadius: '7px',
-                                    fontSize: '12.5px',
-                                    fontWeight: 500,
-                                    color: '#17172B',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <Eye size={14} />
-                                  <span>View details</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleOpenModal(item);
-                                    setActiveMenuId(null);
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '9px',
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '9px 10px',
-                                    borderRadius: '7px',
-                                    fontSize: '12.5px',
-                                    fontWeight: 500,
-                                    color: '#17172B',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <CalendarCheck size={14} />
-                                  <span>Schedule visit</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleApproveVerificationAction(item);
-                                    setActiveMenuId(null);
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '9px',
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '9px 10px',
-                                    borderRadius: '7px',
-                                    fontSize: '12.5px',
-                                    fontWeight: 600,
-                                    color: '#047857',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <ShieldCheck size={14} />
-                                  <span>Approve verified</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleRequestChanges(item);
-                                    setActiveMenuId(null);
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '9px',
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '9px 10px',
-                                    borderRadius: '7px',
-                                    fontSize: '12.5px',
-                                    fontWeight: 500,
-                                    color: '#B45309',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <MessageSquare size={14} />
-                                  <span>Request changes</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleRevoke(item);
-                                    setActiveMenuId(null);
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '9px',
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '9px 10px',
-                                    borderRadius: '7px',
-                                    fontSize: '12.5px',
-                                    fontWeight: 600,
-                                    color: '#BE123C',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  <Ban size={14} />
-                                  <span>Revoke status</span>
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    }))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Inspection Cards (< 768px) */}
-              <div className="admin-cards-mobile" style={{ padding: '14px' }}>
-                {filteredVerificationItems.length === 0 ? (
-                  <div style={{ padding: '32px 14px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                    No listings matching this filter query.
-                  </div>
-                ) : (
-                  filteredVerificationItems.map(item => {
-                    const statusBadgesMap: Record<string, { bg: string; color: string; border: string; label: string }> = {
-                      pending: { bg: '#FEF3C7', color: '#B45309', border: '#FDE68A', label: 'Pending Inspection' },
-                      scheduled: { bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE', label: 'Visit Scheduled' },
-                      progress: { bg: '#F3E8FF', color: '#7E22CE', border: '#E9D5FF', label: 'In Progress' },
-                      in_progress: { bg: '#F3E8FF', color: '#7E22CE', border: '#E9D5FF', label: 'In Progress' },
-                      completed: { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0', label: 'Accredited' }
-                    };
-                    const statusBadges = statusBadgesMap[item.status] || { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1', label: item.status || 'Pending' };
-
-                    return (
-                      <div
-                        key={item.id}
-                        className={`admin-mobile-card ${item.isOverdue ? 'urgent' : ''}`}
-                      >
-                        <div className="admin-mobile-card-header">
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '10.5px', fontWeight: 700, backgroundColor: '#F0E6FF', color: '#000052', padding: '2px 8px', borderRadius: '4px' }}>
-                              {item.category}
-                            </span>
-                            {item.isOverdue && (
-                              <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#BE123C', backgroundColor: '#FFE4E6', padding: '2px 7px', borderRadius: '4px' }}>
-                                Overdue (48h+)
-                              </span>
-                            )}
-                          </div>
-                          <span style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '3px 9px',
-                            borderRadius: '999px',
-                            backgroundColor: statusBadges.bg,
-                            color: statusBadges.color,
-                            border: `1px solid ${statusBadges.border}`,
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {statusBadges.label}
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          <img
-                            src={item.photo}
-                            alt=""
-                            style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
-                          />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#000052', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {item.title}
-                            </div>
-                            <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '2px' }}>
-                              {item.area}, Ibadan · {formatNaira(item.price)}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-                              Lister: <strong>{item.listerName}</strong> ({item.listerPhone})
-                            </div>
-                          </div>
-                        </div>
-
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr 1fr',
-                          gap: '8px',
-                          padding: '10px',
-                          backgroundColor: '#F8FAFC',
-                          borderRadius: '8px',
-                          fontSize: '12px'
-                        }}>
-                          <div>
-                            <div style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Inspector</div>
-                            <div style={{ fontWeight: 700, color: '#000052', marginTop: '2px' }}>{item.inspector}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Queue Age</div>
-                            <div style={{ fontWeight: 700, color: item.isOverdue ? '#BE123C' : '#000052', marginTop: '2px' }}>
-                              {item.daysInQueue > 0 ? `${item.daysInQueue} days` : 'New'} {item.isOverdue ? '(SLA Alert)' : ''}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="admin-mobile-card-actions">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenModal(item)}
-                            style={{
-                              backgroundColor: '#000052',
-                              color: '#FFFFFF',
-                              border: 'none'
-                            }}
-                          >
-                            <Eye size={14} />
-                            <span>Audit Details</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleApproveVerificationAction(item)}
-                            style={{
-                              backgroundColor: '#047857',
-                              color: '#FFFFFF',
-                              border: 'none'
-                            }}
-                          >
-                            <ShieldCheck size={14} />
-                            <span>Approve</span>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* =============================================================
-            TAB 3: ESCALATIONS (DEDICATED FULL VIEW)
-           ============================================================= */}
-        {activeSection === 'escalations' && (
-          <div>
-            <div style={{ marginBottom: '22px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', color: '#000052' }}>
-                Availability Escalations
-              </h1>
-              <p style={{ margin: 0, fontSize: '13.5px', color: '#636377' }}>
-                Seeker access requests where the landlord has exceeded the response threshold.
-              </p>
-            </div>
-
-            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', overflow: 'hidden' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #E6E3EE', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: '#000052' }}>
-                  Active Escalations ({escalations.length})
-                </span>
-                <span style={{
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: overdueEscalationsCount > 0 ? '#BE123C' : '#047857',
-                  backgroundColor: overdueEscalationsCount > 0 ? '#FFF1F2' : '#ECFDF5',
-                  padding: '3px 10px',
-                  borderRadius: '20px'
-                }}>
-                  {overdueEscalationsCount} urgent {overdueEscalationsCount === 1 ? 'timeout' : 'timeouts'}
-                </span>
-              </div>
-
-              {/* Desktop Table View */}
-              <div className="admin-table-desktop no-scrollbar" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', color: '#636377', padding: '11px 18px' }}>Property</th>
-                      <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', color: '#636377', padding: '11px 18px' }}>Applicant</th>
-                      <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', color: '#636377', padding: '11px 18px' }}>Elapsed</th>
-                      <th style={{ textAlign: 'left', fontSize: '11px', textTransform: 'uppercase', color: '#636377', padding: '11px 18px' }}>Lister Phone</th>
-                      <th style={{ textAlign: 'right', fontSize: '11px', textTransform: 'uppercase', color: '#636377', padding: '11px 18px' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {escalations.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} style={{ padding: '48px 18px', textAlign: 'center', color: '#64748B', fontSize: '13.5px' }}>
-                          No pending availability escalations at this time.
-                        </td>
-                      </tr>
-                    ) : (
-                      escalations.map(esc => (
-                        <tr key={esc.id} style={{ borderTop: '1px solid #E6E3EE', backgroundColor: esc.isOverdue ? '#FFF1F2' : 'transparent' }}>
-                          <td style={{ padding: '14px 18px' }}>
-                            <div style={{ fontWeight: 700, fontSize: '13.5px', color: '#000052' }}>{esc.listingTitle}</div>
-                            <div style={{ fontSize: '11px', color: '#636377' }}>{esc.area}</div>
-                          </td>
-                          <td style={{ padding: '14px 18px', fontSize: '13px', fontWeight: 600 }}>{esc.renterName}</td>
-                          <td style={{ padding: '14px 18px' }}>
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '11.5px',
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: '999px',
-                              backgroundColor: esc.isOverdue ? '#FFE4E6' : '#F1F5F9',
-                              color: esc.isOverdue ? '#BE123C' : '#475569',
-                              border: esc.isOverdue ? '1px solid #FDA4AF' : '1px solid #E2E8F0'
-                            }}>
-                              <Clock size={12} />
-                              <span>{esc.timeSinceRequest}</span>
-                            </span>
-                          </td>
-                          <td style={{ padding: '14px 18px', fontSize: '13px', color: '#17172B' }}>
-                            {esc.listerName} ({esc.listerPhone})
-                          </td>
-                          <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
-                              <button
-                                type="button"
-                                onClick={() => handleCallLister(esc)}
-                                style={{
-                                  backgroundColor: '#BE123C',
-                                  color: '#FFFFFF',
-                                  border: 'none',
-                                  borderRadius: '8px',
-                                  padding: '8px 14px',
-                                  fontSize: '12px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  minHeight: '40px'
-                                }}
-                              >
-                                <Phone size={13} />
-                                <span>Call Lister</span>
-                              </button>
-                              <a
-                                href={`https://wa.me/${esc.listerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${esc.listerName}, this is Rentivo Admin regarding seeker access request on "${esc.listingTitle}". Please confirm availability.`)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{
-                                  backgroundColor: '#16794A',
-                                  color: '#FFFFFF',
-                                  borderRadius: '8px',
-                                  padding: '8px 12px',
-                                  fontSize: '12px',
-                                  fontWeight: 700,
-                                  textDecoration: 'none',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  minHeight: '40px'
-                                }}
-                              >
-                                <MessageSquare size={13} />
-                                <span>WhatsApp</span>
-                              </a>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Escalation Cards (< 768px) */}
-              <div className="admin-cards-mobile" style={{ padding: '14px' }}>
-                {escalations.length === 0 ? (
-                  <div style={{ padding: '36px 14px', textAlign: 'center', color: '#64748B', fontSize: '13.5px' }}>
-                    No pending availability escalations at this time.
-                  </div>
-                ) : (
-                  escalations.map(esc => (
-                    <div
-                      key={esc.id}
-                      className={`admin-mobile-card ${esc.isOverdue ? 'urgent' : ''}`}
-                    >
-                      <div className="admin-mobile-card-header">
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '14.5px', color: '#000052' }}>{esc.listingTitle}</div>
-                          <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '2px' }}>{esc.area}, Ibadan</div>
-                        </div>
-
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '11px',
-                          fontWeight: 800,
-                          padding: '4px 9px',
-                          borderRadius: '999px',
-                          whiteSpace: 'nowrap',
-                          backgroundColor: esc.isOverdue ? '#FFE4E6' : '#F1F5F9',
-                          color: esc.isOverdue ? '#BE123C' : '#475569',
-                          border: esc.isOverdue ? '1px solid #FDA4AF' : '1px solid #E2E8F0'
-                        }}>
-                          <Clock size={12} />
-                          <span>{esc.timeSinceRequest}</span>
-                        </span>
-                      </div>
-
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '8px',
-                        padding: '10px',
-                        backgroundColor: '#FFFFFF',
-                        borderRadius: '8px',
-                        border: '1px solid #E6E3EE',
-                        fontSize: '12px'
-                      }}>
-                        <div>
-                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Applicant</div>
-                          <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#000052', marginTop: '2px' }}>{esc.renterName}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Lister</div>
-                          <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#000052', marginTop: '2px' }}>{esc.listerName}</div>
-                          <div style={{ fontSize: '11px', color: '#64748B' }}>{esc.listerPhone}</div>
-                        </div>
-                      </div>
-
-                      <div className="admin-mobile-card-actions">
-                        <a
-                          href={`tel:${esc.listerPhone.replace(/\s/g, '')}`}
-                          style={{
-                            minHeight: '44px',
-                            backgroundColor: '#BE123C',
-                            color: '#FFFFFF',
-                            borderRadius: '8px',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            textDecoration: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            boxShadow: '0 2px 6px rgba(190, 18, 60, 0.2)'
-                          }}
-                        >
-                          <Phone size={15} />
-                          <span>Call Lister</span>
-                        </a>
-
-                        <a
-                          href={`https://wa.me/${esc.listerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${esc.listerName}, this is Rentivo Admin regarding seeker access request on "${esc.listingTitle}". Please confirm availability.`)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            minHeight: '44px',
-                            backgroundColor: '#16794A',
-                            color: '#FFFFFF',
-                            borderRadius: '8px',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            textDecoration: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            boxShadow: '0 2px 6px rgba(22, 121, 74, 0.2)'
-                          }}
-                        >
-                          <MessageSquare size={15} />
-                          <span>WhatsApp</span>
-                        </a>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* =============================================================
-            TAB 4: LISTINGS (MARKETPLACE CATALOG OVERVIEW)
-           ============================================================= */}
-        {activeSection === 'listings' && (
-          <div>
-            <div style={{ marginBottom: '22px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', color: '#000052' }}>
-                All Marketplace Listings ({listings.length})
-              </h1>
-              <p style={{ margin: 0, fontSize: '13.5px', color: '#636377' }}>
-                Master directory of all properties published or drafted on Rentivo Ibadan.
-              </p>
-            </div>
-
-            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', overflow: 'hidden' }}>
-              {/* Desktop Table View (>= 768px) */}
-              <div className="admin-table-desktop no-scrollbar" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#F7F8FA' }}>
-                      <th style={{ textAlign: 'left', padding: '12px 18px', fontSize: '11px', textTransform: 'uppercase', color: '#636377' }}>Property</th>
-                      <th style={{ textAlign: 'left', padding: '12px 18px', fontSize: '11px', textTransform: 'uppercase', color: '#636377' }}>Price</th>
-                      <th style={{ textAlign: 'left', padding: '12px 18px', fontSize: '11px', textTransform: 'uppercase', color: '#636377' }}>Lister</th>
-                      <th style={{ textAlign: 'center', padding: '12px 18px', fontSize: '11px', textTransform: 'uppercase', color: '#636377' }}>Status</th>
-                      <th style={{ textAlign: 'right', padding: '12px 18px', fontSize: '11px', textTransform: 'uppercase', color: '#636377' }}>Verification</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {listings.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} style={{ padding: '48px 18px', textAlign: 'center', color: '#64748B', fontSize: '13.5px' }}>
-                          No listings found in the marketplace.
-                        </td>
-                      </tr>
-                    ) : (
-                      listings.map(l => (
-                        <tr key={l.id} style={{ borderTop: '1px solid #E6E3EE' }}>
-                          <td style={{ padding: '12px 18px' }}>
-                            <div style={{ fontWeight: 700, fontSize: '13px', color: '#000052' }}>{l.title}</div>
-                            <div style={{ fontSize: '11px', color: '#636377' }}>{l.area}, Ibadan · {l.type}</div>
-                          </td>
-                          <td style={{ padding: '12px 18px', fontSize: '13px', fontWeight: 700, color: '#000052' }}>
-                            {formatNaira(l.price)}
-                          </td>
-                          <td style={{ padding: '12px 18px', fontSize: '13px', color: '#17172B' }}>
-                            {l.lister?.fullName || 'Landlord'}
-                          </td>
-                          <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                            <span style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              backgroundColor: l.isAvailable ? '#ECFDF5' : '#FFF1F2',
-                              color: l.isAvailable ? '#047857' : '#BE123C',
-                              padding: '3px 8px',
-                              borderRadius: '999px'
-                            }}>
-                              {l.isAvailable ? 'Available' : 'Occupied'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px 18px', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                              {l.verificationStatus === 'verified' ? (
-                                <span style={{ fontSize: '11px', fontWeight: 700, color: '#047857', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                  <ShieldCheck size={14} /> Verified
-                                </span>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    if (l.isApproved === false || l.moderationStatus === 'pending_approval') {
-                                      await listingsService.moderateListing(l.id, 'approve');
-                                      if (onReload) await onReload();
-                                      showToast(`Published "${l.title}"`);
-                                    } else {
-                                      await onApproveVerification(l.id);
-                                      if (onReload) await onReload();
-                                    }
-                                  }}
-                                  style={{
-                                    backgroundColor: '#000052',
-                                    color: '#FFFFFF',
-                                    border: 'none',
-                                    padding: '5px 10px',
-                                    borderRadius: '6px',
-                                    fontSize: '11px',
-                                    fontWeight: 700,
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Approve
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setRejectModalListing(l);
-                                  setRejectCategory('Blurry or unverified photos');
-                                  setRejectNotes('');
-                                }}
-                                style={{
-                                  backgroundColor: '#FEF2F2',
-                                  color: '#DC2626',
-                                  border: '1px solid #FECACA',
-                                  padding: '5px 10px',
-                                  borderRadius: '6px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile Queue Cards (< 768px) with 44px Touch Targets */}
-              <div className="admin-cards-mobile" style={{ padding: '14px' }}>
-                {listings.length === 0 ? (
-                  <div style={{ padding: '36px 14px', textAlign: 'center', color: '#64748B', fontSize: '13.5px' }}>
-                    No listings found in the marketplace.
-                  </div>
-                ) : (
-                  listings.map(l => (
-                    <div key={l.id} className="admin-mobile-card">
-                      <div className="admin-mobile-card-header">
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                          <img
-                            src={l.photos?.[0] || 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=200&q=80'}
-                            alt=""
-                            style={{ width: '46px', height: '46px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
-                          />
-                          <div>
-                            <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#000052' }}>{l.title}</div>
-                            <div style={{ fontSize: '11.5px', color: '#636377' }}>{l.area}, Ibadan · {l.type}</div>
-                          </div>
-                        </div>
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          backgroundColor: l.isAvailable ? '#ECFDF5' : '#FFF1F2',
-                          color: l.isAvailable ? '#047857' : '#BE123C',
-                          padding: '3px 8px',
-                          borderRadius: '999px',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {l.isAvailable ? 'Available' : 'Occupied'}
-                        </span>
-                      </div>
-
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '8px',
-                        padding: '10px',
-                        backgroundColor: '#F8FAFC',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}>
-                        <div>
-                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Rent Amount</div>
-                          <div style={{ fontWeight: 800, color: '#000052', marginTop: '2px', fontSize: '13px' }}>{formatNaira(l.price)}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Lister</div>
-                          <div style={{ fontWeight: 700, color: '#000052', marginTop: '2px' }}>{l.lister?.fullName || 'Landlord'}</div>
-                        </div>
-                      </div>
-
-                      <div className="admin-mobile-card-actions">
-                        {l.verificationStatus === 'verified' ? (
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            minHeight: '44px',
-                            backgroundColor: '#ECFDF5',
-                            color: '#047857',
-                            borderRadius: '8px',
-                            fontWeight: 700,
-                            fontSize: '13px',
-                            flex: 1
-                          }}>
-                            <ShieldCheck size={16} />
-                            <span>Verified Badge Active</span>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (l.isApproved === false || l.moderationStatus === 'pending_approval') {
-                                await listingsService.moderateListing(l.id, 'approve');
-                                if (onReload) await onReload();
-                                showToast(`Published "${l.title}"`);
-                              } else {
-                                await onApproveVerification(l.id);
-                                if (onReload) await onReload();
-                              }
-                            }}
-                            style={{
-                              backgroundColor: '#000052',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              minHeight: '44px'
-                            }}
-                          >
-                            <ShieldCheck size={15} />
-                            <span>Approve</span>
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRejectModalListing(l);
-                            setRejectCategory('Blurry or unverified photos');
-                            setRejectNotes('');
-                          }}
-                          style={{
-                            backgroundColor: '#FEF2F2',
-                            color: '#DC2626',
-                            border: '1px solid #FECACA',
-                            minHeight: '44px'
-                          }}
-                        >
-                          <X size={15} />
-                          <span>Reject</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* =============================================================
-            TAB 5: USERS & ROLES
-           ============================================================= */}
-        {activeSection === 'users' && (
-          <div>
-            <div style={{ marginBottom: '22px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', color: '#000052' }}>
-                User Directory & Roles
-              </h1>
-              <p style={{ margin: 0, fontSize: '13.5px', color: '#636377' }}>
-                Platform participants across landlords, seekers, field inspectors, and administrators.
-              </p>
-            </div>
-
-            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', overflow: 'hidden' }}>
-              {/* Desktop Table View (>= 768px) */}
-              <div className="admin-table-desktop no-scrollbar" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#F7F8FA' }}>
-                      <th style={{ textAlign: 'left', padding: '12px 18px', fontSize: '11px', textTransform: 'uppercase', color: '#636377' }}>User</th>
-                      <th style={{ textAlign: 'left', padding: '12px 18px', fontSize: '11px', textTransform: 'uppercase', color: '#636377' }}>Role</th>
-                      <th style={{ textAlign: 'left', padding: '12px 18px', fontSize: '11px', textTransform: 'uppercase', color: '#636377' }}>Location</th>
-                      <th style={{ textAlign: 'center', padding: '12px 18px', fontSize: '11px', textTransform: 'uppercase', color: '#636377' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {liveUsers.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#636377', fontSize: '13px' }}>
-                          Loading users from database...
-                        </td>
-                      </tr>
-                    ) : (
-                      liveUsers.map((u) => {
-                        const initials = (u.name || 'User')
-                          .split(' ')
-                          .map((p) => p[0])
-                          .slice(0, 2)
-                          .join('')
-                          .toUpperCase();
-                        const roleLabel =
-                          u.role === 'admin'
-                            ? 'Administrator'
-                            : u.role === 'landlord'
-                            ? 'Landlord'
-                            : u.role === 'agent'
-                            ? 'Agent'
-                            : 'Renter';
-                        return (
-                          <tr key={u.id} style={{ borderTop: '1px solid #E6E3EE' }}>
-                            <td style={{ padding: '12px 18px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#000052', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700 }}>
-                                  {initials}
-                                </div>
-                                <div>
-                                  <div style={{ fontWeight: 600, fontSize: '13px' }}>{u.name}</div>
-                                  <div style={{ fontSize: '11.5px', color: '#636377' }}>{u.email}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '12px 18px', fontSize: '12px', fontWeight: 700, color: '#000052' }}>{roleLabel}</td>
-                            <td style={{ padding: '12px 18px', fontSize: '13px', color: '#636377' }}>{u.agencyName || u.phone || 'Ibadan'}</td>
-                            <td style={{ padding: '12px 18px', textAlign: 'center' }}>
-                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#047857', backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: '999px' }}>
-                                Active
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile User Cards (< 768px) */}
-              <div className="admin-cards-mobile" style={{ padding: '14px' }}>
-                {liveUsers.length === 0 ? (
-                  <div style={{ padding: '32px 14px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                    Loading users from database...
-                  </div>
-                ) : (
-                  liveUsers.map((u) => {
-                    const initials = (u.name || 'User')
-                      .split(' ')
-                      .map((p) => p[0])
-                      .slice(0, 2)
-                      .join('')
-                      .toUpperCase();
-                    const roleBadge =
-                      u.role === 'admin'
-                        ? { label: 'Administrator', bg: '#EDE9FE', color: '#4338CA', border: '#C7D2FE' }
-                        : u.role === 'landlord'
-                        ? { label: 'Landlord', bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE' }
-                        : u.role === 'agent'
-                        ? { label: 'Agent', bg: '#ECFDF5', color: '#047857', border: '#A7F3D0' }
-                        : { label: 'Renter', bg: '#F1F5F9', color: '#334155', border: '#E2E8F0' };
-
-                    return (
-                      <div key={u.id} className="admin-mobile-card">
-                        <div className="admin-mobile-card-header">
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <div style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '50%',
-                              backgroundColor: '#000052',
-                              color: '#FFFFFF',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '12px',
-                              fontWeight: 800,
-                              flexShrink: 0
-                            }}>
-                              {initials}
-                            </div>
                             <div>
-                              <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#000052' }}>{u.name}</div>
-                              <div style={{ fontSize: '11.5px', color: '#636377' }}>{u.email}</div>
+                              <div className="roc-pt">{item.title}</div>
+                              <div className="roc-ps">
+                                {item.area} · <span className="roc-num">₦{formatNaira(item.price)}</span>
+                              </div>
                             </div>
                           </div>
-                          <span style={{
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            backgroundColor: roleBadge.bg,
-                            color: roleBadge.color,
-                            border: `1px solid ${roleBadge.border}`,
-                            padding: '3px 8px',
-                            borderRadius: '999px',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {roleBadge.label}
-                          </span>
-                        </div>
-
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '8px 10px',
-                          backgroundColor: '#F8FAFC',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          border: '1px solid #E2E8F0'
-                        }}>
-                          <span style={{ color: '#64748B' }}>Location / Phone:</span>
-                          <span style={{ fontWeight: 600, color: '#000052' }}>{u.agencyName || u.phone || 'Ibadan'}</span>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#047857', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '3px 10px', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#059669' }} />
-                            Active Member
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeSection === 'payments' && (
-          <div>
-            <div style={{ marginBottom: '22px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', color: '#000052' }}>Paystack ledger</h1>
-              <p style={{ margin: 0, fontSize: '13.5px', color: '#636377' }}>Access fees, references, and refunds.</p>
-            </div>
-            <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 16, overflow: 'hidden' }}>
-              {/* Desktop Table View (>= 768px) */}
-              <div className="admin-table-desktop no-scrollbar" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#F8FAFC', textAlign: 'left' }}>
-                      <th style={{ padding: 12, fontSize: 12 }}>Date</th>
-                      <th style={{ padding: 12, fontSize: 12 }}>Request</th>
-                      <th style={{ padding: 12, fontSize: 12 }}>Renter</th>
-                      <th style={{ padding: 12, fontSize: 12 }}>Reference</th>
-                      <th style={{ padding: 12, fontSize: 12 }}>Amount</th>
-                      <th style={{ padding: 12, fontSize: 12 }}>Status</th>
-                      <th style={{ padding: 12, fontSize: 12 }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payments.map((p) => (
-                      <tr key={p.id} style={{ borderTop: '1px solid #E2E8F0' }}>
-                        <td style={{ padding: 12, fontSize: 13 }}>{new Date(p.createdAt).toLocaleString()}</td>
-                        <td style={{ padding: 12, fontSize: 13 }}>{p.requestId.slice(0, 8)}</td>
-                        <td style={{ padding: 12, fontSize: 13 }}>{p.renterName || p.renterEmail || '—'}</td>
-                        <td style={{ padding: 12, fontSize: 12, fontFamily: 'monospace' }}>{p.reference}</td>
-                        <td style={{ padding: 12, fontSize: 13 }}>{formatNaira(p.amount)}</td>
-                        <td style={{ padding: 12, fontSize: 12, fontWeight: 700 }}>{p.status}</td>
-                        <td style={{ padding: 12 }}>
-                          {p.status === 'success' && (
+                          <div className="roc-card-row">
+                            <span>Status</span>
+                            {item.status === 'completed' ? (
+                              <span className="roc-pill p-ok">Verified</span>
+                            ) : item.status === 'scheduled' ? (
+                              <span className="roc-pill p-info">Scheduled</span>
+                            ) : item.status === 'progress' ? (
+                              <span className="roc-pill p-info">In progress</span>
+                            ) : (
+                              <span className="roc-pill p-warn">Pending audit</span>
+                            )}
+                          </div>
+                          <div className="roc-card-row">
+                            <span>Inspector</span>
+                            {item.inspector && item.inspector !== 'Unassigned' ? (
+                              <span className="roc-insp">
+                                <span className="roc-av">{item.inspector.slice(0, 2).toUpperCase()}</span>
+                                <span>{item.inspector}</span>
+                              </span>
+                            ) : (
+                              <span className="roc-unas">Unassigned</span>
+                            )}
+                          </div>
+                          <div className="roc-card-row">
+                            <span>Lister</span>
+                            <b>{item.listerName}</b>
+                          </div>
+                          <div className="roc-acts">
                             <button
                               type="button"
-                              onClick={() => {
-                                void paymentsService.refund(p.id, 'Admin refund').then(() => {
-                                  showToast('Refund issued');
-                                  void paymentsService.listPayments().then(setPayments);
-                                });
-                              }}
-                              style={{ background: '#fff', border: '1px solid #FCA5A5', color: '#B91C1C', borderRadius: 6, padding: '4px 8px', fontWeight: 700, cursor: 'pointer' }}
+                              className="roc-btn b-pri"
+                              onClick={() => handleOpenVerifModal(item)}
                             >
-                              Issue refund
+                              {item.status === 'completed' ? 'View audit' : 'Open audit'}
                             </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                    {payments.length === 0 && (
-                      <tr><td colSpan={7} style={{ padding: 24, color: '#64748B' }}>No Paystack transactions yet.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
 
-              {/* Mobile Transaction Audit Cards (< 768px) */}
-              <div className="admin-cards-mobile" style={{ padding: '14px' }}>
-                {payments.length === 0 ? (
-                  <div style={{ padding: '32px 14px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                    No Paystack transactions yet.
-                  </div>
+                    <div className="roc-foot">
+                      <span>
+                        Showing <b className="roc-num">{filteredVerificationItems.length}</b> of {verificationItems.length} properties
+                      </span>
+                    </div>
+                  </>
                 ) : (
-                  payments.map((p) => {
-                    const statusBadge =
-                      p.status === 'success'
-                        ? { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0', label: 'Success' }
-                        : p.status === 'pending'
-                        ? { bg: '#FFFBEB', color: '#B45309', border: '#FDE68A', label: 'Pending' }
-                        : { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE', label: p.status };
-
-                    return (
-                      <div key={p.id} className="admin-mobile-card">
-                        <div className="admin-mobile-card-header">
-                          <div>
-                            <div style={{ fontSize: '16px', fontWeight: 800, color: '#000052' }}>
-                              {formatNaira(p.amount)}
-                            </div>
-                            <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-                              {new Date(p.createdAt).toLocaleString()}
-                            </div>
-                          </div>
-                          <span style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '3px 9px',
-                            borderRadius: '999px',
-                            backgroundColor: statusBadge.bg,
-                            color: statusBadge.color,
-                            border: `1px solid ${statusBadge.border}`,
-                            textTransform: 'capitalize'
-                          }}>
-                            {statusBadge.label}
-                          </span>
-                        </div>
-
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr',
-                          gap: '6px',
-                          padding: '10px',
-                          backgroundColor: '#F8FAFC',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          border: '1px solid #E2E8F0'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: '#64748B' }}>Renter:</span>
-                            <span style={{ fontWeight: 600, color: '#000052' }}>{p.renterName || p.renterEmail || '—'}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: '#64748B' }}>Request ID:</span>
-                            <span style={{ fontWeight: 600, color: '#000052', fontFamily: 'monospace' }}>{p.requestId.slice(0, 8)}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: '#64748B' }}>Reference:</span>
-                            <span style={{ fontWeight: 600, color: '#000052', fontFamily: 'monospace', fontSize: '11px' }}>{p.reference}</span>
-                          </div>
-                        </div>
-
-                        {p.status === 'success' && (
-                          <div className="admin-mobile-card-actions">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void paymentsService.refund(p.id, 'Admin refund').then(() => {
-                                  showToast('Refund issued');
-                                  void paymentsService.listPayments().then(setPayments);
-                                });
-                              }}
-                              style={{
-                                minHeight: '44px',
-                                backgroundColor: '#FFFFFF',
-                                border: '1.5px solid #FCA5A5',
-                                color: '#B91C1C',
-                                borderRadius: '8px',
-                                fontWeight: 700,
-                                fontSize: '13px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Issue Refund ({formatNaira(p.amount)})
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
+                  <div className="roc-empty">
+                    <b>Nothing here</b>
+                    <p>No properties match the current search and neighborhood filters.</p>
+                  </div>
                 )}
-              </div>
-            </div>
-          </div>
-        )}
+              </>
+            )}
 
-        {/* =============================================================
-            TAB 6: REPORTS & DISPUTES (FR-6.4 Community Reports & Disputes)
-           ============================================================= */}
-        {activeSection === 'reports' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', color: '#000052' }}>
-                  Disputes &amp; Listing Reports Queue
-                </h1>
-                <p style={{ margin: 0, fontSize: '13.5px', color: '#636377' }}>
-                  Seeker complaints, price discrepancies, and mandate disputes requiring admin resolution.
-                </p>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: '#FEF2F2',
-                border: '1px solid #FECACA',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: 700,
-                color: '#991B1B'
-              }}>
-                <Flag size={15} color="#DC2626" />
-                <span>{reports.filter(r => r.status === 'pending').length} Action Required</span>
-              </div>
-            </div>
-
-            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <div className="no-scrollbar" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      <th style={{ padding: '14px 18px' }}>Report ID / Date</th>
-                      <th style={{ padding: '14px 16px', minWidth: '220px' }}>Flagged Property</th>
-                      <th style={{ padding: '14px 16px', minWidth: '160px' }}>Lister Details</th>
-                      <th style={{ padding: '14px 16px', minWidth: '150px' }}>Reason</th>
-                      <th style={{ padding: '14px 16px', minWidth: '240px' }}>Dispute Details &amp; Reporter</th>
-                      <th style={{ padding: '14px 16px', minWidth: '110px' }}>Status</th>
-                      <th style={{ padding: '14px 20px', textAlign: 'right', minWidth: '160px' }}>Moderation Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reports.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', color: '#64748B' }}>
-                          No disputes or reported listings currently logged.
-                        </td>
-                      </tr>
-                    ) : (
-                      reports.map(report => {
-                        const isPending = report.status === 'pending';
-                        const isInvestigating = report.status === 'investigating';
-                        const isDismissed = report.status === 'dismissed';
-                        const isResolved = report.status === 'resolved';
-
-                        const reasonColor = report.reason === 'Already Rented'
-                          ? { bg: '#FEF2F2', text: '#991B1B', border: '#FECACA' }
-                          : report.reason === 'Price Changed'
-                          ? { bg: '#FFFBEB', text: '#92400E', border: '#FDE68A' }
-                          : report.reason === 'Misleading Photos'
-                          ? { bg: '#EFF6FF', text: '#1E40AF', border: '#BFDBFE' }
-                          : { bg: '#FAF5FF', text: '#6B21A8', border: '#E9D5FF' };
-
-                        return (
-                          <tr key={report.id} style={{ borderBottom: '1px solid #F1F5F9', backgroundColor: isPending ? '#FFFDFD' : '#FFFFFF' }}>
-                            <td style={{ padding: '14px 18px' }}>
-                              <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#000052', fontSize: '12px' }}>
-                                {report.id}
-                              </span>
-                              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
-                                {report.reportedAt}
-                              </div>
-                            </td>
-
-                            <td style={{ padding: '14px 16px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                {report.listingPhoto && (
-                                  <img
-                                    src={report.listingPhoto}
-                                    alt=""
-                                    style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #CBD5E1', flexShrink: 0 }}
-                                  />
-                                )}
-                                <div>
-                                  <div style={{ fontWeight: 700, color: '#000052', lineHeight: 1.3 }}>
-                                    {report.listingTitle}
+            {/* =========================================================
+                SECTION 2: LISTINGS & MODERATION
+               ========================================================= */}
+            {activeSection === 'listings' && (
+              <>
+                {filteredListings.length > 0 ? (
+                  <>
+                    <div className="roc-tw">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Listing</th>
+                            <th>Lister</th>
+                            <th>Status</th>
+                            <th>Flags</th>
+                            <th style={{ textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredListings.map((item) => {
+                            const isLive = item.isAvailable !== false && item.moderationStatus !== 'rejected';
+                            const photo = item.photos?.[0];
+                            return (
+                              <tr key={item.id}>
+                                <td>
+                                  <div className="roc-prop">
+                                    <div
+                                      className="roc-thumb"
+                                      style={{
+                                        backgroundImage: photo ? `url(${photo})` : undefined,
+                                        backgroundColor: !photo ? '#2A2A9C' : undefined
+                                      }}
+                                      aria-hidden="true"
+                                    />
+                                    <div>
+                                      <div className="roc-pt">{item.title}</div>
+                                      <div className="roc-ps">
+                                        {item.area} · <span className="roc-num">₦{formatNaira(item.price)}</span>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div style={{ fontSize: '11px', color: '#64748B' }}>
-                                    {report.listingArea}, Ibadan
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-
-                            <td style={{ padding: '14px 16px' }}>
-                              <div style={{ fontWeight: 700, color: '#000052' }}>{report.listerName}</div>
-                              <div style={{ fontSize: '11px', color: '#64748B' }}>{report.listerPhone || 'Phone on file'}</div>
-                            </td>
-
-                            <td style={{ padding: '14px 16px' }}>
-                              <span style={{
-                                backgroundColor: reasonColor.bg,
-                                color: reasonColor.text,
-                                border: `1px solid ${reasonColor.border}`,
-                                padding: '3px 8px',
-                                borderRadius: '6px',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                display: 'inline-block'
-                              }}>
-                                {report.reason}
-                              </span>
-                            </td>
-
-                            <td style={{ padding: '14px 16px' }}>
-                              <div style={{ fontSize: '12.5px', color: '#334155', lineHeight: 1.4 }}>
-                                {report.details}
-                              </div>
-                              <div style={{ fontSize: '11px', color: '#64748B', marginTop: '3px' }}>
-                                Reported by: <strong>{report.reporterName || 'Anonymous Seeker'}</strong> ({report.reporterEmail || 'Contact on file'})
-                              </div>
-                            </td>
-
-                            <td style={{ padding: '14px 16px' }}>
-                              <span style={{
-                                backgroundColor: isPending ? '#FEF3C7' : isInvestigating ? '#EFF6FF' : isResolved ? '#ECFDF5' : '#F1F5F9',
-                                color: isPending ? '#B45309' : isInvestigating ? '#1E40AF' : isResolved ? '#065F46' : '#64748B',
-                                border: `1px solid ${isPending ? '#FDE68A' : isInvestigating ? '#BFDBFE' : isResolved ? '#A7F3D0' : '#CBD5E1'}`,
-                                padding: '2px 8px',
-                                borderRadius: '999px',
-                                fontSize: '11px',
-                                fontWeight: 700,
-                                textTransform: 'capitalize'
-                              }}>
-                                {report.status}
-                              </span>
-                            </td>
-
-                            <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => setContactingReportItem(report)}
-                                  style={{
-                                    backgroundColor: '#FFFFFF',
-                                    border: '1.5px solid #000052',
-                                    color: '#000052',
-                                    borderRadius: '6px',
-                                    padding: '5px 9px',
-                                    fontSize: '11px',
-                                    fontWeight: 700,
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Contact Lister
-                                </button>
-
-                                {!isDismissed && (
+                                </td>
+                                <td className="roc-who">
+                                  <b>{item.lister?.fullName || 'Property Lister'}</b>
+                                  <span>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Active'}</span>
+                                </td>
+                                <td>
+                                  {isLive ? (
+                                    <span className="roc-pill p-ok">Live</span>
+                                  ) : item.moderationStatus === 'rejected' ? (
+                                    <span className="roc-pill p-bad">Rejected</span>
+                                  ) : (
+                                    <span className="roc-pill p-warn">Needs review</span>
+                                  )}
+                                </td>
+                                <td>
+                                  {item.moderationNotes ? (
+                                    <span style={{ fontWeight: 600, color: 'var(--bad)', fontSize: '13px' }}>
+                                      {item.moderationNotes}
+                                    </span>
+                                  ) : (
+                                    <span className="roc-unas">None</span>
+                                  )}
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
                                   <button
                                     type="button"
-                                    onClick={() => handleDismissReport(report.id)}
-                                    style={{
-                                      backgroundColor: '#F1F5F9',
-                                      border: '1px solid #CBD5E1',
-                                      color: '#475569',
-                                      borderRadius: '6px',
-                                      padding: '5px 8px',
-                                      fontSize: '11px',
-                                      fontWeight: 600,
-                                      cursor: 'pointer'
-                                    }}
+                                    className="roc-btn b-sec b-sm"
+                                    onClick={() => handleOpenListingModal(item)}
                                   >
-                                    Dismiss
+                                    Review listing
                                   </button>
-                                )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
 
-                                {!isResolved && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeactivateFlaggedListing(report)}
-                                    style={{
-                                      backgroundColor: '#FEF2F2',
-                                      border: '1px solid #FECACA',
-                                      color: '#DC2626',
-                                      borderRadius: '6px',
-                                      padding: '5px 8px',
-                                      fontSize: '11px',
-                                      fontWeight: 700,
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Deactivate
-                                  </button>
-                                )}
+                    {/* Mobile Cards */}
+                    <div className="roc-cards">
+                      {filteredListings.map((item) => (
+                        <div key={item.id} className="roc-card">
+                          <div className="roc-prop" style={{ minWidth: 0 }}>
+                            <div
+                              className="roc-thumb"
+                              style={{
+                                backgroundImage: item.photos?.[0] ? `url(${item.photos[0]})` : undefined,
+                                backgroundColor: '#2A2A9C'
+                              }}
+                              aria-hidden="true"
+                            />
+                            <div>
+                              <div className="roc-pt">{item.title}</div>
+                              <div className="roc-ps">
+                                {item.area} · <span className="roc-num">₦{formatNaira(item.price)}</span>
                               </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* =============================================================
-            TAB 8: MULTI-CITY LOCATIONS & NEIGHBORHOODS REGISTRY (FR-7.6)
-           ============================================================= */}
-        {activeSection === 'locations' && (
-          <div>
-            {/* Topline Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', color: '#000052' }}>
-                  Locations &amp; Neighborhoods Registry
-                </h1>
-                <p style={{ margin: 0, fontSize: '13.5px', color: '#636377' }}>
-                  Manage active pilot coverage (Ibadan), verified neighborhoods, and Phase 2 expansion cities across Nigeria.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#000052', backgroundColor: '#EFF6FF', padding: '7px 14px', borderRadius: '999px', border: '1px solid #BFDBFE', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <MapPin size={14} color="#000052" />
-                  <span>Pilot City: {allCities.find(c => c.isPilot)?.name || 'Ibadan'}</span>
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => setIsAddCityModalOpen(true)}
-                  style={{
-                    backgroundColor: '#000052',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '9px',
-                    padding: '8px 16px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: '0 2px 6px rgba(0, 0, 82, 0.15)'
-                  }}
-                >
-                  <Plus size={15} />
-                  <span>Register Expansion City</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Quick Metrics Bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '24px' }}>
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Active Operational Cities</div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052', marginTop: '4px' }}>
-                  {allCities.filter(c => c.isActive).length}
-                </div>
-                <div style={{ fontSize: '12px', color: '#16794A', marginTop: '4px', fontWeight: 600 }}>
-                  {allCities.find(c => c.isPilot)?.name || 'Ibadan'} (Primary Pilot Live)
-                </div>
-              </div>
-
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Total Verified Neighborhoods</div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052', marginTop: '4px' }}>
-                  {allCities.reduce((sum, c) => sum + (c.areaItems?.length || c.areas.length), 0)}
-                </div>
-                <div style={{ fontSize: '12px', color: '#636377', marginTop: '4px' }}>
-                  Across {allCities.length} registered cities
-                </div>
-              </div>
-
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Phase 2 Pipeline</div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052', marginTop: '4px' }}>
-                  {allCities.filter(c => !c.isActive).length}
-                </div>
-                <div style={{ fontSize: '12px', color: '#D97706', marginTop: '4px', fontWeight: 600 }}>
-                  Staged for rollout
-                </div>
-              </div>
-
-              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px 20px' }}>
-                <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Catalog Listings Mapped</div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: '#000052', marginTop: '4px' }}>
-                  {listings.length}
-                </div>
-                <div style={{ fontSize: '12px', color: '#4338CA', marginTop: '4px', fontWeight: 600 }}>
-                  Active marketplace coverage
-                </div>
-              </div>
-            </div>
-
-            {/* City Registry Table */}
-            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6E3EE', borderRadius: '16px', overflow: 'hidden', marginBottom: '28px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#000052' }}>Marketplace Coverage Directory</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748B' }}>Toggle operations, designate pilot, or manage neighborhood zones per city</p>
-                </div>
-              </div>
-
-              {/* Desktop Table View (>= 768px) */}
-              <div className="admin-table-desktop no-scrollbar" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      <th style={{ textAlign: 'left', padding: '14px 18px' }}>City &amp; State</th>
-                      <th style={{ textAlign: 'left', padding: '14px 18px' }}>Operational Status</th>
-                      <th style={{ textAlign: 'center', padding: '14px 18px' }}>Listings Attached</th>
-                      <th style={{ textAlign: 'left', padding: '14px 18px' }}>Neighborhoods</th>
-                      <th style={{ textAlign: 'right', padding: '14px 20px', minWidth: '280px' }}>Management Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allCities.map(city => {
-                      const attachedCount = listings.filter(l => l.city.toLowerCase() === city.name.toLowerCase()).length;
-                      const areasList = city.areaItems || city.areas.map(name => ({ id: name, name, isActive: true, cityId: city.id, slug: name }));
-                      const isCurrentSelected = selectedLocationCity.toLowerCase() === city.name.toLowerCase();
-
-                      return (
-                        <tr key={city.id} style={{ borderTop: '1px solid #E2E8F0', backgroundColor: isCurrentSelected ? '#FAFBFF' : 'transparent' }}>
-                          <td style={{ padding: '14px 18px' }}>
-                            <div style={{ fontWeight: 800, color: '#000052', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span>{city.name}</span>
-                              {city.isPilot && (
-                                <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: '#000052', color: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', textTransform: 'uppercase' }}>
-                                  Pilot City
-                                </span>
-                              )}
                             </div>
-                            <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>{city.state} State</div>
-                          </td>
-
-                          <td style={{ padding: '14px 18px' }}>
-                            <span style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              backgroundColor: city.isActive ? '#ECFDF5' : '#FEF3C7',
-                              color: city.isActive ? '#065F46' : '#92400E',
-                              border: `1px solid ${city.isActive ? '#A7F3D0' : '#FDE68A'}`,
-                              padding: '3px 9px',
-                              borderRadius: '999px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px'
-                            }}>
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: city.isActive ? '#059669' : '#D97706' }} />
-                              {city.isActive ? 'Active Operations' : 'Phase 2 Staged'}
-                            </span>
-                          </td>
-
-                          <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                            <span style={{
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              color: attachedCount > 0 ? '#000052' : '#94A3B8',
-                              backgroundColor: attachedCount > 0 ? '#F1F5F9' : '#F8FAFC',
-                              padding: '3px 10px',
-                              borderRadius: '999px'
-                            }}>
-                              {attachedCount} listing{attachedCount === 1 ? '' : 's'}
-                            </span>
-                          </td>
-
-                          <td style={{ padding: '14px 18px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 700, color: '#000052', fontSize: '12px' }}>
-                                {areasList.length} total
-                              </span>
-                              <span style={{ color: '#94A3B8', fontSize: '11px' }}>·</span>
-                              <span style={{ fontSize: '11.5px', color: '#64748B' }}>
-                                {areasList.slice(0, 3).map(a => a.name).join(', ')}
-                                {areasList.length > 3 && ` +${areasList.length - 3} more`}
-                              </span>
-                            </div>
-                          </td>
-
-                          <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                              {/* Manage Neighborhoods button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedLocationCity(city.name);
-                                  setNewAreaCity(city.name);
-                                }}
-                                style={{
-                                  backgroundColor: isCurrentSelected ? '#000052' : '#EFF6FF',
-                                  color: isCurrentSelected ? '#FFFFFF' : '#1E40AF',
-                                  border: `1px solid ${isCurrentSelected ? '#000052' : '#BFDBFE'}`,
-                                  borderRadius: '6px',
-                                  padding: '5px 10px',
-                                  fontSize: '11.5px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}
-                              >
-                                <Layers size={13} />
-                                <span>{isCurrentSelected ? 'Viewing Areas' : 'Manage Areas'}</span>
-                              </button>
-
-                              {/* Toggle Active / Staged */}
-                              <button
-                                type="button"
-                                onClick={() => handleToggleCityStatus(city)}
-                                style={{
-                                  backgroundColor: city.isActive ? '#FFFBEB' : '#ECFDF5',
-                                  color: city.isActive ? '#92400E' : '#047857',
-                                  border: `1px solid ${city.isActive ? '#FDE68A' : '#A7F3D0'}`,
-                                  borderRadius: '6px',
-                                  padding: '5px 9px',
-                                  fontSize: '11px',
-                                  fontWeight: 600,
-                                  cursor: 'pointer'
-                                }}
-                                title={city.isActive ? 'Stage city (pause public listings)' : 'Activate city for live operations'}
-                              >
-                                {city.isActive ? 'Stage (Pause)' : 'Activate'}
-                              </button>
-
-                              {/* Make Pilot City */}
-                              {!city.isPilot && city.isActive && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleSetPilotCity(city)}
-                                  style={{
-                                    backgroundColor: '#FFFFFF',
-                                    color: '#000052',
-                                    border: '1px solid #CBD5E1',
-                                    borderRadius: '6px',
-                                    padding: '5px 8px',
-                                    fontSize: '11px',
-                                    fontWeight: 600,
-                                    cursor: 'pointer'
-                                  }}
-                                  title="Designate as primary pilot city"
-                                >
-                                  Set Pilot
-                                </button>
-                              )}
-
-                              {/* Edit City */}
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEditCity(city)}
-                                style={{
-                                  backgroundColor: '#F8FAFC',
-                                  color: '#475569',
-                                  border: '1px solid #CBD5E1',
-                                  borderRadius: '6px',
-                                  padding: '5px 8px',
-                                  fontSize: '11px',
-                                  cursor: 'pointer'
-                                }}
-                                title="Edit city details"
-                              >
-                                <Edit2 size={13} />
-                              </button>
-
-                              {/* Delete City */}
-                              {!city.isPilot && (
-                                <button
-                                  type="button"
-                                  onClick={() => handlePromptDeleteCity(city)}
-                                  style={{
-                                    backgroundColor: '#FEF2F2',
-                                    color: '#DC2626',
-                                    border: '1px solid #FECACA',
-                                    borderRadius: '6px',
-                                    padding: '5px 8px',
-                                    fontSize: '11px',
-                                    cursor: 'pointer'
-                                  }}
-                                  title="Delete city from directory"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Mobile City Cards (< 768px) */}
-              <div className="admin-cards-mobile" style={{ padding: '14px' }}>
-                {allCities.map(city => {
-                  const attachedCount = listings.filter(l => l.city.toLowerCase() === city.name.toLowerCase()).length;
-                  const areasList = city.areaItems || city.areas.map(name => ({ id: name, name, isActive: true, cityId: city.id, slug: name }));
-                  const isCurrentSelected = selectedLocationCity.toLowerCase() === city.name.toLowerCase();
-
-                  return (
-                    <div key={city.id} className="admin-mobile-card" style={{ backgroundColor: isCurrentSelected ? '#FAFBFF' : '#FFFFFF', border: isCurrentSelected ? '1.5px solid #000052' : '1px solid #E6E3EE' }}>
-                      <div className="admin-mobile-card-header">
-                        <div>
-                          <div style={{ fontWeight: 800, color: '#000052', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>{city.name}</span>
-                            {city.isPilot && (
-                              <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: '#000052', color: '#FFFFFF', padding: '2px 8px', borderRadius: '999px', textTransform: 'uppercase' }}>
-                                Pilot City
-                              </span>
+                          </div>
+                          <div className="roc-card-row">
+                            <span>Status</span>
+                            {item.isAvailable !== false && item.moderationStatus !== 'rejected' ? (
+                              <span className="roc-pill p-ok">Live</span>
+                            ) : (
+                              <span className="roc-pill p-warn">Needs review</span>
                             )}
                           </div>
-                          <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>{city.state} State</div>
-                        </div>
-
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          backgroundColor: city.isActive ? '#ECFDF5' : '#FEF3C7',
-                          color: city.isActive ? '#065F46' : '#92400E',
-                          border: `1px solid ${city.isActive ? '#A7F3D0' : '#FDE68A'}`,
-                          padding: '3px 9px',
-                          borderRadius: '999px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: city.isActive ? '#059669' : '#D97706' }} />
-                          {city.isActive ? 'Active' : 'Staged'}
-                        </span>
-                      </div>
-
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: '8px',
-                        padding: '10px',
-                        backgroundColor: '#F8FAFC',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        border: '1px solid #E2E8F0'
-                      }}>
-                        <div>
-                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Listings Attached</div>
-                          <div style={{ fontWeight: 800, color: '#000052', marginTop: '2px' }}>{attachedCount}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Neighborhoods</div>
-                          <div style={{ fontWeight: 800, color: '#000052', marginTop: '2px' }}>{areasList.length} total</div>
-                        </div>
-                      </div>
-
-                      <div className="admin-mobile-card-actions" style={{ flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedLocationCity(city.name);
-                            setNewAreaCity(city.name);
-                          }}
-                          style={{
-                            backgroundColor: isCurrentSelected ? '#000052' : '#EFF6FF',
-                            color: isCurrentSelected ? '#FFFFFF' : '#1E40AF',
-                            border: `1px solid ${isCurrentSelected ? '#000052' : '#BFDBFE'}`,
-                            minHeight: '44px',
-                            flex: 1
-                          }}
-                        >
-                          <Layers size={14} />
-                          <span>{isCurrentSelected ? 'Viewing Areas' : 'Manage Areas'}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleToggleCityStatus(city)}
-                          style={{
-                            backgroundColor: city.isActive ? '#FFFBEB' : '#ECFDF5',
-                            color: city.isActive ? '#92400E' : '#047857',
-                            border: `1px solid ${city.isActive ? '#FDE68A' : '#A7F3D0'}`,
-                            minHeight: '44px',
-                            flex: 1
-                          }}
-                        >
-                          {city.isActive ? 'Stage (Pause)' : 'Activate'}
-                        </button>
-
-                        {!city.isPilot && city.isActive && (
-                          <button
-                            type="button"
-                            onClick={() => handleSetPilotCity(city)}
-                            style={{
-                              backgroundColor: '#F8FAFC',
-                              color: '#000052',
-                              border: '1px solid #CBD5E1',
-                              minHeight: '44px',
-                              width: '100%'
-                            }}
-                          >
-                            Set as Pilot City
-                          </button>
-                        )}
-
-                        <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditCity(city)}
-                            style={{
-                              backgroundColor: '#F8FAFC',
-                              color: '#475569',
-                              border: '1px solid #CBD5E1',
-                              minHeight: '44px',
-                              flex: 1
-                            }}
-                          >
-                            <Edit2 size={14} />
-                            <span>Edit City</span>
-                          </button>
-
-                          {!city.isPilot && (
+                          <div className="roc-acts">
                             <button
                               type="button"
-                              onClick={() => handlePromptDeleteCity(city)}
-                              style={{
-                                backgroundColor: '#FEF2F2',
-                                color: '#DC2626',
-                                border: '1px solid #FECACA',
-                                minHeight: '44px',
-                                flex: 1
-                              }}
+                              className="roc-btn b-pri"
+                              onClick={() => handleOpenListingModal(item)}
                             >
-                              <Trash2 size={14} />
-                              <span>Delete City</span>
+                              Review listing
                             </button>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Dedicated Neighborhood / Area Manager for Selected City */}
-            {(() => {
-              const currentCity = allCities.find(c => c.name.toLowerCase() === selectedLocationCity.toLowerCase()) || allCities[0];
-              if (!currentCity) return null;
-
-              const rawAreas = currentCity.areaItems || currentCity.areas.map(a => ({
-                id: a,
-                cityId: currentCity.id,
-                name: a,
-                slug: a,
-                isActive: true,
-                listingCount: 0
-              }));
-
-              const filteredAreas = rawAreas.filter(a =>
-                a.name.toLowerCase().includes(areaSearchQuery.trim().toLowerCase())
-              );
-
-              return (
-                <div style={{ backgroundColor: '#FFFFFF', border: '1.5px solid #CBD5E1', borderRadius: '16px', padding: '24px', marginBottom: '28px', boxShadow: '0 4px 12px rgba(0,0,82,0.04)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '14px' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <MapPin size={20} color="#000052" />
-                        <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#000052' }}>
-                          Neighborhoods Registry: {currentCity.name} ({filteredAreas.length})
-                        </h2>
-                      </div>
-                      <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748B' }}>
-                        Add, toggle active availability, or delete verified neighborhoods in {currentCity.name}, {currentCity.state}.
-                      </p>
+                      ))}
                     </div>
 
-                    {/* City Switcher Tabs */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B', marginRight: '4px' }}>Select City:</span>
-                      {allCities.map(c => {
-                        const isSelected = c.name.toLowerCase() === currentCity.name.toLowerCase();
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedLocationCity(c.name);
-                              setNewAreaCity(c.name);
-                              setAreaSearchQuery('');
-                            }}
-                            style={{
-                              backgroundColor: isSelected ? '#000052' : '#F1F5F9',
-                              color: isSelected ? '#FFFFFF' : '#475569',
-                              border: `1px solid ${isSelected ? '#000052' : '#CBD5E1'}`,
-                              borderRadius: '8px',
-                              padding: '5px 12px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            {c.name}
-                          </button>
-                        );
-                      })}
+                    <div className="roc-foot">
+                      <span>
+                        <b className="roc-num">{filteredListings.length}</b> listings total
+                      </span>
                     </div>
+                  </>
+                ) : (
+                  <div className="roc-empty">
+                    <b>No listings found</b>
+                    <p>No listings match this filter criteria.</p>
                   </div>
+                )}
+              </>
+            )}
 
-                  {/* Add Neighborhood + Search Filter Controls Bar */}
-                  <div className="admin-location-controls-grid" style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(280px, 1fr) minmax(220px, 320px)',
-                    gap: '14px',
-                    backgroundColor: '#F8FAFC',
-                    padding: '16px',
-                    borderRadius: '12px',
-                    border: '1px solid #E2E8F0',
-                    marginBottom: '20px'
-                  }}>
-                    {/* Add Area Form */}
-                    <form onSubmit={handleAddAreaToCity} style={{ display: 'flex', gap: '8px' }}>
-                      <input
-                        type="text"
-                        required
-                        placeholder={`Add new neighborhood to ${currentCity.name}...`}
-                        value={newAreaName}
-                        onChange={(e) => {
-                          setNewAreaName(e.target.value);
-                          setNewAreaCity(currentCity.name);
-                        }}
-                        style={{
-                          flex: 1,
-                          height: '42px',
-                          border: '1px solid #CBD5E1',
-                          borderRadius: '8px',
-                          padding: '0 12px',
-                          fontSize: '13px',
-                          outline: 'none',
-                          backgroundColor: '#FFFFFF',
-                          color: '#000052'
-                        }}
-                      />
-                      <button
-                        type="submit"
-                        disabled={isSubmittingArea || !newAreaName.trim()}
-                        style={{
-                          backgroundColor: '#000052',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '0 16px',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          cursor: isSubmittingArea ? 'wait' : 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          whiteSpace: 'nowrap',
-                          minHeight: '42px'
-                        }}
-                      >
-                        <Plus size={15} />
-                        <span>Add Neighborhood</span>
-                      </button>
-                    </form>
-
-                    {/* Search Area Input */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #CBD5E1', borderRadius: '8px', padding: '0 12px', backgroundColor: '#FFFFFF', height: '42px' }}>
-                      <Search size={15} color="#64748B" />
-                      <input
-                        type="text"
-                        placeholder={`Search ${currentCity.name} areas...`}
-                        value={areaSearchQuery}
-                        onChange={(e) => setAreaSearchQuery(e.target.value)}
-                        style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12.5px', color: '#000052' }}
-                      />
-                      {areaSearchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => setAreaSearchQuery('')}
-                          style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 0 }}
-                        >
-                          <X size={13} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Neighborhoods Grid */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                    gap: '12px'
-                  }}>
-                    {filteredAreas.length === 0 ? (
-                      <div style={{ gridColumn: '1 / -1', padding: '36px 16px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                        No neighborhoods found matching "{areaSearchQuery}".
-                      </div>
-                    ) : (
-                      filteredAreas.map(area => {
-                        const attachedListingCount = listings.filter(
-                          l => l.area.toLowerCase() === area.name.toLowerCase()
-                        ).length;
-
-                        return (
-                          <div
-                            key={area.id}
-                            style={{
-                              backgroundColor: area.isActive ? '#FFFFFF' : '#F8FAFC',
-                              border: `1.5px solid ${area.isActive ? '#E2E8F0' : '#E2E8F0'}`,
-                              borderRadius: '10px',
-                              padding: '12px 14px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '10px',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                              opacity: area.isActive ? 1 : 0.75
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontWeight: 700, fontSize: '13px', color: '#000052', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span>{area.name}</span>
-                                {!area.isActive && (
-                                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', backgroundColor: '#E2E8F0', padding: '1px 6px', borderRadius: '4px' }}>
-                                    Inactive
+            {/* =========================================================
+                SECTION 3: PAYMENTS & REVENUE
+               ========================================================= */}
+            {activeSection === 'payments' && (
+              <>
+                {filteredPayments.length > 0 ? (
+                  <>
+                    <div className="roc-tw">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Reference</th>
+                            <th>Renter &amp; Listing</th>
+                            <th>Fee</th>
+                            <th>Status</th>
+                            <th style={{ textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredPayments.map((item) => {
+                            const isPaid = item.status === 'success';
+                            const isRefunded = item.status === 'refunded';
+                            return (
+                              <tr key={item.id}>
+                                <td>
+                                  <b className="roc-num">{item.reference}</b>
+                                  <div className="roc-ps">
+                                    {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                </td>
+                                <td className="roc-who">
+                                  <b>{item.renterName || item.renterEmail || 'Renter'}</b>
+                                  <span>{item.listingTitle || 'Verified Property Unlock'}</span>
+                                </td>
+                                <td>
+                                  <span className="roc-num" style={{ fontWeight: 800, fontSize: '14.5px', color: 'var(--ink)' }}>
+                                    ₦{formatNaira(item.amount)}
                                   </span>
-                                )}
-                              </div>
-                              <div style={{ fontSize: '11px', color: attachedListingCount > 0 ? '#047857' : '#64748B', marginTop: '2px', fontWeight: 600 }}>
-                                {attachedListingCount} active listing{attachedListingCount === 1 ? '' : 's'}
-                              </div>
-                            </div>
+                                </td>
+                                <td>
+                                  {isPaid ? (
+                                    <span className="roc-pill p-ok">Confirmed</span>
+                                  ) : isRefunded ? (
+                                    <span className="roc-pill p-bad">Refunded</span>
+                                  ) : (
+                                    <span className="roc-pill p-warn">Awaiting confirmation</span>
+                                  )}
+                                </td>
+                                <td style={{ textAlign: 'right' }}>
+                                  <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                    <button
+                                      type="button"
+                                      className={`roc-btn ${isPaid ? 'b-sec' : 'b-pri'} b-sm`}
+                                      onClick={() => setSelectedPaymentDetail(item)}
+                                    >
+                                      {isPaid ? 'Receipt' : isRefunded ? 'Refund record' : 'Confirm'}
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              {/* Toggle Active Button */}
-                              <button
-                                type="button"
-                                onClick={() => handleToggleAreaActive(area)}
-                                style={{
-                                  backgroundColor: area.isActive ? '#EFF6FF' : '#F1F5F9',
-                                  color: area.isActive ? '#1E40AF' : '#64748B',
-                                  border: `1px solid ${area.isActive ? '#BFDBFE' : '#CBD5E1'}`,
-                                  borderRadius: '6px',
-                                  padding: '8px 12px',
-                                  fontSize: '11.5px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                  minHeight: '44px'
-                                }}
-                                title={area.isActive ? 'Deactivate (hide from filters & new listings)' : 'Activate neighborhood'}
-                              >
-                                {area.isActive ? 'Active' : 'Enable'}
-                              </button>
+                    {/* Mobile Cards */}
+                    <div className="roc-cards">
+                      {filteredPayments.map((item) => (
+                        <div key={item.id} className="roc-card">
+                          <div className="roc-card-row">
+                            <b className="roc-num">{item.reference}</b>
+                            {item.status === 'success' ? (
+                              <span className="roc-pill p-ok">Confirmed</span>
+                            ) : item.status === 'refunded' ? (
+                              <span className="roc-pill p-bad">Refunded</span>
+                            ) : (
+                              <span className="roc-pill p-warn">Awaiting confirmation</span>
+                            )}
+                          </div>
+                          <div>
+                            <div className="roc-pt">{item.renterName || item.renterEmail}</div>
+                            <div className="roc-ps">{item.listingTitle}</div>
+                          </div>
+                          <div className="roc-card-row">
+                            <span>Access fee</span>
+                            <b className="roc-num">₦{formatNaira(item.amount)}</b>
+                          </div>
+                          <div className="roc-acts">
+                            <button
+                              type="button"
+                              className={`roc-btn ${item.status === 'success' ? 'b-sec' : 'b-pri'}`}
+                              onClick={() => setSelectedPaymentDetail(item)}
+                            >
+                              {item.status === 'success' ? 'Receipt' : 'Confirm availability'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
 
-                              {/* Delete Area Button */}
-                              <button
-                                type="button"
-                                onClick={() => handlePromptDeleteArea(area, currentCity.name)}
+                    <div className="roc-foot">
+                      <span>Held until availability is confirmed</span>
+                      <b className="roc-num">₦{formatNaira(totalRevenue)}</b>
+                    </div>
+                  </>
+                ) : (
+                  <div className="roc-empty">
+                    <b>No transactions found</b>
+                    <p>No payments recorded under this filter.</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* =========================================================
+                SECTION 4: ESCALATIONS
+               ========================================================= */}
+            {activeSection === 'escalations' && (
+              <>
+                {filteredEscalations.length > 0 ? (
+                  <>
+                    <div className="roc-tw">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Priority</th>
+                            <th>Issue</th>
+                            <th>Open for</th>
+                            <th>Owner</th>
+                            <th style={{ textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredEscalations.map((item) => (
+                            <tr key={item.id}>
+                              <td>
+                                <span
+                                  className="roc-sev"
+                                  style={{
+                                    backgroundColor: item.isOverdue ? 'var(--bad)' : '#D98A00'
+                                  }}
+                                />
+                                <b>{item.isOverdue ? 'High' : 'Medium'}</b>
+                              </td>
+                              <td>
+                                <div className="roc-pt">
+                                  {item.isOverdue ? 'Landlord SLA timeout: Response overdue' : 'Availability confirmation request'}
+                                </div>
+                                <div className="roc-ps">
+                                  {item.renterName} · ref <span className="roc-num">{item.id.slice(0, 8)}</span>
+                                </div>
+                              </td>
+                              <td className="roc-num">{item.timeSinceRequest}</td>
+                              <td>
+                                <span className="roc-insp">
+                                  <span className="roc-av">OP</span>
+                                  <span>Admin Ops</span>
+                                </span>
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button
+                                  type="button"
+                                  className="roc-btn b-pri b-sm"
+                                  onClick={() => handleOpenEscalationModal(item)}
+                                >
+                                  Resolve
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="roc-cards">
+                      {filteredEscalations.map((item) => (
+                        <div
+                          key={item.id}
+                          className="roc-card"
+                          style={{
+                            backgroundColor: item.isOverdue ? 'var(--bad-bg)' : undefined
+                          }}
+                        >
+                          <div className="roc-card-row">
+                            <b>
+                              <span
+                                className="roc-sev"
                                 style={{
-                                  backgroundColor: '#FFFFFF',
-                                  color: '#DC2626',
-                                  border: '1px solid #FECACA',
-                                  borderRadius: '6px',
-                                  padding: '6px 12px',
-                                  fontSize: '11px',
-                                  cursor: 'pointer',
-                                  minHeight: '44px',
-                                  minWidth: '44px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
+                                  backgroundColor: item.isOverdue ? 'var(--bad)' : '#D98A00'
                                 }}
-                                title="Delete neighborhood"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              />
+                              {item.isOverdue ? 'High priority' : 'Medium priority'}
+                            </b>
+                            <span className="roc-num">{item.timeSinceRequest}</span>
+                          </div>
+                          <div>
+                            <div className="roc-pt">{item.listingTitle}</div>
+                            <div className="roc-ps">
+                              {item.renterName} · {item.listerName}
                             </div>
                           </div>
-                        );
-                      })
-                    )}
+                          <div className="roc-acts">
+                            <button
+                              type="button"
+                              className="roc-btn b-pri"
+                              onClick={() => handleOpenEscalationModal(item)}
+                            >
+                              Resolve
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="roc-empty">
+                    <b>All clear</b>
+                    <p>No open escalations currently requiring human intervention.</p>
                   </div>
-                </div>
-              );
-            })()}
+                )}
+              </>
+            )}
 
-          </div>
-        )}
+            {/* =========================================================
+                SECTION 5: ADMIN TEAM
+               ========================================================= */}
+            {activeSection === 'team' && (
+              <>
+                {filteredTeam.length > 0 ? (
+                  <>
+                    <div className="roc-tw">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Member</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th style={{ textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredTeam.map((member) => (
+                            <tr key={member.id}>
+                              <td>
+                                <div className="roc-insp">
+                                  <span
+                                    className="roc-av"
+                                    style={{ width: '38px', height: '38px', fontSize: '13px' }}
+                                  >
+                                    {member.name.slice(0, 2).toUpperCase()}
+                                  </span>
+                                  <div>
+                                    <b style={{ color: 'var(--ink)' }}>{member.name}</b>
+                                    <div className="roc-ps">{member.email}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`roc-role ${member.role === 'super' ? 'r-super' : member.role === 'ops' ? 'r-ops' : 'r-insp'}`}>
+                                  {member.role === 'super' ? 'Super admin' : member.role === 'ops' ? 'Operations' : 'Inspector'}
+                                </span>
+                              </td>
+                              <td>
+                                {member.status === 'active' ? (
+                                  <span className="roc-pill p-ok">Active</span>
+                                ) : member.status === 'pending' ? (
+                                  <span className="roc-pill p-warn">Invite pending</span>
+                                ) : (
+                                  <span className="roc-pill p-bad">Revoked</span>
+                                )}
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                {member.isInvite ? (
+                                  <div style={{ display: 'inline-flex', gap: '6px' }}>
+                                    <button
+                                      type="button"
+                                      className="roc-btn b-sec b-sm"
+                                      onClick={() => setRevokeConfirmInvite(member.raw as AdminInvitation)}
+                                    >
+                                      Cancel invite
+                                    </button>
+                                  </div>
+                                ) : (
+                                  member.role !== 'super' && (
+                                    <button
+                                      type="button"
+                                      className="roc-btn b-sec b-sm"
+                                      onClick={() => setRemoveConfirmAdmin(member.raw as User)}
+                                    >
+                                      Revoke access
+                                    </button>
+                                  )
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
 
-      </main>
+                    {/* Mobile Cards */}
+                    <div className="roc-cards">
+                      {filteredTeam.map((member) => (
+                        <div key={member.id} className="roc-card">
+                          <div className="roc-insp">
+                            <span className="roc-av" style={{ width: '40px', height: '40px' }}>
+                              {member.name.slice(0, 2).toUpperCase()}
+                            </span>
+                            <div>
+                              <b>{member.name}</b>
+                              <div className="roc-ps">{member.email}</div>
+                            </div>
+                          </div>
+                          <div className="roc-card-row">
+                            <span className={`roc-role ${member.role === 'super' ? 'r-super' : member.role === 'ops' ? 'r-ops' : 'r-insp'}`}>
+                              {member.role === 'super' ? 'Super admin' : member.role === 'ops' ? 'Operations' : 'Inspector'}
+                            </span>
+                            {member.status === 'active' ? (
+                              <span className="roc-pill p-ok">Active</span>
+                            ) : (
+                              <span className="roc-pill p-warn">Invite pending</span>
+                            )}
+                          </div>
+                          {member.role !== 'super' && (
+                            <div className="roc-acts">
+                              <button
+                                type="button"
+                                className="roc-btn b-sec"
+                                onClick={() => {
+                                  if (member.isInvite) setRevokeConfirmInvite(member.raw as AdminInvitation);
+                                  else setRemoveConfirmAdmin(member.raw as User);
+                                }}
+                              >
+                                {member.isInvite ? 'Cancel invite' : 'Revoke access'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="roc-empty">
+                    <b>No team members found</b>
+                    <p>Invite additional inspectors or operations staff using the button above.</p>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
 
-      {/* -------------------------------------------------------------
-          REJECTION FEEDBACK MODAL (Listing Pre-Publish Moderation)
-         ------------------------------------------------------------- */}
-      {/* -------------------------------------------------------------
-          REJECTION FEEDBACK MODAL (Listing Pre-Publish Moderation)
-         ------------------------------------------------------------- */}
-      {rejectModalListing && (
-        <div className="admin-modal-overlay">
-          <div
-            className="admin-modal-backdrop"
-            onClick={() => setRejectModalListing(null)}
-          />
-          <div className="admin-modal-card">
-            <div className="admin-modal-header">
+          <p className="hint" style={{ marginTop: '16px', color: 'var(--ink-2)', fontSize: '13px' }}>
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: 'var(--ink-2)',
+                background: 'var(--surface)',
+                border: '1px dashed var(--line)',
+                borderRadius: '999px',
+                padding: '6px 14px',
+                display: 'inline-flex',
+                gap: '6px',
+                alignItems: 'center'
+              }}
+            >
+              Rentivo Operations Command &bull; Ibadan Pilot Live Control
+            </span>
+          </p>
+        </main>
+      </div>
+
+      {/* =============================================================
+          MODALS INTEGRATION
+         ============================================================= */}
+
+      {/* 1. Manage Areas Modal (Directly inspired by Rentivo Operations Command.html) */}
+      {isAreaModalOpen && (
+        <div className="roc-ov" role="dialog" aria-modal="true" aria-labelledby="area-modal-title">
+          <div className="roc-scrim" onClick={() => setIsAreaModalOpen(false)} />
+          <div className="roc-sheet">
+            <div className="roc-mh">
+              <span className="roc-mi">
+                <MapPin size={22} />
+              </span>
               <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: 800, color: '#991B1B', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertTriangle size={18} color="#DC2626" /> Reject Property Listing
-                </h3>
-                <p style={{ margin: 0, fontSize: '12px', color: '#636377' }}>
-                  Provide specific compliance feedback for the lister to revise.
-                </p>
+                <h2 id="area-modal-title">Manage areas</h2>
+                <p>Areas show in marketplace search filters and on property listings.</p>
               </div>
               <button
                 type="button"
-                className="admin-modal-close-btn"
-                onClick={() => setRejectModalListing(null)}
-                aria-label="Close rejection dialogue"
+                className="roc-icon-btn"
+                onClick={() => setIsAreaModalOpen(false)}
+                aria-label="Close"
+                style={{ marginLeft: 'auto' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="admin-modal-body">
-              <div style={{ backgroundColor: '#F8FAFC', padding: '12px 14px', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '16px' }}>
-                <div style={{ fontWeight: 800, fontSize: '13px', color: '#000052' }}>{rejectModalListing.title}</div>
-                <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '2px' }}>
-                  {rejectModalListing.area}, Ibadan · {formatNaira(rejectModalListing.price)} · Lister: {rejectModalListing.lister?.fullName || 'Lister'}
-                </div>
-              </div>
-
-              <form id="rejection-moderation-form" onSubmit={handleConfirmReject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '6px' }}>
-                    Rejection Reason Category
-                  </label>
-                  <select
-                    value={rejectCategory}
-                    onChange={(e) => setRejectCategory(e.target.value)}
-                    style={{ width: '100%', minHeight: '42px', height: '42px', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '0 10px', fontSize: '13px', outline: 'none', backgroundColor: '#FFFFFF' }}
-                  >
-                    <option value="Blurry or unverified photos">Blurry or unverified photos</option>
-                    <option value="Unrealistic or non-market price">Unrealistic or non-market price</option>
-                    <option value="Unverified tenancy mandate">Unverified tenancy mandate</option>
-                    <option value="Incomplete Ibadan address or missing landmarks">Incomplete Ibadan address or missing landmarks</option>
-                    <option value="Duplicate property listing">Duplicate property listing</option>
-                    <option value="Other content guideline violation">Other content guideline violation</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '6px' }}>
-                    Detailed Correction Instructions
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="e.g. Please provide clear daytime photos of the living room and kitchen, or specify the exact street near Bodija market."
-                    value={rejectNotes}
-                    onChange={(e) => setRejectNotes(e.target.value)}
-                    style={{ width: '100%', borderRadius: '8px', border: '1px solid #CBD5E1', padding: '10px 12px', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }}
-                    required
+            <div className="roc-mb">
+              <form onSubmit={handleAddArea} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <div className="roc-fld" style={{ flex: '1 1 200px' }}>
+                  <label htmlFor="m-ar">New area / neighborhood</label>
+                  <input
+                    id="m-ar"
+                    type="text"
+                    placeholder="For example Mokola, Jericho, Agodi"
+                    value={newAreaInput}
+                    onChange={(e) => setNewAreaInput(e.target.value)}
+                    autoComplete="off"
                   />
                 </div>
-              </form>
-            </div>
-
-            <div className="admin-modal-footer">
-              <button
-                type="button"
-                onClick={() => setRejectModalListing(null)}
-                style={{ backgroundColor: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '10px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', minHeight: '44px' }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="rejection-moderation-form"
-                style={{ backgroundColor: '#DC2626', color: '#FFFFFF', border: 'none', padding: '10px 18px', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', minHeight: '44px' }}
-              >
-                Confirm Rejection &amp; Notify Lister
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* -------------------------------------------------------------
-          CENTERED POPUP MODAL WITH SCROLLING PROGRESS LINE
-          (Replaces the side drawer to pop directly in the main page)
-         ------------------------------------------------------------- */}
-      {isModalOpen && selectedVerifItem && (
-        <div className="admin-modal-overlay">
-          {/* Dimmed Backdrop Blur Overlay */}
-          <div
-            className="admin-modal-backdrop"
-            onClick={handleCloseModal}
-          />
-
-          {/* Centered Modal Card */}
-          <div className="admin-modal-card admin-modal-card-lg" style={{
-            animation: 'modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
-          }}>
-
-            {/* Top Indicator Pill Line */}
-            <div style={{
-              width: '42px',
-              height: '4.5px',
-              borderRadius: '9999px',
-              backgroundColor: '#CBD5E1',
-              margin: '10px auto 4px'
-            }} />
-
-            {/* Modal Header */}
-            <div className="admin-modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '8px',
-                  backgroundColor: '#ECFDF5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <ShieldCheck size={18} color="#047857" />
-                </div>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#000052' }}>
-                    Verification Detail & Inspection Audit
-                  </h2>
-                  <div style={{ fontSize: '12px', color: '#636377', marginTop: '2px' }}>
-                    Physical accreditation audit for Ibadan marketplace listing
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="admin-modal-close-btn"
-                onClick={handleCloseModal}
-                aria-label="Close modal"
-              >
-                <X size={18} color="#636377" />
-              </button>
-            </div>
-
-            {/* DYNAMIC SCROLL INDICATOR LINE (Scrolls as the user scrolls through content) */}
-            <div style={{
-              width: '100%',
-              height: '3.5px',
-              backgroundColor: '#F1F5F9',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${modalScrollProgress}%`,
-                backgroundColor: '#000052',
-                transition: 'width 0.1s ease',
-                borderRadius: '0 2px 2px 0'
-              }} />
-            </div>
-
-            {/* Scrollable Modal Content */}
-            <div
-              ref={modalBodyRef}
-              onScroll={handleModalScroll}
-              className="admin-modal-body"
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#CBD5E1 #F8FAFC'
-              }}
-            >
-              {/* Property Snapshot Card */}
-              <div style={{
-                display: 'flex',
-                gap: '16px',
-                padding: '16px',
-                backgroundColor: '#F8FAFC',
-                borderRadius: '12px',
-                border: '1px solid #E6E3EE',
-                marginBottom: '20px'
-              }}>
-                <img
-                  src={selectedVerifItem.photo}
-                  alt=""
-                  style={{
-                    width: '74px',
-                    height: '74px',
-                    borderRadius: '10px',
-                    objectFit: 'cover',
-                    border: '1px solid #E2E8F0',
-                    flexShrink: 0
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{
-                      fontSize: '10.5px',
-                      fontWeight: 800,
-                      backgroundColor: '#F0E6FF',
-                      color: '#000052',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      textTransform: 'uppercase'
-                    }}>
-                      {selectedVerifItem.category}
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#636377' }}>
-                      REF-{selectedVerifItem.listingId.slice(-4).toUpperCase()}
-                    </span>
-                  </div>
-
-                  <h3 style={{
-                    margin: '0 0 6px',
-                    fontSize: '15px',
-                    fontWeight: 800,
-                    color: '#000052',
-                    lineHeight: 1.3
-                  }}>
-                    {selectedVerifItem.title}
-                  </h3>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12.5px', color: '#475569' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <MapPin size={13} color="#16794A" />
-                      <span>{selectedVerifItem.area}, Ibadan</span>
-                    </span>
-                    <span style={{ fontWeight: 800, color: '#000052' }}>
-                      {formatNaira(selectedVerifItem.price)} /yr
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Lister & Queue Timeline Metadata */}
-              <div className="admin-modal-metadata-grid" style={{
-                padding: '12px 16px',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #E6E3EE',
-                borderRadius: '10px',
-                marginBottom: '22px'
-              }}>
-                <div>
-                  <div style={{ fontSize: '11px', color: '#636377', textTransform: 'uppercase', fontWeight: 700 }}>Lister Contact</div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#000052', marginTop: '2px' }}>{selectedVerifItem.listerName}</div>
-                  <div style={{ fontSize: '11.5px', color: '#64748B' }}>{selectedVerifItem.listerPhone}</div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '11px', color: '#636377', textTransform: 'uppercase', fontWeight: 700 }}>Submitted</div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#000052', marginTop: '2px' }}>{selectedVerifItem.submittedDate}, 2026</div>
-                  <div style={{ fontSize: '11.5px', color: '#64748B' }}>Physical queue</div>
-                </div>
-
-                <div>
-                  <div style={{ fontSize: '11px', color: '#636377', textTransform: 'uppercase', fontWeight: 700 }}>Queue Age</div>
-                  <div style={{
-                    fontSize: '13px',
-                    fontWeight: 800,
-                    color: selectedVerifItem.isOverdue ? '#BE123C' : '#000052',
-                    marginTop: '2px'
-                  }}>
-                    {selectedVerifItem.daysInQueue} days in queue
-                  </div>
-                  <div style={{ fontSize: '11.5px', color: selectedVerifItem.isOverdue ? '#BE123C' : '#64748B' }}>
-                    {selectedVerifItem.isOverdue ? 'Overdue (reassign)' : 'Within target'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Underlying Landlord Registry for Agent Lister (PRD Objective 7 & Persona 4) */}
-              {(() => {
-                const matched = listings.find(l => l.id === selectedVerifItem.listingId);
-                if (matched?.listerRole === 'agent' && matched.underlyingLandlord) {
-                  return (
-                    <div style={{
-                      padding: '14px 16px',
-                      backgroundColor: '#EFF6FF',
-                      border: '1.5px solid #BFDBFE',
-                      borderRadius: '10px',
-                      marginBottom: '22px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '12px'
-                    }}>
-                      <div>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Underlying Property Owner (Direct Landlord Registry)
-                        </div>
-                        <div style={{ fontSize: '13.5px', fontWeight: 800, color: '#000052', marginTop: '3px' }}>
-                          {matched.underlyingLandlord.fullName} · {matched.underlyingLandlord.phone}
-                        </div>
-                        <div style={{ fontSize: '11.5px', color: '#475569', marginTop: '2px' }}>
-                          Marketing Agent: {selectedVerifItem.listerName} (Mandate: {matched.underlyingLandlord.mandateConfirmed ? 'Confirmed' : 'Pending Verification'})
-                        </div>
-                      </div>
-                      <span style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        color: '#047857',
-                        backgroundColor: '#ECFDF5',
-                        border: '1px solid #A7F3D0',
-                        padding: '3px 10px',
-                        borderRadius: '20px',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        Direct Owner Registered
-                      </span>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-
-              {/* Assign Inspector & Schedule Date */}
-              <div style={{ marginBottom: '22px' }}>
-                <div style={{
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  color: '#000052',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  marginBottom: '10px'
-                }}>
-                  Assign & Schedule Inspection Visit
-                </div>
-
-                <div className="admin-modal-assign-grid">
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#17172B', marginBottom: '6px' }}>
-                      Accredited Field Inspector
-                    </label>
-                    <select
-                      value={modalInspector}
-                      onChange={(e) => setModalInspector(e.target.value)}
-                      style={{
-                        width: '100%',
-                        height: '42px',
-                        border: '1.5px solid #CBD5E1',
-                        borderRadius: '8px',
-                        padding: '0 12px',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        color: '#000052',
-                        backgroundColor: '#FFFFFF',
-                        outline: 'none',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="Unassigned">Unassigned</option>
-                      {availableInspectors.map((ins) => (
-                        <option key={ins.id} value={ins.name}>
-                          {ins.name} ({ins.role})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#17172B', marginBottom: '6px' }}>
-                      Scheduled Visit Date
-                    </label>
-                    <input
-                      type="date"
-                      value={modalInspectionDate}
-                      onChange={(e) => setModalInspectionDate(e.target.value)}
-                      style={{
-                        width: '100%',
-                        height: '42px',
-                        border: '1.5px solid #CBD5E1',
-                        borderRadius: '8px',
-                        padding: '0 12px',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        color: '#000052',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 4-Point Physical Verification Checklist */}
-              <div style={{ marginBottom: '22px' }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '10px'
-                }}>
-                  <div style={{
-                    fontSize: '12px',
-                    fontWeight: 800,
-                    color: '#000052',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em'
-                  }}>
-                    On-Site Physical Audit Checklist
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleCheckAllChecklist}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#047857',
-                      fontSize: '11.5px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <CheckCircle2 size={13} />
-                    <span>Check all 4 requirements</span>
+                <div className="roc-fld" style={{ alignSelf: 'end' }}>
+                  <button className="roc-btn b-pri" type="submit" style={{ minHeight: '48px' }}>
+                    Add area
                   </button>
                 </div>
+              </form>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {/* Item 1 */}
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    border: modalChecklist.addressExists ? '1.5px solid #047857' : '1px solid #E6E3EE',
-                    backgroundColor: modalChecklist.addressExists ? '#ECFDF5' : '#FFFFFF',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={modalChecklist.addressExists}
-                      onChange={(e) => setModalChecklist({ ...modalChecklist, addressExists: e.target.checked })}
-                      style={{ marginTop: '2px', accentColor: '#047857', width: '16px', height: '16px', flexShrink: 0 }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: modalChecklist.addressExists ? '#065F46' : '#17172B' }}>
-                        Property exists at stated address
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '2px' }}>
-                        Physical location confirmed with house number and prominent neighborhood landmarks in {selectedVerifItem.area}.
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Item 2 */}
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    border: modalChecklist.detailsMatch ? '1.5px solid #047857' : '1px solid #E6E3EE',
-                    backgroundColor: modalChecklist.detailsMatch ? '#ECFDF5' : '#FFFFFF',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={modalChecklist.detailsMatch}
-                      onChange={(e) => setModalChecklist({ ...modalChecklist, detailsMatch: e.target.checked })}
-                      style={{ marginTop: '2px', accentColor: '#047857', width: '16px', height: '16px', flexShrink: 0 }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: modalChecklist.detailsMatch ? '#065F46' : '#17172B' }}>
-                        Listing details match on-site reality
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '2px' }}>
-                        Verified bedrooms, water running from borehole, functional prepaid meter, and compound security.
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Item 3 */}
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    border: modalChecklist.listerConfirmed ? '1.5px solid #047857' : '1px solid #E6E3EE',
-                    backgroundColor: modalChecklist.listerConfirmed ? '#ECFDF5' : '#FFFFFF',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={modalChecklist.listerConfirmed}
-                      onChange={(e) => setModalChecklist({ ...modalChecklist, listerConfirmed: e.target.checked })}
-                      style={{ marginTop: '2px', accentColor: '#047857', width: '16px', height: '16px', flexShrink: 0 }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: modalChecklist.listerConfirmed ? '#065F46' : '#17172B' }}>
-                        Lister identity & mandate confirmed on-site
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '2px' }}>
-                        Direct landlord ownership title or verified management mandate confirmed with property caretaker.
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Item 4 */}
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    border: modalChecklist.photosAccurate ? '1.5px solid #047857' : '1px solid #E6E3EE',
-                    backgroundColor: modalChecklist.photosAccurate ? '#ECFDF5' : '#FFFFFF',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={modalChecklist.photosAccurate}
-                      onChange={(e) => setModalChecklist({ ...modalChecklist, photosAccurate: e.target.checked })}
-                      style={{ marginTop: '2px', accentColor: '#047857', width: '16px', height: '16px', flexShrink: 0 }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: modalChecklist.photosAccurate ? '#065F46' : '#17172B' }}>
-                        Photos accurately represent current condition
-                      </div>
-                      <div style={{ fontSize: '11.5px', color: '#636377', marginTop: '2px' }}>
-                        Confirmed zero deceptive angles or false staging; real photos match actual interior spaces.
-                      </div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Approval Notes & Quick Template Suggestions */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#17172B', marginBottom: '6px' }}>
-                  Auditor Notes (Shared with lister upon revision request)
-                </label>
-                <textarea
-                  value={modalNotes}
-                  onChange={(e) => setModalNotes(e.target.value)}
-                  placeholder="e.g. Physical visit completed. Borehole and prepaid meter confirmed active. Approved for Emerald Verified Badge."
-                  style={{
-                    width: '100%',
-                    border: '1.5px solid #CBD5E1',
-                    borderRadius: '8px',
-                    padding: '10px 12px',
-                    fontSize: '13px',
-                    color: '#17172B',
-                    minHeight: '65px',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-
-                {/* Quick note chips */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
-                  {[
-                    'All 4 points confirmed on-site',
-                    'Kitchen photos need re-upload',
-                    'Gate access and caretaker verified'
-                  ].map((chip, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setModalNotes(chip)}
-                      style={{
-                        backgroundColor: '#F1F5F9',
-                        border: '1px solid #CBD5E1',
-                        borderRadius: '4px',
-                        padding: '3px 8px',
-                        fontSize: '11px',
-                        color: '#000052',
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      + {chip}
-                    </button>
+                <div className="roc-lbl" style={{ marginBottom: '10px' }}>
+                  Current active areas <span className="roc-num" style={{ color: 'var(--ink-3)', fontSize: '13px' }}>({distinctAreas.length})</span>
+                </div>
+                <div className="roc-chips" style={{ padding: 0, flexWrap: 'wrap', overflow: 'visible', borderBottom: 'none' }}>
+                  {distinctAreas.map((area) => (
+                    <span key={area} className="roc-chip" style={{ cursor: 'default' }}>
+                      {area}
+                    </span>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Sticky Modal Action Footer */}
-            <div className="admin-modal-footer">
+            <div className="roc-mf">
               <button
                 type="button"
-                className="admin-touch-target admin-footer-left"
-                onClick={() => handleRevoke(selectedVerifItem)}
-                style={{
-                  background: 'none',
-                  color: '#BE123C',
-                  border: '1px solid #FECDD3',
-                  padding: '10px 14px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  minHeight: '44px'
-                }}
+                className="roc-btn b-pri"
+                onClick={() => setIsAreaModalOpen(false)}
               >
-                <Ban size={14} />
-                <span>Revoke</span>
-              </button>
-
-              <button
-                type="button"
-                className="admin-touch-target"
-                onClick={() => handleRequestChanges(selectedVerifItem)}
-                style={{
-                  backgroundColor: '#FFFBEB',
-                  color: '#B45309',
-                  border: '1.5px solid #FDE68A',
-                  padding: '10px 18px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  minHeight: '44px'
-                }}
-              >
-                <MessageSquare size={15} />
-                <span>Request changes</span>
-              </button>
-
-              <button
-                type="button"
-                className="admin-touch-target"
-                onClick={() => handleApproveVerificationAction(selectedVerifItem)}
-                style={{
-                  backgroundColor: '#047857',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  padding: '10px 22px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(4, 120, 87, 0.25)',
-                  minHeight: '44px'
-                }}
-              >
-                <ShieldCheck size={16} />
-                <span>Approve verified badge</span>
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* -------------------------------------------------------------
-          CONTACT LISTER MODAL (FR-6.4 Dispute Resolution)
-         ------------------------------------------------------------- */}
-      {contactingReportItem && (
-        <div className="admin-modal-overlay">
-          <div
-            className="admin-modal-backdrop"
-            onClick={() => setContactingReportItem(null)}
-          />
-          <div className="admin-modal-card">
-            <div className="admin-modal-header">
-              <div>
-                <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#000052' }}>
-                  Contact Lister for Dispute Audit
-                </h3>
-                <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                  Report REF: {contactingReportItem.id} · {contactingReportItem.reason}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="admin-modal-close-btn"
-                onClick={() => setContactingReportItem(null)}
-                aria-label="Close dialogue"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="admin-modal-body">
-              <div style={{ backgroundColor: '#F8FAFC', padding: '14px', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '18px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>
-                  {contactingReportItem.listingTitle}
-                </div>
-                <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '10px' }}>
-                  Lister: <strong>{contactingReportItem.listerName}</strong> · {contactingReportItem.listingArea}
-                </div>
-                <div style={{ fontSize: '12.5px', color: '#991B1B', backgroundColor: '#FEF2F2', padding: '8px 10px', borderRadius: '6px', border: '1px solid #FECACA' }}>
-                  Dispute: "{contactingReportItem.details}"
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '18px' }}>
-                <a
-                  href={`tel:${contactingReportItem.listerPhone || '+2348000000000'}`}
-                  className="admin-touch-target"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    backgroundColor: '#000052',
-                    color: '#FFFFFF',
-                    padding: '11px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    minHeight: '44px'
-                  }}
-                >
-                  <Phone size={15} />
-                  <span>Call Lister ({contactingReportItem.listerPhone || 'Call'})</span>
-                </a>
-
-                <a
-                  href={`https://wa.me/${(contactingReportItem.listerPhone || '').replace(/[^0-9]/g, '')}?text=Hello%20from%20Rentivo%20Admin%20regarding%20${encodeURIComponent(contactingReportItem.listingTitle)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="admin-touch-target"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    backgroundColor: '#16794A',
-                    color: '#FFFFFF',
-                    padding: '11px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    minHeight: '44px'
-                  }}
-                >
-                  <MessageSquare size={15} />
-                  <span>WhatsApp Audit</span>
-                </a>
-              </div>
-            </div>
-
-            <div className="admin-modal-footer">
-              <button
-                type="button"
-                className="admin-touch-target"
-                onClick={() => {
-                  reportsService.updateReportStatus(contactingReportItem.id, 'investigating');
-                  setReports(reportsService.getReports());
-                  setContactingReportItem(null);
-                  showToast('Marked report as Under Investigation.');
-                }}
-                style={{
-                  backgroundColor: '#EFF6FF',
-                  border: '1px solid #BFDBFE',
-                  color: '#1E40AF',
-                  padding: '8px 14px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  minHeight: '44px'
-                }}
-              >
-                Mark Investigating
-              </button>
-
-              <button
-                type="button"
-                className="admin-touch-target"
-                onClick={() => {
-                  reportsService.updateReportStatus(contactingReportItem.id, 'resolved');
-                  setReports(reportsService.getReports());
-                  setContactingReportItem(null);
-                  showToast('Dispute resolved.');
-                }}
-                style={{
-                  backgroundColor: '#ECFDF5',
-                  border: '1px solid #A7F3D0',
-                  color: '#065F46',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  minHeight: '44px'
-                }}
-              >
-                Resolve &amp; Close Dispute
+                Done
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* -------------------------------------------------------------
-          LOCATION MANAGEMENT MODAL (FR-7.6 Multi-City Expansion)
-         ------------------------------------------------------------- */}
-      {/* -------------------------------------------------------------
-          MODAL 1: REGISTER EXPANSION CITY MODAL (FR-7.6)
-         ------------------------------------------------------------- */}
-      {isAddCityModalOpen && (
-        <div className="admin-modal-overlay">
-          <div
-            className="admin-modal-backdrop"
-            onClick={() => setIsAddCityModalOpen(false)}
-          />
-          <div className="admin-modal-card">
-            <div className="admin-modal-header">
+      {/* 2. Payment Details & Receipt Modal */}
+      {selectedPaymentDetail && (
+        <div className="roc-ov" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title">
+          <div className="roc-scrim" onClick={() => setSelectedPaymentDetail(null)} />
+          <div className="roc-sheet">
+            <div className="roc-mh">
+              <span className="roc-mi">
+                <CreditCard size={22} />
+              </span>
               <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#000052' }}>
-                  Register Expansion City
-                </h3>
-                <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#64748B' }}>
-                  Stage new metropolitan regions for Rentivo's multi-city expansion.
-                </p>
+                <h2 id="pay-modal-title">Payment {selectedPaymentDetail.reference}</h2>
+                <p>{selectedPaymentDetail.listingTitle || 'Verified Property Access Fee'}</p>
               </div>
               <button
                 type="button"
-                className="admin-modal-close-btn"
-                onClick={() => setIsAddCityModalOpen(false)}
-                aria-label="Close dialogue"
+                className="roc-icon-btn"
+                onClick={() => setSelectedPaymentDetail(null)}
+                aria-label="Close"
+                style={{ marginLeft: 'auto' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="admin-modal-body">
-              <form id="register-city-form" onSubmit={handleRegisterCity} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>
-                    City Name <span style={{ color: '#DC2626' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Lagos, Abeokuta, Port Harcourt"
-                    value={newCityName}
-                    onChange={(e) => setNewCityName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      minHeight: '42px',
-                      height: '42px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      padding: '0 12px',
-                      fontSize: '13px',
-                      color: '#000052',
-                      boxSizing: 'border-box'
-                    }}
-                  />
+            <div className="roc-mb">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <div className="roc-fact">
+                  <small>Renter</small>
+                  <b>{selectedPaymentDetail.renterName || selectedPaymentDetail.renterEmail}</b>
                 </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>
-                    State <span style={{ color: '#DC2626' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Lagos, Ogun, Rivers"
-                    value={newCityState}
-                    onChange={(e) => setNewCityState(e.target.value)}
-                    style={{
-                      width: '100%',
-                      minHeight: '42px',
-                      height: '42px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      padding: '0 12px',
-                      fontSize: '13px',
-                      color: '#000052',
-                      boxSizing: 'border-box'
-                    }}
-                  />
+                <div className="roc-fact">
+                  <small>Fee</small>
+                  <b className="roc-num">₦{formatNaira(selectedPaymentDetail.amount)}</b>
                 </div>
+                <div className="roc-fact">
+                  <small>Channel</small>
+                  <b>{selectedPaymentDetail.channel ? `Paystack (${selectedPaymentDetail.channel})` : 'Card payment'}</b>
+                </div>
+              </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>
-                    Initial Neighborhoods (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Ikeja, Lekki, Victoria Island (comma-separated)"
-                    value={newCityInitialAreas}
-                    onChange={(e) => setNewCityInitialAreas(e.target.value)}
-                    style={{
-                      width: '100%',
-                      minHeight: '42px',
-                      height: '42px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      padding: '0 12px',
-                      fontSize: '13px',
-                      color: '#000052',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  <span style={{ fontSize: '11px', color: '#64748B', marginTop: '3px', display: 'block' }}>
-                    Separate multiple neighborhoods with commas.
+              <ol className="roc-steps">
+                <li className="done">
+                  <span className="d">
+                    <Check size={13} />
                   </span>
-                </div>
+                  <div>
+                    <b>Renter paid access fee</b>
+                    <span>{new Date(selectedPaymentDetail.createdAt).toLocaleString()}</span>
+                  </div>
+                </li>
+                <li className={selectedPaymentDetail.status === 'success' ? 'done' : ''}>
+                  <span className="d">{selectedPaymentDetail.status === 'success' ? <Check size={13} /> : ''}</span>
+                  <div>
+                    <b>Availability confirmed</b>
+                    <span>Lister contacted to confirm property is vacant and available</span>
+                  </div>
+                </li>
+                <li className={selectedPaymentDetail.status === 'success' ? 'done' : ''}>
+                  <span className="d">{selectedPaymentDetail.status === 'success' ? <Check size={13} /> : ''}</span>
+                  <div>
+                    <b>Contact shared</b>
+                    <span>Renter unlocks landlord direct phone &amp; exact geolocation</span>
+                  </div>
+                </li>
+              </ol>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                  <input
-                    type="checkbox"
-                    id="activate-city-now"
-                    checked={newCityIsActive}
-                    onChange={(e) => setNewCityIsActive(e.target.checked)}
-                    style={{ cursor: 'pointer', width: '18px', height: '18px' }}
-                  />
-                  <label htmlFor="activate-city-now" style={{ fontSize: '12.5px', fontWeight: 600, color: '#000052', cursor: 'pointer' }}>
-                    Activate immediately for live operations (uncheck to stage for Phase 2 rollout)
-                  </label>
+              {selectedPaymentDetail.status === 'refunded' && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '12px',
+                    padding: '14px',
+                    borderRadius: '16px',
+                    backgroundColor: 'var(--bad-bg)',
+                    color: 'var(--bad)',
+                    fontSize: '13.5px',
+                    fontWeight: 600
+                  }}
+                >
+                  <AlertTriangle size={20} />
+                  <div>Refund issued to seeker because listing was unavailable or cancelled.</div>
                 </div>
-              </form>
+              )}
             </div>
 
-            <div className="admin-modal-footer">
+            <div className="roc-mf">
               <button
                 type="button"
-                className="admin-touch-target"
-                onClick={() => setIsAddCityModalOpen(false)}
-                style={{
-                  backgroundColor: '#F1F5F9',
-                  border: '1px solid #CBD5E1',
-                  color: '#475569',
-                  borderRadius: '8px',
-                  padding: '9px 16px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  minHeight: '44px'
-                }}
+                className="roc-btn b-sec lft"
+                onClick={() => setSelectedPaymentDetail(null)}
               >
-                Cancel
+                Close
               </button>
-
-              <button
-                type="submit"
-                form="register-city-form"
-                disabled={isSubmittingCity}
-                className="admin-touch-target"
-                style={{
-                  backgroundColor: '#000052',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '9px 20px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: isSubmittingCity ? 'wait' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  minHeight: '44px'
-                }}
-              >
-                <Plus size={15} />
-                <span>{isSubmittingCity ? 'Registering...' : 'Register City'}</span>
-              </button>
+              {selectedPaymentDetail.status !== 'refunded' && (
+                <button
+                  type="button"
+                  className="roc-btn b-sec"
+                  onClick={() => {
+                    setRefundConfirmPayment(selectedPaymentDetail);
+                    setSelectedPaymentDetail(null);
+                  }}
+                >
+                  Refund fee
+                </button>
+              )}
+              {selectedPaymentDetail.status !== 'success' && (
+                <button
+                  type="button"
+                  className="roc-btn b-pri"
+                  onClick={async () => {
+                    showToast('Availability confirmed. Contact unlocked for renter.');
+                    setSelectedPaymentDetail(null);
+                  }}
+                >
+                  Confirm available
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* -------------------------------------------------------------
-          MODAL 2: EDIT CITY DETAILS MODAL
-         ------------------------------------------------------------- */}
-      {editingCity && (
-        <div className="admin-modal-overlay">
-          <div
-            className="admin-modal-backdrop"
-            onClick={() => setEditingCity(null)}
-          />
-          <div className="admin-modal-card">
-            <div className="admin-modal-header">
+      {/* 3. Verification Reality Audit Modal */}
+      <VerificationDetailModal
+        isOpen={isVerifModalOpen}
+        item={selectedVerifItem}
+        listings={listings}
+        onClose={handleCloseVerifModal}
+        onApprove={handleApproveVerificationBadge}
+        onRequestChanges={handleRequestChanges}
+        onRevoke={handleRevokeVerification}
+        showToast={showToast}
+      />
+
+      {/* 4. Listing Moderation Modal */}
+      <ListingModerationModal
+        isOpen={isListingModalOpen}
+        listing={selectedListingItem}
+        onClose={() => setIsListingModalOpen(false)}
+        onApprove={handleApproveListing}
+        onReject={handleRejectListing}
+      />
+
+      {/* 5. Escalation Detail Modal */}
+      <EscalationDetailModal
+        isOpen={isEscalationModalOpen}
+        escalation={selectedEscalation}
+        onClose={() => setIsEscalationModalOpen(false)}
+        onConfirmAvailable={handleConfirmEscalationAvailable}
+        onMarkUnavailable={handleMarkEscalationUnavailable}
+        onDelistProperty={handleDelistEscalationProperty}
+      />
+
+      {/* 6. Admin Invite Modal */}
+      <AdminInviteModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        onInviteSent={async () => {
+          await loadTeamData();
+          showToast('Invitation generated successfully!');
+        }}
+        showToast={showToast}
+      />
+
+      {/* 7. Paystack Refund Confirmation Dialog */}
+      {refundConfirmPayment && (
+        <div className="roc-ov" role="dialog" aria-modal="true" aria-labelledby="refund-modal-title">
+          <div className="roc-scrim" onClick={() => !isProcessingRefund && setRefundConfirmPayment(null)} />
+          <div className="roc-sheet">
+            <div className="roc-mh">
+              <span className="roc-mi bad">
+                <AlertTriangle size={22} />
+              </span>
               <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#000052' }}>
-                  Edit City: {editingCity.name}
-                </h3>
-                <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#64748B' }}>
-                  Update city metadata and operational state
+                <h2 id="refund-modal-title">Issue Paystack Refund?</h2>
+                <p>
+                  Refund <strong>₦{formatNaira(refundConfirmPayment.amount)}</strong> to {refundConfirmPayment.renterName || refundConfirmPayment.renterEmail}.
                 </p>
               </div>
               <button
                 type="button"
-                className="admin-modal-close-btn"
-                onClick={() => setEditingCity(null)}
-                aria-label="Close dialogue"
+                className="roc-icon-btn"
+                onClick={() => setRefundConfirmPayment(null)}
+                aria-label="Close"
+                style={{ marginLeft: 'auto' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="admin-modal-body">
-              <form id="edit-city-form" onSubmit={handleSaveEditCity} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>
-                    City Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editCityName}
-                    onChange={(e) => setEditCityName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      minHeight: '42px',
-                      height: '42px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      padding: '0 12px',
-                      fontSize: '13px',
-                      color: '#000052',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '4px' }}>
-                    State
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editCityState}
-                    onChange={(e) => setEditCityState(e.target.value)}
-                    style={{
-                      width: '100%',
-                      minHeight: '42px',
-                      height: '42px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      padding: '0 12px',
-                      fontSize: '13px',
-                      color: '#000052',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                  <input
-                    type="checkbox"
-                    id="edit-city-active"
-                    checked={editCityIsActive}
-                    onChange={(e) => setEditCityIsActive(e.target.checked)}
-                    style={{ cursor: 'pointer', width: '18px', height: '18px' }}
-                  />
-                  <label htmlFor="edit-city-active" style={{ fontSize: '12.5px', fontWeight: 600, color: '#000052', cursor: 'pointer' }}>
-                    Active for Marketplace Operations
-                  </label>
-                </div>
-              </form>
+            <div className="roc-mb">
+              <div className="roc-fld">
+                <label htmlFor="ref-rs">Refund Reason / Audit Note</label>
+                <textarea
+                  id="ref-rs"
+                  rows={2}
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="admin-modal-footer">
+            <div className="roc-mf">
               <button
                 type="button"
-                className="admin-touch-target"
-                onClick={() => setEditingCity(null)}
-                style={{
-                  backgroundColor: '#F1F5F9',
-                  border: '1px solid #CBD5E1',
-                  color: '#475569',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  minHeight: '44px'
-                }}
+                className="roc-btn b-sec lft"
+                onClick={() => setRefundConfirmPayment(null)}
+                disabled={isProcessingRefund}
               >
                 Cancel
               </button>
-
               <button
-                type="submit"
-                form="edit-city-form"
-                className="admin-touch-target"
-                style={{
-                  backgroundColor: '#000052',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 18px',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  minHeight: '44px'
-                }}
+                type="button"
+                className="roc-btn b-bad"
+                onClick={() => handleProcessRefund(refundConfirmPayment)}
+                disabled={isProcessingRefund}
               >
-                Save Changes
+                {isProcessingRefund ? 'Refunding…' : 'Confirm Refund'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* -------------------------------------------------------------
-          MODAL 3: RELATIONAL DELETION CONFIRMATION & SAFETY MODAL
-         ------------------------------------------------------------- */}
-      {deleteConfirmation && (
-        <div className="admin-modal-overlay">
-          <div
-            className="admin-modal-backdrop"
-            onClick={() => setDeleteConfirmation(null)}
-          />
-          <div className="admin-modal-card">
-            <div className="admin-modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '50%',
-                  backgroundColor: deleteConfirmation.hasListings ? '#FEF2F2' : '#FFF1F2',
+      {/* 8. Revoke Invitation Confirmation Dialog */}
+      {revokeConfirmInvite && (
+        <div className="roc-ov" role="dialog" aria-modal="true" aria-labelledby="revoke-modal-title">
+          <div className="roc-scrim" onClick={() => setRevokeConfirmInvite(null)} />
+          <div className="roc-sheet">
+            <div className="roc-mh">
+              <span className="roc-mi bad">
+                <AlertTriangle size={22} />
+              </span>
+              <div>
+                <h2 id="revoke-modal-title">Cancel this invite?</h2>
+                <p>{revokeConfirmInvite.email}</p>
+              </div>
+              <button
+                type="button"
+                className="roc-icon-btn"
+                onClick={() => setRevokeConfirmInvite(null)}
+                aria-label="Close"
+                style={{ marginLeft: 'auto' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="roc-mb">
+              <div
+                style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#DC2626',
-                  flexShrink: 0
-                }}>
-                  <AlertTriangle size={20} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#000052' }}>
-                    {deleteConfirmation.hasListings ? 'Relational Constraint Warning' : `Confirm Deleting ${deleteConfirmation.type === 'city' ? 'City' : 'Neighborhood'}`}
-                  </h3>
-                  <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                    Target: {deleteConfirmation.name} {deleteConfirmation.cityName ? `(${deleteConfirmation.cityName})` : ''}
-                  </div>
-                </div>
+                  gap: '12px',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  backgroundColor: 'var(--bad-bg)',
+                  color: 'var(--bad)',
+                  fontSize: '13.5px',
+                  fontWeight: 600
+                }}
+              >
+                <AlertTriangle size={20} />
+                <div>The invite link stops working straight away.</div>
+              </div>
+            </div>
+
+            <div className="roc-mf">
+              <button
+                type="button"
+                className="roc-btn b-sec lft"
+                onClick={() => setRevokeConfirmInvite(null)}
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                className="roc-btn b-bad"
+                onClick={() => handleRevokeInvitation(revokeConfirmInvite)}
+              >
+                Cancel invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 9. Remove Admin Confirmation Dialog */}
+      {removeConfirmAdmin && (
+        <div className="roc-ov" role="dialog" aria-modal="true" aria-labelledby="remove-admin-title">
+          <div className="roc-scrim" onClick={() => setRemoveConfirmAdmin(null)} />
+          <div className="roc-sheet">
+            <div className="roc-mh">
+              <span className="roc-mi bad">
+                <AlertTriangle size={22} />
+              </span>
+              <div>
+                <h2 id="remove-admin-title">Revoke access?</h2>
+                <p>{removeConfirmAdmin.email}</p>
               </div>
               <button
                 type="button"
-                className="admin-modal-close-btn"
-                onClick={() => setDeleteConfirmation(null)}
-                aria-label="Close dialogue"
+                className="roc-icon-btn"
+                onClick={() => setRemoveConfirmAdmin(null)}
+                aria-label="Close"
+                style={{ marginLeft: 'auto' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="admin-modal-body">
-              {deleteConfirmation.hasListings ? (
-                <div style={{ marginBottom: '20px' }}>
-                  <div style={{
-                    padding: '12px 14px',
-                    backgroundColor: '#FEF2F2',
-                    border: '1px solid #FECACA',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    color: '#991B1B',
-                    lineHeight: 1.5,
-                    marginBottom: '12px'
-                  }}>
-                    <strong>Cannot permanently delete:</strong> There {deleteConfirmation.listingCount === 1 ? 'is' : 'are'} <strong>{deleteConfirmation.listingCount} active listing{deleteConfirmation.listingCount === 1 ? '' : 's'}</strong> linked to this {deleteConfirmation.type}. Deleting it would orphan those listings.
-                  </div>
-                  <p style={{ margin: 0, fontSize: '12.5px', color: '#475569', lineHeight: 1.5 }}>
-                    <strong>Recommended Action:</strong> Deactivate this {deleteConfirmation.type} instead. This hides it from tenant search filters and new listing submissions while preserving historical integrity.
-                  </p>
+            <div className="roc-mb">
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  backgroundColor: 'var(--bad-bg)',
+                  color: 'var(--bad)',
+                  fontSize: '13.5px',
+                  fontWeight: 600
+                }}
+              >
+                <AlertTriangle size={20} />
+                <div>
+                  {removeConfirmAdmin.name || removeConfirmAdmin.email} is signed out and cannot open the admin again. Past actions stay in the log.
                 </div>
-              ) : (
-                <div style={{ marginBottom: '20px' }}>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#334155', lineHeight: 1.5 }}>
-                    Are you sure you want to permanently delete <strong>"{deleteConfirmation.name}"</strong>? Since zero listings reference this {deleteConfirmation.type}, it can be safely removed.
-                  </p>
-                </div>
-              )}
+              </div>
             </div>
 
-            <div className="admin-modal-footer">
+            <div className="roc-mf">
               <button
                 type="button"
-                className="admin-touch-target"
-                onClick={() => setDeleteConfirmation(null)}
-                style={{
-                  backgroundColor: '#F1F5F9',
-                  border: '1px solid #CBD5E1',
-                  color: '#475569',
-                  borderRadius: '8px',
-                  padding: '9px 16px',
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  minHeight: '44px'
-                }}
+                className="roc-btn b-sec lft"
+                onClick={() => setRemoveConfirmAdmin(null)}
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                className="roc-btn b-bad"
+                onClick={() => handleRemoveAdmin(removeConfirmAdmin)}
+              >
+                Revoke access
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lister Inspection Detail Modal */}
+      {selectedListerModal && (
+        <div className="roc-ov" role="dialog" aria-modal="true">
+          <div className="roc-scrim" onClick={() => setSelectedListerModal(null)} />
+          <div className="roc-sheet" style={{ maxWidth: '640px', width: '100%' }}>
+            <div className="roc-mh">
+              <span className="roc-mi ok">
+                <UserCheck size={22} />
+              </span>
+              <div>
+                <h2>{selectedListerModal.userName || 'Lister Application'}</h2>
+                <p>{selectedListerModal.userEmail || 'Lister Onboarding Dossier'}</p>
+              </div>
+              <button
+                type="button"
+                className="roc-icon-btn"
+                onClick={() => setSelectedListerModal(null)}
+                style={{ marginLeft: 'auto' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="roc-mb" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '12px 16px', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                <div>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#5C5C85', fontWeight: 700 }}>Current Status</span>
+                  <div style={{ fontWeight: 800, color: '#000052', fontSize: '1rem', marginTop: '2px' }}>
+                    {selectedListerModal.status === 'approved' ? '✓ Approved to Post Properties' : selectedListerModal.status === 'rejected' ? '✗ Application Rejected' : '⏳ Pending Review'}
+                  </div>
+                </div>
+                <span className={`roc-pill ${selectedListerModal.status === 'approved' ? 'p-ok' : selectedListerModal.status === 'rejected' ? 'p-bad' : 'p-warn'}`}>
+                  {selectedListerModal.status}
+                </span>
+              </div>
+
+              {selectedListerModal.rejectionReason && (
+                <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', padding: '12px 16px', borderRadius: '12px', color: '#991B1B', fontSize: '13px' }}>
+                  <strong>Rejection Reason:</strong> {selectedListerModal.rejectionReason}
+                </div>
+              )}
+
+              {/* Bank Verification Section */}
+              <div style={{ border: '1px solid #E2E8F0', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <strong style={{ fontSize: '13.5px', color: '#000052', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CreditCard size={16} color="#6B2FD6" />
+                  Bank Identity & Account Verification
+                </strong>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px' }}>
+                  <div>
+                    <span style={{ color: '#5C5C85', display: 'block', fontSize: '11.5px' }}>Bank Name</span>
+                    <strong>{selectedListerModal.bankName}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#5C5C85', display: 'block', fontSize: '11.5px' }}>NUBAN Account</span>
+                    <strong>{selectedListerModal.accountNumber}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#5C5C85', display: 'block', fontSize: '11.5px' }}>Name from Bank</span>
+                    <strong style={{ color: '#6B2FD6' }}>{selectedListerModal.accountName || 'Verified'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#5C5C85', display: 'block', fontSize: '11.5px' }}>Match Result</span>
+                    <span style={{ color: '#0B6B4B', fontWeight: 700 }}>✓ Bank Name Matched</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location & Contact Section */}
+              <div style={{ border: '1px solid #E2E8F0', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <strong style={{ fontSize: '13.5px', color: '#000052', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <MapPin size={16} color="#000052" />
+                  Ibadan Residence & Contact Details
+                </strong>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px' }}>
+                  <div>
+                    <span style={{ color: '#5C5C85', display: 'block', fontSize: '11.5px' }}>Phone Number (Brevo Verified)</span>
+                    <strong>{selectedListerModal.phone}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#5C5C85', display: 'block', fontSize: '11.5px' }}>WhatsApp Number</span>
+                    <strong>{selectedListerModal.whatsapp || selectedListerModal.phone}</strong>
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ color: '#5C5C85', display: 'block', fontSize: '11.5px' }}>Residential Address</span>
+                    <strong>{selectedListerModal.residentialAddress?.street}, {selectedListerModal.residentialAddress?.area}, Ibadan</strong>
+                    {selectedListerModal.residentialAddress?.landmark && (
+                      <div style={{ fontSize: '12px', color: '#5C5C85', marginTop: '2px' }}>
+                        Landmark: {selectedListerModal.residentialAddress.landmark}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right to Let Document Section */}
+              <div style={{ border: '1px solid #E2E8F0', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <strong style={{ fontSize: '13.5px', color: '#000052', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileText size={16} color="#000052" />
+                  Right to Let Authority & Proof
+                </strong>
+                <div style={{ fontSize: '13px' }}>
+                  <div>
+                    <span style={{ color: '#5C5C85', display: 'block', fontSize: '11.5px' }}>Declared Role</span>
+                    <strong style={{ textTransform: 'capitalize' }}>
+                      {selectedListerModal.role === 'owner' ? 'Property Owner / Landlord' : selectedListerModal.role === 'agent' ? 'Licensed Agent' : 'Representative'}
+                    </strong>
+                  </div>
+                  <div style={{ marginTop: '8px' }}>
+                    <span style={{ color: '#5C5C85', display: 'block', fontSize: '11.5px' }}>Utility Bill / Reference</span>
+                    <strong>{selectedListerModal.utilityBill?.billType} (Ref: {selectedListerModal.utilityBill?.referenceNumber || 'N/A'})</strong>
+                  </div>
+                  {selectedListerModal.utilityBill?.documentUrl && (
+                    <div style={{ marginTop: '10px' }}>
+                      <div style={{ fontSize: '11.5px', color: '#5C5C85', marginBottom: '6px' }}>
+                        Document: <strong>{selectedListerModal.utilityBill?.documentName || 'Utility Bill / Tenancy Receipt'}</strong>
+                        {selectedListerModal.utilityBill?.documentUrl.includes('imagekit.io') && (
+                          <span style={{ marginLeft: '8px', background: '#F4ECFF', color: '#6B2FD6', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '10.5px' }}>
+                            ImageKit Cloud
+                          </span>
+                        )}
+                      </div>
+                      <a
+                        href={selectedListerModal.utilityBill.documentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="roc-btn b-sec b-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <ExternalLink size={14} />
+                        View Document on ImageKit Cloud
+                      </a>
+                    </div>
+                  )}
+                  {selectedListerModal.isFamilyProperty && (
+                    <div style={{ marginTop: '10px', background: '#FFFBEB', padding: '10px 12px', borderRadius: '8px', fontSize: '12px', color: '#92400E' }}>
+                      <strong>Family Property Declared:</strong> Family Head: {selectedListerModal.familyHeadName || 'Not specified'} (Phone: {selectedListerModal.familyHeadPhone || 'N/A'})
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="roc-mf">
+              <button
+                type="button"
+                className="roc-btn b-sec"
+                onClick={() => setSelectedListerModal(null)}
+              >
+                Close
+              </button>
+              {selectedListerModal.status !== 'rejected' && (
+                <button
+                  type="button"
+                  className="roc-btn b-bad"
+                  onClick={() => {
+                    setListerToReject(selectedListerModal);
+                    setRejectionReasonInput('');
+                  }}
+                >
+                  Reject Application
+                </button>
+              )}
+              {selectedListerModal.status !== 'approved' && (
+                <button
+                  type="button"
+                  className="roc-btn b-pri"
+                  style={{ background: '#0B6B4B', borderColor: '#0B6B4B' }}
+                  onClick={() => handleApproveLister(selectedListerModal.userId)}
+                >
+                  Approve Lister & Unlock Posting
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Confirmation Dialog */}
+      {listerToReject && (
+        <div className="roc-ov" role="dialog" aria-modal="true">
+          <div className="roc-scrim" onClick={() => setListerToReject(null)} />
+          <div className="roc-sheet" style={{ maxWidth: '480px' }}>
+            <div className="roc-mh">
+              <span className="roc-mi bad">
+                <AlertTriangle size={22} />
+              </span>
+              <div>
+                <h2>Reject Lister Application?</h2>
+                <p>{listerToReject.userName || listerToReject.userEmail}</p>
+              </div>
+              <button
+                type="button"
+                className="roc-icon-btn"
+                onClick={() => setListerToReject(null)}
+                style={{ marginLeft: 'auto' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="roc-mb">
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#000052', marginBottom: '8px' }}>
+                Reason for Rejection (Visible to Lister):
+              </label>
+              <textarea
+                className="roc-input"
+                rows={3}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '10px', border: '1px solid #CBD5E1', fontFamily: 'inherit', fontSize: '13px' }}
+                placeholder="e.g. Account name does not match ID, or uploaded utility bill is illegible."
+                value={rejectionReasonInput}
+                onChange={(e) => setRejectionReasonInput(e.target.value)}
+              />
+            </div>
+
+            <div className="roc-mf">
+              <button
+                type="button"
+                className="roc-btn b-sec"
+                onClick={() => setListerToReject(null)}
               >
                 Cancel
               </button>
-
-              {deleteConfirmation.hasListings ? (
-                <button
-                  type="button"
-                  className="admin-touch-target"
-                  onClick={handleDeactivateInstead}
-                  style={{
-                    backgroundColor: '#D97706',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '9px 18px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    minHeight: '44px'
-                  }}
-                >
-                  Deactivate Location Instead
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="admin-touch-target"
-                  onClick={deleteConfirmation.type === 'city' ? handleConfirmDeleteCity : handleConfirmDeleteArea}
-                  style={{
-                    backgroundColor: '#DC2626',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '9px 18px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    minHeight: '44px'
-                  }}
-                >
-                  Permanently Delete
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* -------------------------------------------------------------
-          MODAL 4: QUICK LOCATIONS MODAL (SYNCED OVERVIEW MODAL)
-         ------------------------------------------------------------- */}
-      {isLocationModalOpen && (
-        <div className="admin-modal-overlay">
-          <div
-            className="admin-modal-backdrop"
-            onClick={() => setIsLocationModalOpen(false)}
-          />
-          <div className="admin-modal-card admin-modal-card-lg">
-            <div className="admin-modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <MapPin size={22} color="#000052" />
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#000052' }}>
-                    Multi-City Locations &amp; Regional Registry
-                  </h3>
-                  <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
-                    Manage pilot coverage (Ibadan) and Phase 2 expansion cities
-                  </div>
-                </div>
-              </div>
               <button
                 type="button"
-                className="admin-modal-close-btn"
-                onClick={() => setIsLocationModalOpen(false)}
-                aria-label="Close dialogue"
+                className="roc-btn b-bad"
+                onClick={() => handleRejectLister(listerToReject.userId, rejectionReasonInput || 'Information could not be verified by admin.')}
               >
-                <X size={18} />
+                Confirm Rejection
               </button>
-            </div>
-
-            <div className="admin-modal-body">
-              {/* Quick Actions Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
-                <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#000052', textTransform: 'uppercase' }}>
-                  Operational &amp; Pipeline Cities ({allCities.length})
-                </span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsLocationModalOpen(false);
-                      setActiveSection('locations');
-                    }}
-                    style={{
-                      backgroundColor: '#EFF6FF',
-                      border: '1px solid #BFDBFE',
-                      color: '#1E40AF',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
-                      fontSize: '11.5px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      minHeight: '44px'
-                    }}
-                  >
-                    Open Full Locations Tab →
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAddCityModalOpen(true)}
-                    style={{
-                      backgroundColor: '#000052',
-                      border: 'none',
-                      color: '#FFFFFF',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
-                      fontSize: '11.5px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      minHeight: '44px'
-                    }}
-                  >
-                    <Plus size={13} />
-                    <span>New City</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Cities Cards */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '22px' }}>
-                {allCities.map(city => {
-                  const attachedCount = listings.filter(l => l.city.toLowerCase() === city.name.toLowerCase()).length;
-                  return (
-                    <div
-                      key={city.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '12px 14px',
-                        borderRadius: '10px',
-                        border: '1px solid #E2E8F0',
-                        backgroundColor: city.isPilot ? '#F8FAFF' : '#FFFFFF',
-                        flexWrap: 'wrap',
-                        gap: '10px'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#000052', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span>{city.name}, {city.state} State</span>
-                          {city.isPilot && (
-                            <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: '#000052', color: '#FFFFFF', padding: '1px 6px', borderRadius: '4px' }}>
-                              Pilot
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '2px' }}>
-                          {city.areas.length} neighborhoods · {attachedCount} active listings
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          backgroundColor: city.isActive ? '#ECFDF5' : '#FEF3C7',
-                          color: city.isActive ? '#065F46' : '#92400E',
-                          padding: '2px 8px',
-                          borderRadius: '12px'
-                        }}>
-                          {city.isActive ? 'Active' : 'Staged'}
-                        </span>
-
-                        <button
-                          type="button"
-                          onClick={() => handleToggleCityStatus(city)}
-                          style={{
-                            backgroundColor: '#F1F5F9',
-                            border: '1px solid #CBD5E1',
-                            color: '#334155',
-                            borderRadius: '6px',
-                            padding: '6px 10px',
-                            fontSize: '11px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            minHeight: '44px'
-                          }}
-                        >
-                          {city.isActive ? 'Stage' : 'Activate'}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedLocationCity(city.name);
-                            setNewAreaCity(city.name);
-                            setIsLocationModalOpen(false);
-                            setActiveSection('locations');
-                          }}
-                          style={{
-                            backgroundColor: '#000052',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            minHeight: '44px'
-                          }}
-                        >
-                          Manage Areas
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Quick Add Area Form */}
-              <div style={{ backgroundColor: '#F8FAFC', padding: '16px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-                <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#000052', marginBottom: '10px' }}>
-                  Quick Add Neighborhood to City
-                </div>
-                <form onSubmit={handleAddAreaToCity} className="admin-modal-quick-add-form">
-                  <select
-                    value={newAreaCity}
-                    onChange={(e) => setNewAreaCity(e.target.value)}
-                    style={{
-                      height: '44px',
-                      minHeight: '44px',
-                      borderRadius: '6px',
-                      border: '1px solid #CBD5E1',
-                      padding: '0 10px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: '#000052',
-                      backgroundColor: '#FFFFFF'
-                    }}
-                  >
-                    {allCities.map(c => (
-                      <option key={c.id} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
-
-                  <input
-                    type="text"
-                    required
-                    value={newAreaName}
-                    onChange={(e) => setNewAreaName(e.target.value)}
-                    placeholder="e.g. Alalubosa GRA, Ikolaba..."
-                    style={{
-                      flex: 1,
-                      height: '44px',
-                      minHeight: '44px',
-                      borderRadius: '6px',
-                      border: '1px solid #CBD5E1',
-                      padding: '0 12px',
-                      fontSize: '13px',
-                      outline: 'none'
-                    }}
-                  />
-
-                  <button
-                    type="submit"
-                    disabled={isSubmittingArea || !newAreaName.trim()}
-                    style={{
-                      backgroundColor: '#000052',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '0 16px',
-                      height: '44px',
-                      minHeight: '44px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      cursor: isSubmittingArea ? 'wait' : 'pointer'
-                    }}
-                  >
-                    Add Area
-                  </button>
-                </form>
-              </div>
             </div>
           </div>
         </div>
       )}
-      {adminToast && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          backgroundColor: '#000052',
-          color: '#FFFFFF',
-          padding: '12px 20px',
-          borderRadius: '10px',
-          boxShadow: '0 10px 25px rgba(0, 0, 82, 0.2)',
-          fontSize: '13px',
-          fontWeight: 600,
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <CheckCircle2 size={16} color="#BE89FF" />
-          <span>{adminToast}</span>
-        </div>
-      )}
 
+      {/* =============================================================
+          10. FLOATING TOAST NOTIFICATION
+         ============================================================= */}
+      <div className={`roc-toast ${adminToast ? 'on' : ''}`} role="status">
+        {adminToast}
+      </div>
     </div>
   );
 };
+
+export default AdminQueuePage;

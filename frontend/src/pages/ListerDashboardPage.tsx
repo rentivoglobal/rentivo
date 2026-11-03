@@ -23,7 +23,9 @@ import {
   Lock,
   Bell,
   Save,
-  ExternalLink
+  ExternalLink,
+  MessageCircle,
+  Zap
 } from 'lucide-react';
 import '../styles/lister.css';
 import { Listing } from '../types';
@@ -33,6 +35,9 @@ import { requestsService } from '../services/requestsService';
 import { authService } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
 import { ListerVerificationPage } from './ListerVerificationPage';
+import { useNavigate } from 'react-router-dom';
+import { listerOnboardingService } from '../services/listerOnboardingService';
+import { OnboardingWidget, OnboardingStep } from '../components/ui/OnboardingWidget';
 
 interface ListerDashboardPageProps {
   onListingCreated?: () => void;
@@ -61,6 +66,7 @@ interface ListerInquiry {
   renterEmail: string;
   renterPhone: string;
   renterType?: 'residential' | 'business';
+  notes?: string;
   status: 'needs_response' | 'confirmed' | 'payment_pending' | 'paid' | 'unavailable' | 'escalated';
   submittedAt: string;
   since?: string;
@@ -81,6 +87,69 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
   forcedTab
 }) => {
   const { user, refresh } = useAuth();
+  const navigate = useNavigate();
+  const onboarding = listerOnboardingService.getOnboarding(user?.id);
+  const isOnboardingCompleted = Boolean(onboarding?.completed);
+  const isOnboardingApproved = onboarding?.status === 'approved';
+  const isPendingApproval = Boolean(onboarding?.completed && onboarding?.status === 'pending');
+  const isRejected = onboarding?.status === 'rejected';
+
+  const handleCreateListing = () => {
+    if (!isOnboardingCompleted) {
+      navigate('/onboarding/lister');
+      return;
+    }
+    if (isPendingApproval) {
+      showToast('Your application is pending Admin approval. You will be able to post properties once accepted.');
+      return;
+    }
+    if (isRejected) {
+      navigate('/onboarding/lister');
+      return;
+    }
+    if (!isOnboardingApproved) {
+      navigate('/onboarding/lister');
+      return;
+    }
+    if (onOpenCreateListing) {
+      onOpenCreateListing();
+    }
+  };
+
+  const onboardingWidgetSteps: OnboardingStep[] = useMemo(() => [
+    {
+      id: 'phone',
+      title: 'Confirm Phone & WhatsApp',
+      description: 'Renters and inspectors reach you directly on this number.',
+      isCompleted: Boolean(onboarding?.phone),
+      actionText: 'Verify Phone',
+      onAction: () => navigate('/onboarding/lister')
+    },
+    {
+      id: 'bank',
+      title: 'Match Bank Account Identity',
+      description: 'Proves identity under CBN/NUBAN banking standards.',
+      isCompleted: Boolean(onboarding?.bankMatched),
+      actionText: 'Check Bank',
+      onAction: () => navigate('/onboarding/lister')
+    },
+    {
+      id: 'right_to_let',
+      title: 'Right to Let & Residence',
+      description: 'Certification and residential address in Ibadan.',
+      isCompleted: isOnboardingCompleted,
+      actionText: 'Complete Onboarding',
+      onAction: () => navigate('/onboarding/lister')
+    },
+    {
+      id: 'first_listing',
+      title: 'Post First Listing',
+      description: 'Publish your available room, apartment, flat, or shop.',
+      isCompleted: Boolean(propListings && propListings.length > 0),
+      actionText: 'Post Property',
+      onAction: handleCreateListing
+    }
+  ], [onboarding, isOnboardingCompleted, propListings, navigate]);
   const listerName = user?.name || (user?.email ? user.email.split('@')[0] : 'Property Lister');
   const listerFirstName = listerName.split(' ')[0] || 'Lister';
   const listerInitials = listerName
@@ -253,6 +322,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
             renterEmail: r.renterEmail,
             renterPhone: r.renterPhone,
             renterType: idx % 2 === 1 ? 'business' : 'residential',
+            notes: r.notes || '',
             status: isEscalated
               ? 'escalated'
               : isAwaiting
@@ -632,15 +702,32 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
             </button>
           </nav>
 
-          {/* Top CTA: + Post a listing */}
-          <button
-            type="button"
-            className="btn btn-accent lister-top-cta"
-            onClick={onOpenCreateListing}
-          >
-            <Plus />
-            <span>Post a listing</span>
-          </button>
+          {/* Top Actions: + Post a listing & Profile avatar */}
+          <div className="lister-top-actions">
+            <button
+              type="button"
+              className="btn btn-accent lister-top-cta"
+              onClick={handleCreateListing}
+            >
+              <Plus />
+              <span className="cta-text-full">Post a listing</span>
+              <span className="cta-text-short">Post</span>
+            </button>
+            <button
+              type="button"
+              className="lister-top-avatar"
+              onClick={() => {
+                setActiveTab('profile');
+                if (window.location.pathname.startsWith('/lister')) {
+                  window.history.pushState(null, '', '/lister/account');
+                }
+              }}
+              title="My Account"
+              aria-label="My Account"
+            >
+              {listerInitials}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -649,6 +736,75 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
          ------------------------------------------------------------- */}
       {activeTab === 'home' && (
         <main className="lister-page" id="main">
+          {/* Mandatory Lister Onboarding & Approval Banner */}
+          {!isOnboardingApproved && (
+            <div
+              style={{
+                background: isPendingApproval ? 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)' : isRejected ? 'linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%)' : 'linear-gradient(135deg, #000052 0%, #1a1a70 100%)',
+                color: '#fff',
+                padding: '18px 24px',
+                borderRadius: '16px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 8px 24px rgba(0, 0, 82, 0.12)',
+                flexWrap: 'wrap',
+                gap: '16px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: isPendingApproval ? '#C7D2FE' : isRejected ? '#FECACA' : '#BE89FF',
+                    flexShrink: 0
+                  }}
+                >
+                  {isPendingApproval ? <Clock size={22} /> : isRejected ? <AlertTriangle size={22} /> : <ShieldCheck size={22} />}
+                </div>
+                <div>
+                  <strong style={{ fontSize: '1rem', display: 'block', color: '#fff' }}>
+                    {isPendingApproval
+                      ? 'Application Under Admin Review: Property Posting Locked'
+                      : isRejected
+                      ? 'Verification Rejected by Rentivo Operations'
+                      : 'Mandatory: Complete Lister Onboarding & Verification'}
+                  </strong>
+                  <span style={{ fontSize: '0.86rem', color: '#E0E7FF' }}>
+                    {isPendingApproval
+                      ? 'Your verification details were submitted. An administrator must accept your application before listings can be published.'
+                      : isRejected
+                      ? `Reason: ${onboarding?.rejectionReason || 'Please fix your submitted documents'}. Update your details to request re-review.`
+                      : 'You must verify your bank identity and right to let before you can post properties or accept renter inquiries.'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn"
+                style={{
+                  background: isPendingApproval ? '#818CF8' : isRejected ? '#F87171' : '#BE89FF',
+                  color: '#000038',
+                  fontWeight: 800,
+                  borderRadius: '999px',
+                  padding: '10px 22px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+                onClick={() => navigate('/onboarding/lister')}
+              >
+                {isPendingApproval ? 'View Submission →' : isRejected ? 'Update Application →' : 'Complete Verification Now →'}
+              </button>
+            </div>
+          )}
+
           {/* Greeting Row */}
           <div className="greet-row">
             <div>
@@ -742,6 +898,12 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                   )}
                 </div>
 
+                {/* Rapid Response Speed Nudge */}
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%)', border: '1px solid #f0abfc', borderRadius: '8px', padding: '6px 12px', fontSize: '0.78rem', color: '#7e22ce', fontWeight: 700, marginBottom: '14px' }}>
+                  <Zap size={14} fill="currentColor" />
+                  <span>⚡ Quick Reply: Inquiries confirmed under 30 mins are 4× more likely to secure a verified tenant.</span>
+                </div>
+
                 {pendingRequests.length > 0 ? (
                   <div className="reply-list">
                     {pendingRequests.map((r) => {
@@ -821,23 +983,22 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                           <div className="req-actions">
                             <button
                               type="button"
-                              className="btn btn-success btn-sm"
-                              style={{ flex: 1 }}
+                              className="btn btn-success btn-sm req-btn-confirm"
                               onClick={() => handleConfirmRequest(r.id)}
                             >
                               <Check /> Still available
                             </button>
                             <button
                               type="button"
-                              className="btn btn-danger-quiet btn-sm"
-                              style={{ flex: 1, border: '1.5px solid var(--field-line)' }}
+                              className="btn btn-danger-quiet btn-sm req-btn-deny"
+                              style={{ border: '1.5px solid var(--field-line)' }}
                               onClick={() => handleOpenDenyModal(r)}
                             >
                               <X /> No longer
                             </button>
                             <button
                               type="button"
-                              className="btn btn-outline btn-sm"
+                              className="btn btn-outline btn-sm req-btn-all"
                               onClick={() => setActiveTab('inquiries')}
                               title="Go to requests page"
                             >
@@ -1032,6 +1193,46 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
          ------------------------------------------------------------- */}
       {activeTab === 'listings' && (
         <main className="lister-page">
+          {!isOnboardingCompleted && (
+            <div
+              style={{
+                background: '#FFFBEB',
+                border: '1.5px solid #FDE68A',
+                color: '#92400E',
+                padding: '14px 20px',
+                borderRadius: '14px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <AlertTriangle size={20} color="#D97706" />
+                <span>
+                  <strong>Posting Disabled:</strong> You cannot create or publish properties until you finish lister onboarding.
+                </span>
+              </div>
+              <button
+                type="button"
+                style={{
+                  background: '#D97706',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '6px 16px',
+                  borderRadius: '999px',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+                onClick={() => navigate('/onboarding/lister')}
+              >
+                Verify Account Now
+              </button>
+            </div>
+          )}
           <div className="lister-page-head">
             <div>
               <h1 className="lister-page-title">Listings</h1>
@@ -1039,7 +1240,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                 Switch a listing to Rented once it's taken, so renters stop requesting it.
               </p>
             </div>
-            <button type="button" className="btn btn-primary" onClick={onOpenCreateListing}>
+            <button type="button" className="btn btn-primary" onClick={handleCreateListing}>
               <Plus /> Post a listing
             </button>
           </div>
@@ -1200,11 +1401,11 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                       </td>
 
                       {/* Actions Column */}
-                      <td className="c-act" style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                      <td className="c-act">
+                        <div className="lister-act-row">
                           <button
                             type="button"
-                            className="btn btn-outline btn-sm"
+                            className="btn btn-outline btn-sm lister-act-edit"
                             onClick={() => onOpenEditListing && onOpenEditListing(listing)}
                             title="Edit listing details"
                           >
@@ -1214,7 +1415,17 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                           <button
                             type="button"
                             className="btn btn-outline btn-sm"
-                            style={{ padding: '0 8px' }}
+                            onClick={() => {
+                              if (onSelectListingToView) onSelectListingToView(listing);
+                              else window.open(`/listings/${listing.id}`, '_blank');
+                            }}
+                            title="Preview public renter view"
+                          >
+                            <ExternalLink size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm lister-act-copy"
                             onClick={(e) => handleCopyShareLink(listing, e)}
                             title="Copy marketplace link"
                           >
@@ -1222,8 +1433,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                           </button>
                           <button
                             type="button"
-                            className="btn btn-danger-quiet btn-sm"
-                            style={{ padding: '0 8px' }}
+                            className="btn btn-danger-quiet btn-sm lister-act-del"
                             onClick={() => setDeleteModalListing(listing)}
                             title="Delete listing"
                           >
@@ -1261,131 +1471,278 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
               <p>When renters browse your listings on Rentivo and ask for vacancy confirmation, their requests will appear here.</p>
             </div>
           ) : (
-            <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--line)', color: 'var(--ink-2)', fontSize: 'var(--fs-sm)', fontWeight: 600 }}>
-                    <th style={{ padding: '12px 18px' }}>Renter</th>
-                    <th style={{ padding: '12px 16px' }}>Listing Requested</th>
-                    <th style={{ padding: '12px 16px' }}>Rent & Area</th>
-                    <th style={{ padding: '12px 16px' }}>Status</th>
-                    <th style={{ padding: '12px 18px', textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inquiries.map((inq) => {
-                    const isNeedsResponse = inq.status === 'needs_response' || inq.status === 'escalated';
-                    const matchingListing = dashboardListings.find((l) => l.id === inq.listingId);
-                    const photoUrl = inq.listingPhoto || matchingListing?.photos?.[0];
+            <>
+              {/* Desktop Table View */}
+              <div className="panel desktop-requests-table" style={{ padding: 0, overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--line)', color: 'var(--ink-2)', fontSize: 'var(--fs-sm)', fontWeight: 600 }}>
+                      <th style={{ padding: '12px 18px' }}>Renter</th>
+                      <th style={{ padding: '12px 16px' }}>Listing Requested</th>
+                      <th style={{ padding: '12px 16px' }}>Rent & Area</th>
+                      <th style={{ padding: '12px 16px' }}>Status</th>
+                      <th style={{ padding: '12px 18px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inquiries.map((inq) => {
+                      const isNeedsResponse = inq.status === 'needs_response' || inq.status === 'escalated';
+                      const matchingListing = dashboardListings.find((l) => l.id === inq.listingId);
+                      const photoUrl = inq.listingPhoto || matchingListing?.photos?.[0];
 
-                    return (
-                      <tr key={inq.id} style={{ borderBottom: '1px solid var(--line)' }}>
-                        <td style={{ padding: '14px 18px' }}>
-                          <strong style={{ color: 'var(--ink)', display: 'block' }}>{inq.renterName}</strong>
-                          <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-2)' }}>
-                            {inq.submittedAt} · {inq.renterType === 'business' ? 'Business tenant' : 'Residential'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div
-                              style={{
-                                width: 44,
-                                height: 36,
-                                borderRadius: 6,
-                                overflow: 'hidden',
-                                background: 'var(--surface-2)',
-                                flexShrink: 0,
-                                cursor: 'pointer'
-                              }}
-                              onClick={() => {
-                                if (matchingListing && onSelectListingToView) onSelectListingToView(matchingListing);
-                                else window.open(`/listings/${inq.listingId}`, '_blank');
-                              }}
-                              title="View listing details"
-                            >
-                              {photoUrl ? (
-                                <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              ) : (
-                                <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: 'var(--ink-3)' }}>
-                                  <Camera size={14} />
-                                </div>
-                              )}
-                            </div>
-                            <div>
-                              <strong
+                      return (
+                        <tr key={inq.id} style={{ borderBottom: '1px solid var(--line)' }}>
+                          <td style={{ padding: '14px 18px' }}>
+                            <strong style={{ color: 'var(--ink)', display: 'block' }}>{inq.renterName}</strong>
+                            <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--ink-2)' }}>
+                              {inq.submittedAt} · {inq.renterType === 'business' ? 'Business tenant' : 'Residential'}
+                            </span>
+                            {inq.notes && (
+                              <div style={{ marginTop: 6, padding: '6px 10px', background: 'var(--surface-2)', borderRadius: 6, borderLeft: '3px solid #6d35c9', fontSize: '11.5px', color: 'var(--ink)', lineHeight: 1.4 }}>
+                                <span style={{ fontWeight: 700, color: '#6d35c9' }}>Request: </span>
+                                "{inq.notes}"
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div
                                 style={{
-                                  color: 'var(--ink)',
-                                  display: 'block',
-                                  cursor: 'pointer',
-                                  textDecoration: 'underline'
+                                  width: 44,
+                                  height: 36,
+                                  borderRadius: 6,
+                                  overflow: 'hidden',
+                                  background: 'var(--surface-2)',
+                                  flexShrink: 0,
+                                  cursor: 'pointer'
                                 }}
                                 onClick={() => {
                                   if (matchingListing && onSelectListingToView) onSelectListingToView(matchingListing);
                                   else window.open(`/listings/${inq.listingId}`, '_blank');
                                 }}
-                                title="Open property details"
+                                title="View listing details"
                               >
-                                {inq.listingTitle}
-                              </strong>
+                                {photoUrl ? (
+                                  <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: 'var(--ink-3)' }}>
+                                    <Camera size={14} />
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <strong
+                                  style={{
+                                    color: 'var(--ink)',
+                                    display: 'block',
+                                    cursor: 'pointer',
+                                    textDecoration: 'underline'
+                                  }}
+                                  onClick={() => {
+                                    if (matchingListing && onSelectListingToView) onSelectListingToView(matchingListing);
+                                    else window.open(`/listings/${inq.listingId}`, '_blank');
+                                  }}
+                                  title="Open property details"
+                                >
+                                  {inq.listingTitle}
+                                </strong>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
-                          <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{formatNaira(inq.listingPrice)}/yr</span>
-                          <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--ink-2)' }}>{inq.listingArea}, Ibadan</span>
-                        </td>
-                        <td style={{ padding: '14px 16px' }}>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{formatNaira(inq.listingPrice)}/yr</span>
+                            <span style={{ display: 'block', fontSize: 'var(--fs-xs)', color: 'var(--ink-2)' }}>{inq.listingArea}, Ibadan</span>
+                          </td>
+                          <td style={{ padding: '14px 16px' }}>
+                            {isNeedsResponse ? (
+                              <span className="pill pill-warn">
+                                <Clock /> Awaiting your confirmation
+                              </span>
+                            ) : inq.status === 'confirmed' ? (
+                              <span className="pill pill-info">
+                                <Check /> Availability confirmed
+                              </span>
+                            ) : inq.status === 'paid' ? (
+                              <span className="pill pill-ok">
+                                <CheckCircle2 /> Fee paid & unlocked
+                              </span>
+                            ) : (
+                              <span className="pill pill-muted">Marked unavailable</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+                            {isNeedsResponse ? (
+                              <div style={{ display: 'inline-flex', gap: 6 }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-success btn-sm"
+                                  onClick={() => handleConfirmRequest(inq.id)}
+                                >
+                                  <Check /> Still available
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-danger-quiet btn-sm"
+                                  style={{ border: '1.5px solid var(--field-line)' }}
+                                  onClick={() => handleOpenDenyModal(inq)}
+                                >
+                                  <X /> No longer
+                                </button>
+                              </div>
+                            ) : inq.status === 'paid' ? (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <a
+                                  href={`tel:${inq.renterPhone}`}
+                                  className="btn btn-outline btn-sm"
+                                  style={{ padding: '4px 10px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                  title="Call tenant"
+                                >
+                                  <Phone size={12} /> Call
+                                </a>
+                                <a
+                                  href={`https://wa.me/${inq.renterPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${inq.renterName}, I am the landlord for "${inq.listingTitle}" on Rentivo. I saw that you unlocked access for an inspection.`)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="btn btn-sm"
+                                  style={{ backgroundColor: '#25D366', color: '#FFFFFF', padding: '4px 10px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+                                  title="Chat on WhatsApp"
+                                >
+                                  <MessageCircle size={12} /> WhatsApp
+                                </a>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-2)' }}>Resolved</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards View */}
+              <div className="mobile-requests-list">
+                {inquiries.map((inq) => {
+                  const isNeedsResponse = inq.status === 'needs_response' || inq.status === 'escalated';
+                  const matchingListing = dashboardListings.find((l) => l.id === inq.listingId);
+                  const photoUrl = inq.listingPhoto || matchingListing?.photos?.[0];
+
+                  return (
+                    <div key={inq.id} className="mobile-req-card">
+                      <div className="m-req-top">
+                        <div className="m-req-renter">
+                          <strong>{inq.renterName}</strong>
+                          <span className="m-req-time">
+                            {inq.submittedAt} · {inq.renterType === 'business' ? 'Business tenant' : 'Residential'}
+                          </span>
+                        </div>
+                        <div className="m-req-status">
                           {isNeedsResponse ? (
                             <span className="pill pill-warn">
-                              <Clock /> Awaiting your confirmation
+                              <Clock /> Awaiting confirmation
                             </span>
                           ) : inq.status === 'confirmed' ? (
                             <span className="pill pill-info">
-                              <Check /> Availability confirmed
+                              <Check /> Confirmed
                             </span>
                           ) : inq.status === 'paid' ? (
                             <span className="pill pill-ok">
-                              <CheckCircle2 /> Fee paid & unlocked
+                              <CheckCircle2 /> Fee paid
                             </span>
                           ) : (
-                            <span className="pill pill-muted">Marked unavailable</span>
+                            <span className="pill pill-muted">Unavailable</span>
                           )}
-                        </td>
-                        <td style={{ padding: '14px 18px', textAlign: 'right' }}>
-                          {isNeedsResponse ? (
-                            <div style={{ display: 'inline-flex', gap: 6 }}>
-                              <button
-                                type="button"
-                                className="btn btn-success btn-sm"
-                                onClick={() => handleConfirmRequest(inq.id)}
-                              >
-                                <Check /> Still available
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-danger-quiet btn-sm"
-                                style={{ border: '1.5px solid var(--field-line)' }}
-                                onClick={() => handleOpenDenyModal(inq)}
-                              >
-                                <X /> No longer
-                              </button>
-                            </div>
-                          ) : inq.status === 'paid' ? (
-                            <div style={{ fontSize: 'var(--fs-sm)', color: 'var(--ok)', fontWeight: 600 }}>
-                              <Phone style={{ width: 14, height: 14, display: 'inline', marginRight: 4 }} />
-                              {inq.renterPhone}
-                            </div>
+                        </div>
+                      </div>
+
+                      <div className="m-req-prop">
+                        <div
+                          className="m-req-thumb"
+                          onClick={() => {
+                            if (matchingListing && onSelectListingToView) onSelectListingToView(matchingListing);
+                            else window.open(`/listings/${inq.listingId}`, '_blank');
+                          }}
+                        >
+                          {photoUrl ? (
+                            <img src={photoUrl} alt="" />
                           ) : (
-                            <span style={{ fontSize: 'var(--fs-sm)', color: 'var(--ink-2)' }}>Resolved</span>
+                            <div className="thumb-empty">
+                              <Camera size={16} />
+                            </div>
                           )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                        <div className="m-req-prop-info">
+                          <span
+                            className="m-req-title"
+                            onClick={() => {
+                              if (matchingListing && onSelectListingToView) onSelectListingToView(matchingListing);
+                              else window.open(`/listings/${inq.listingId}`, '_blank');
+                            }}
+                          >
+                            {inq.listingTitle}
+                          </span>
+                          <span className="m-req-meta">
+                            {formatNaira(inq.listingPrice)}/yr · {inq.listingArea}, Ibadan
+                          </span>
+                        </div>
+                      </div>
+
+                      {inq.notes && (
+                        <div style={{ margin: '8px 0', padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 8, borderLeft: '3px solid #6d35c9', fontSize: '12px', color: 'var(--ink)' }}>
+                          <strong style={{ color: '#6d35c9' }}>Request: </strong>
+                          "{inq.notes}"
+                        </div>
+                      )}
+
+                      {isNeedsResponse ? (
+                        <div className="m-req-actions">
+                          <button
+                            type="button"
+                            className="btn btn-success btn-sm m-req-btn"
+                            onClick={() => handleConfirmRequest(inq.id)}
+                          >
+                            <Check /> Still available
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-danger-quiet btn-sm m-req-btn"
+                            style={{ border: '1.5px solid var(--field-line)' }}
+                            onClick={() => handleOpenDenyModal(inq)}
+                          >
+                            <X /> No longer
+                          </button>
+                        </div>
+                      ) : inq.status === 'paid' ? (
+                        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--ink)', marginBottom: 8 }}>
+                            Tenant: <strong>{inq.renterName}</strong> · <span>{inq.renterPhone}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <a
+                              href={`tel:${inq.renterPhone}`}
+                              className="btn btn-outline btn-sm"
+                              style={{ flex: 1, justifyContent: 'center', padding: '8px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                            >
+                              <Phone size={13} /> Call
+                            </a>
+                            <a
+                              href={`https://wa.me/${inq.renterPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello ${inq.renterName}, I am the landlord for "${inq.listingTitle}" on Rentivo. I saw that you unlocked access for an inspection.`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn btn-sm"
+                              style={{ flex: 1, justifyContent: 'center', backgroundColor: '#25D366', color: '#FFFFFF', padding: '8px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                            >
+                              <MessageCircle size={13} /> WhatsApp
+                            </a>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </main>
       )}
@@ -1414,7 +1771,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24, alignItems: 'start' }}>
+          <div className="account-grid">
             {/* Column 1: Profile & Contact Details + Security */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               
@@ -1488,18 +1845,17 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                     />
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 20 }}>
+                  <div className="acc-action-row">
                     <button
                       type="submit"
                       className="btn btn-primary"
                       disabled={accSaving}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
                     >
                       <Save size={16} />
                       <span>{accSaving ? 'Saving…' : 'Save account changes'}</span>
                     </button>
                     {accSavedSuccess && (
-                      <span style={{ color: 'var(--ok)', fontSize: 'var(--fs-sm)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <span className="acc-saved-badge">
                         <Check size={14} /> Saved!
                       </span>
                     )}
@@ -1553,14 +1909,16 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    className="btn btn-outline"
-                    disabled={passwordLoading || !newPassword}
-                    style={{ minHeight: 38 }}
-                  >
-                    {passwordLoading ? 'Updating…' : 'Update password'}
-                  </button>
+                  <div className="acc-action-row">
+                    <button
+                      type="submit"
+                      className="btn btn-outline"
+                      disabled={passwordLoading || !newPassword}
+                      style={{ minHeight: 38 }}
+                    >
+                      {passwordLoading ? 'Updating…' : 'Update password'}
+                    </button>
+                  </div>
                 </form>
               </div>
 
@@ -1641,7 +1999,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                       <button
                         type="button"
                         className="btn btn-accent btn-sm"
-                        onClick={onOpenCreateListing}
+                        onClick={handleCreateListing}
                       >
                         + Post
                       </button>
@@ -1746,7 +2104,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                   <b style={{ display: 'block', fontSize: '0.9375rem' }}>Renter Marketplace</b>
                   <span style={{ fontSize: '0.8125rem', color: 'var(--ink-2)' }}>Explore listings as a home seeker</span>
                 </div>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {onNavigateToMarketplace && (
                     <button
                       type="button"
@@ -1870,6 +2228,9 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* Floating Onboarding Setup Widget */}
+      <OnboardingWidget steps={onboardingWidgetSteps} />
 
       {/* -------------------------------------------------------------
           TOAST NOTIFICATION (SHARED TOAST COMPONENT)

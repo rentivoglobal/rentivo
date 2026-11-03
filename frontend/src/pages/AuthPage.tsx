@@ -246,7 +246,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           navigate('/onboarding/renter');
           return;
         }
-        const target = redirectTab || (role === 'landlord' || role === 'agent' ? 'lister' : 'search');
+        if (signupRole === 'lister') {
+          navigate('/onboarding/lister');
+          return;
+        }
+        const target = redirectTab || 'search';
         onAuthSuccess(target);
       }, 750);
     } else {

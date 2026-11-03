@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -103,6 +103,29 @@ export const HomePage: React.FC<HomePageProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  const [canScrollWhyLeft, setCanScrollWhyLeft] = useState(false);
+  const [canScrollWhyRight, setCanScrollWhyRight] = useState(true);
+
+  const updateWhyScrollState = useCallback(() => {
+    if (whyTrackRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = whyTrackRef.current;
+      setCanScrollWhyLeft(scrollLeft > 10);
+      setCanScrollWhyRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = whyTrackRef.current;
+    if (!el) return;
+    updateWhyScrollState();
+    el.addEventListener('scroll', updateWhyScrollState, { passive: true });
+    window.addEventListener('resize', updateWhyScrollState);
+    return () => {
+      el.removeEventListener('scroll', updateWhyScrollState);
+      window.removeEventListener('resize', updateWhyScrollState);
+    };
+  }, [updateWhyScrollState]);
 
   const scrollWhyTrack = (distance: number) => {
     if (whyTrackRef.current) {
@@ -358,29 +381,32 @@ export const HomePage: React.FC<HomePageProps> = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: 'rgba(0, 0, 82, 0.45)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(190, 137, 255, 0.35)',
+                backgroundColor: 'rgba(0, 0, 82, 0.76)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(190, 137, 255, 0.45)',
                 borderRadius: '9999px',
                 padding: '6px 16px',
                 fontSize: '12.5px',
-                color: '#FFFFFF'
+                color: '#FFFFFF',
+                boxShadow: '0 4px 14px rgba(0, 0, 82, 0.16)'
               }}>
-                <Building size={14} color="#BE89FF" />
+                <Building size={14} color="#E2CCFF" />
                 <span style={{ fontWeight: 600 }}>Own property?</span>
                 <button
                   type="button"
                   onClick={() => navigate(isLister ? '/lister/listings/new' : '/signup?role=lister')}
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#BE89FF',
-                    fontWeight: 800,
+                    background: 'rgba(190, 137, 255, 0.24)',
+                    border: '1px solid rgba(190, 137, 255, 0.5)',
+                    borderRadius: '999px',
+                    color: '#FFFFFF',
+                    fontWeight: 700,
                     cursor: 'pointer',
-                    padding: 0,
+                    padding: '3px 10px',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '4px',
+                    transition: 'all 0.15s ease'
                   }}
                 >
                   <span>List for free</span>
@@ -455,7 +481,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   {activeListing.title}
                 </div>
                 <div className="loc" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--muted)', marginBottom: '9px' }}>
-                  <MapPin size={12} color="var(--lilac)" />
+                  <MapPin size={12} color="#6D28D9" />
                   <span>{activeListing.area}, Ibadan</span>
                 </div>
                 <div className="specs" style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
@@ -504,7 +530,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Value Proposition Section */}
         <section className="value" id="choose">
           <div className="value-copy reveal reveal-left is-in">
-            <span className="eyebrow">— Reason to choose us</span>
+            <span className="eyebrow">Reason to choose us</span>
             <h2>See the evidence behind every listing</h2>
             <p>We handle the heavy lifting by checking properties in person, showing what was verified and when, and letting you browse before you share a phone number.</p>
             <button className="btn-pill" onClick={() => onNavigateToMarketplace()}>
@@ -522,7 +548,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </article>
             <article className="value-card">
               <div className="trust-mark" aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShieldCheck size={28} color="#000052" />
+                <ShieldCheck size={22} color="#FFFFFF" strokeWidth={2.4} />
               </div>
               <h3>Dated verification</h3>
               <p>Each Verified badge shows what was checked and the date it was done.</p>
@@ -637,7 +663,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   </div>
                   <h3 title={listing.title}>{listing.title}</h3>
                   <div className="meta">
-                    <MapPin size={12} color="var(--lilac)" />
+                    <MapPin size={12} color="#6D28D9" />
                     <span>{listing.area}, Ibadan</span>
                   </div>
                   <div className="home-card-specs">
@@ -701,7 +727,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       <div className="page">
 
         {/* Why Rentivo Section */}
-        <section className="why">
+        <section className="why" id="why">
           <div className="why-top reveal is-in">
             <div>
               <span className="eyebrow">Why Rentivo</span>
@@ -709,18 +735,22 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
             <div className="why-nav">
               <button
-                className="nav-arrow"
+                className={`nav-arrow ${canScrollWhyLeft ? 'nav-arrow--active' : ''}`}
                 onClick={() => scrollWhyTrack(-320)}
                 aria-label="Previous card"
+                disabled={!canScrollWhyLeft}
+                style={{ opacity: canScrollWhyLeft ? 1 : 0.45 }}
               >
-                <ChevronLeft size={18} color="#000052" />
+                <ChevronLeft size={18} color={canScrollWhyLeft ? '#fff' : '#000052'} />
               </button>
               <button
-                className="nav-arrow nav-arrow--active"
+                className={`nav-arrow ${canScrollWhyRight ? 'nav-arrow--active' : ''}`}
                 onClick={() => scrollWhyTrack(320)}
                 aria-label="Next card"
+                disabled={!canScrollWhyRight}
+                style={{ opacity: canScrollWhyRight ? 1 : 0.45 }}
               >
-                <ChevronRight size={18} color="#fff" />
+                <ChevronRight size={18} color={canScrollWhyRight ? '#fff' : '#000052'} />
               </button>
             </div>
           </div>
@@ -802,8 +832,8 @@ export const HomePage: React.FC<HomePageProps> = ({
             <h2>Not the right fit? You still have options.</h2>
             <p>Hide a listing, report something inaccurate, or get support if a lister does not respond — before you pay, and after you look.</p>
             <div className="recover-actions" role="group" aria-label="Recovery actions">
-              <button className="recover-action" onClick={() => setNotice('Listing feedback logged.')}>Report</button>
-              <button className="recover-action" onClick={() => setNotice('Listing hidden from view.')}>Hide</button>
+              <button className="recover-action" onClick={() => setNotice('Feedback received. Our Ibadan trust team investigates all reported inaccuracies within 24 hours.')}>Report</button>
+              <button className="recover-action" onClick={() => setNotice('Listing hidden. You will not see this listing again in your recommendations.')}>Hide</button>
               <button className="recover-action recover-action--solid" onClick={() => onNavigateToMarketplace()}>
                 Get support <ArrowRight size={14} style={{ display: 'inline', verticalAlign: '-1px', marginLeft: '4px' }} />
               </button>

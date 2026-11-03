@@ -202,9 +202,9 @@ export const renterProfileService = {
     let score = 50; // base score for verified homes in Ibadan
 
     // Area Match (Up to 25 points)
-    if (profile.preferredAreas.length > 0) {
-      const matchArea = profile.preferredAreas.some(
-        a => a.toLowerCase() === listing.area.toLowerCase() || a.toLowerCase().includes(listing.area.toLowerCase())
+    if (profile.preferredAreas && profile.preferredAreas.length > 0) {
+      const matchArea = profile.preferredAreas.some(areaId =>
+        isAreaMatch(areaId, listing.area || listing.addressDescription)
       );
       if (matchArea) score += 25;
     } else {
@@ -212,9 +212,9 @@ export const renterProfileService = {
     }
 
     // Property Type Match (Up to 20 points)
-    if (profile.propertyTypes.length > 0) {
-      const matchType = profile.propertyTypes.some(
-        t => t.toLowerCase() === listing.type.toLowerCase()
+    if (profile.propertyTypes && profile.propertyTypes.length > 0) {
+      const matchType = profile.propertyTypes.some(typeId =>
+        isTypeMatch(typeId, listing.type, listing.bedrooms, listing.title)
       );
       if (matchType) score += 20;
     } else {
@@ -224,13 +224,13 @@ export const renterProfileService = {
     // Budget Match (Up to 25 points)
     if (profile.budgetMax > 0) {
       if (listing.price <= profile.budgetMax) {
-        if (profile.budgetMin > 0 && listing.price < profile.budgetMin * 0.8) {
-          score += 15; // slightly under minimum expected
+        if (profile.budgetMin > 0 && listing.price < profile.budgetMin * 0.7) {
+          score += 15; // slightly below minimum expected
         } else {
           score += 25; // perfectly in target budget
         }
-      } else if (listing.price <= profile.budgetMax * 1.15) {
-        score += 10; // within 15% stretch budget
+      } else if (listing.price <= profile.budgetMax * 1.2) {
+        score += 12; // within 20% stretch budget
       }
     } else {
       score += 15;
@@ -246,12 +246,10 @@ export const renterProfileService = {
     }
 
     // Must Haves Match (Up to 15 points)
-    if (profile.mustHaves.length > 0 && listing.amenities?.length) {
-      const listingAmenitiesLower = listing.amenities.map(a => a.toLowerCase());
+    if (profile.mustHaves && profile.mustHaves.length > 0 && listing.amenities?.length) {
       let matchedCount = 0;
       for (const mustHave of profile.mustHaves) {
-        const mh = mustHave.toLowerCase();
-        if (listingAmenitiesLower.some(a => a.includes(mh) || mh.includes(a))) {
+        if (isAmenityMatch(mustHave, listing.amenities)) {
           matchedCount++;
         }
       }
@@ -260,5 +258,191 @@ export const renterProfileService = {
     }
 
     return Math.min(99, Math.max(65, score));
+  },
+
+  filterMatchingListings(
+    listings: Listing[],
+    profile: {
+      preferredAreas?: string[];
+      propertyTypes?: string[];
+      budgetMin?: number;
+      budgetMax?: number;
+      mustHaves?: string[];
+    }
+  ): {
+    exactMatches: Listing[];
+    closeMatches: Listing[];
+    totalCount: number;
+    topPicks: Listing[];
+  } {
+    if (!listings || listings.length === 0) {
+      return { exactMatches: [], closeMatches: [], totalCount: 0, topPicks: [] };
+    }
+
+    const {
+      preferredAreas = [],
+      propertyTypes = [],
+      budgetMin = 0,
+      budgetMax = 0,
+      mustHaves = []
+    } = profile;
+
+    const scored = listings.map(l => {
+      let matchCount = 0;
+      let totalCriteria = 0;
+
+      // 1. Area
+      let areaMatched = true;
+      if (preferredAreas.length > 0) {
+        totalCriteria++;
+        areaMatched = preferredAreas.some(a => isAreaMatch(a, l.area || l.addressDescription));
+        if (areaMatched) matchCount++;
+      }
+
+      // 2. Type
+      let typeMatched = true;
+      if (propertyTypes.length > 0) {
+        totalCriteria++;
+        typeMatched = propertyTypes.some(t => isTypeMatch(t, l.type, l.bedrooms, l.title));
+        if (typeMatched) matchCount++;
+      }
+
+      // 3. Budget
+      let budgetMatched = true;
+      let budgetClose = true;
+      if (budgetMax > 0) {
+        totalCriteria++;
+        budgetMatched = l.price <= budgetMax && (budgetMin === 0 || l.price >= budgetMin * 0.7);
+        budgetClose = l.price <= budgetMax * 1.25;
+        if (budgetMatched) matchCount++;
+      }
+
+      // 4. Must Haves
+      let mustHavesMatched = true;
+      if (mustHaves.length > 0) {
+        totalCriteria++;
+        const satisfied = mustHaves.filter(m => isAmenityMatch(m, l.amenities || [])).length;
+        mustHavesMatched = satisfied >= Math.min(1, mustHaves.length);
+        if (mustHavesMatched) matchCount++;
+      }
+
+      const isExact = areaMatched && typeMatched && budgetMatched && mustHavesMatched;
+      const isClose = (areaMatched || typeMatched) && budgetClose;
+
+      return {
+        listing: l,
+        isExact,
+        isClose,
+        score: totalCriteria > 0 ? Math.round((matchCount / totalCriteria) * 100) : 100
+      };
+    });
+
+    const exactMatches = scored.filter(s => s.isExact).map(s => s.listing);
+    const closeMatches = scored
+      .filter(s => !s.isExact && s.isClose)
+      .sort((a, b) => b.score - a.score)
+      .map(s => s.listing);
+
+    // If exact matches are scarce, supplement with top close matches so user gets high-value discovery
+    const combined = [...exactMatches, ...closeMatches];
+    const topPicks = combined.slice(0, 6);
+    const totalCount = exactMatches.length > 0 ? exactMatches.length : closeMatches.length;
+
+    return {
+      exactMatches,
+      closeMatches,
+      totalCount: totalCount > 0 ? totalCount : listings.length,
+      topPicks: topPicks.length > 0 ? topPicks : listings.slice(0, 4)
+    };
   }
 };
+
+/**
+ * Normalization & Smart Matching Utilities
+ */
+const AREA_ALIASES: Record<string, string[]> = {
+  bodija: ['bodija', 'old bodija', 'new bodija'],
+  akobo: ['akobo', 'akobo ojurin', 'general gas'],
+  jericho: ['jericho', 'jericho gra', 'onireke'],
+  ringroad: ['ring road', 'ringroad', 'alegongo', 'iyaganku', 'adeoyo'],
+  uisamonda: ['ui', 'samonda', 'ui / samonda', 'ui area', 'polytechnic', 'sango', 'university of ibadan'],
+  agodi: ['agodi', 'agodi gra', 'secretariat'],
+  oluyole: ['oluyole', 'oluyole estate', 'new garage'],
+  challenge: ['challenge', 'molete', 'felele', 'toll gate']
+};
+
+export function isAreaMatch(selectedAreaId: string, listingArea?: string): boolean {
+  if (!listingArea) return true;
+  const target = listingArea.toLowerCase().trim();
+  const rawId = selectedAreaId.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const aliases = AREA_ALIASES[rawId] || [selectedAreaId.toLowerCase()];
+  return aliases.some(a => target.includes(a) || a.includes(target));
+}
+
+export function isTypeMatch(
+  selectedTypeId: string,
+  listingType?: string,
+  bedrooms?: number,
+  title?: string
+): boolean {
+  if (!listingType) return true;
+  const typeStr = listingType.toLowerCase();
+  const titleStr = (title || '').toLowerCase();
+
+  switch (selectedTypeId) {
+    case 'selfcontain':
+      return (
+        typeStr.includes('self') ||
+        typeStr.includes('studio') ||
+        titleStr.includes('self-contain') ||
+        titleStr.includes('self contain') ||
+        titleStr.includes('studio') ||
+        (bedrooms === 1 && !typeStr.includes('duplex'))
+      );
+
+    case 'flat1':
+      return (
+        (typeStr.includes('flat') || typeStr.includes('serviced')) &&
+        (bedrooms === 1 || titleStr.includes('1-bed') || titleStr.includes('1 bed') || titleStr.includes('1 bedroom'))
+      );
+
+    case 'flat2':
+      return (
+        (typeStr.includes('flat') || typeStr.includes('serviced')) &&
+        (bedrooms === 2 || titleStr.includes('2-bed') || titleStr.includes('2 bed') || titleStr.includes('2 bedroom'))
+      );
+
+    case 'duplex':
+      return (
+        typeStr.includes('duplex') ||
+        typeStr.includes('house') ||
+        typeStr.includes('bungalow') ||
+        typeStr.includes('villa') ||
+        titleStr.includes('duplex') ||
+        titleStr.includes('penthouse') ||
+        (bedrooms !== undefined && bedrooms >= 3)
+      );
+
+    default:
+      return typeStr.includes(selectedTypeId.toLowerCase());
+  }
+}
+
+export function isAmenityMatch(mustHaveId: string, amenities: string[] = []): boolean {
+  const amList = amenities.map(a => a.toLowerCase());
+  switch (mustHaveId) {
+    case 'meter':
+      return amList.some(a => a.includes('meter') || a.includes('prepaid') || a.includes('nepa'));
+    case 'borehole':
+      return amList.some(a => a.includes('water') || a.includes('borehole') || a.includes('running'));
+    case 'security':
+      return amList.some(a => a.includes('security') || a.includes('gated') || a.includes('guard') || a.includes('fence'));
+    case 'parking':
+      return amList.some(a => a.includes('park') || a.includes('car') || a.includes('garage'));
+    case 'fibre':
+      return amList.some(a => a.includes('fibre') || a.includes('fiber') || a.includes('wifi') || a.includes('internet'));
+    default:
+      return amList.some(a => a.includes(mustHaveId.toLowerCase()));
+  }
+}

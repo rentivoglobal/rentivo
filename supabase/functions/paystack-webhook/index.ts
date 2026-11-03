@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createHmac } from "node:crypto";
 
-const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY") || "sk_test_fc887e80e16d307c2cc39ca6fe6951d0cf8e1849";
+const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY") || "";
 const APP_URL = Deno.env.get("APP_URL") || "https://rentivos.com.ng";
 
 Deno.serve(async (req) => {

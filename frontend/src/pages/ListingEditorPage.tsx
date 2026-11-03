@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Lock,
+  Clock,
   RefreshCw,
   Sparkle,
   Star
@@ -23,6 +24,8 @@ import { formatNaira } from '../utils/formatters';
 import { listingsService } from '../services/listingsService';
 import { locationsService } from '../services/locationsService';
 import { authService } from '../services/authService';
+import { listerOnboardingService } from '../services/listerOnboardingService';
+import { useNavigate } from 'react-router-dom';
 import { uploadToImageKit } from '../lib/imagekit';
 import '../styles/listing-editor-v2.css';
 
@@ -134,6 +137,12 @@ export const ListingEditorPage: React.FC<ListingEditorPageProps> = ({
   onCancel,
   onDelete
 }) => {
+  const navigate = useNavigate();
+  const currentUser = authService.getCurrentUser();
+  const onboarding = listerOnboardingService.getOnboarding(currentUser?.id);
+  const isOnboardingComplete = Boolean(onboarding?.completed);
+  const isOnboardingApproved = onboarding?.status === 'approved';
+
   const isEditing = Boolean(initialListing?.id);
 
   // Categories & Dynamic Types
@@ -470,6 +479,10 @@ RENT & LEASE TERMS:
 
   // Final Save / Publish Handler
   const handleFinalSave = async () => {
+    if (!isEditing && !isOnboardingApproved) {
+      setSaveError('You must complete Lister Onboarding and verify your identity before creating or publishing listings.');
+      return;
+    }
     if (getStepMissing(1) || getStepMissing(2) || getStepMissing(3)) return;
     setIsSubmitting(true);
     setSaveError(null);
@@ -560,6 +573,87 @@ RENT & LEASE TERMS:
         return <Home size={22} />;
     }
   };
+
+  if (!isEditing && !isOnboardingApproved) {
+    const isPending = Boolean(onboarding?.completed && onboarding?.status === 'pending');
+    const isRej = onboarding?.status === 'rejected';
+
+    return (
+      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px', background: '#FAF9FE' }}>
+        <div style={{ maxWidth: '520px', width: '100%', background: '#FFFFFF', border: '1.5px solid #E2E0F0', borderRadius: '24px', padding: '36px 32px', textAlign: 'center', boxShadow: '0 16px 40px rgba(0, 0, 82, 0.08)' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: isPending ? '#EEF2FF' : isRej ? '#FEF2F2' : '#F4ECFF',
+            color: isPending ? '#4F46E5' : isRej ? '#DC2626' : '#6B2FD6',
+            display: 'grid',
+            placeItems: 'center',
+            margin: '0 auto 20px'
+          }}>
+            {isPending ? <Clock size={30} /> : isRej ? <AlertTriangle size={30} /> : <Lock size={30} />}
+          </div>
+          <span style={{
+            fontSize: '0.8rem',
+            fontWeight: 800,
+            color: isPending ? '#4338CA' : isRej ? '#B91C1C' : '#6B2FD6',
+            background: isPending ? '#E0E7FF' : isRej ? '#FEE2E2' : '#F4ECFF',
+            padding: '4px 12px',
+            borderRadius: '999px',
+            display: 'inline-block',
+            marginBottom: '12px'
+          }}>
+            {isPending ? 'Pending Admin Review' : isRej ? 'Verification Rejected' : 'Onboarding Required'}
+          </span>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#000052', margin: '0 0 10px', lineHeight: 1.3 }}>
+            {isPending
+              ? 'Application Awaiting Admin Approval'
+              : isRej
+              ? 'Application Rejected by Operations'
+              : 'Complete Verification to Post Properties'}
+          </h2>
+          <p style={{ fontSize: '0.92rem', color: '#5C5C85', lineHeight: 1.5, margin: '0 0 28px' }}>
+            {isPending
+              ? 'Your lister verification details were submitted and are currently in the Admin Queue. Property publishing will be unlocked as soon as an administrator reviews and approves your application.'
+              : isRej
+              ? `Reason for rejection: ${onboarding?.rejectionReason || 'Information could not be verified'}. Please update your details and resubmit.`
+              : 'To safeguard tenants and prevent unverified listings, all listers must complete phone verification, bank identity matching, and authority confirmation before publishing listings.'}
+          </p>
+          <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+            <button
+              type="button"
+              style={{
+                background: isPending ? '#312E81' : '#000052',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.95rem',
+                minHeight: '48px',
+                padding: '0 24px',
+                borderRadius: '999px',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onClick={() => navigate('/onboarding/lister')}
+            >
+              <Sparkles size={16} color="#BE89FF" />
+              {isPending ? 'View Submitted Application' : isRej ? 'Update & Resubmit Application' : 'Complete Lister Onboarding Now'}
+            </button>
+            <button
+              type="button"
+              style={{ background: 'transparent', color: '#5C5C85', fontWeight: 600, fontSize: '0.9rem', minHeight: '44px', border: 'none', cursor: 'pointer' }}
+              onClick={onCancel}
+            >
+              Return to Lister Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="listing-editor-v2">

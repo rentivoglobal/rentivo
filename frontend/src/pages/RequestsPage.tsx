@@ -23,6 +23,7 @@ import {
 import { AccessRequest, Listing } from '../types';
 import { requestsService } from '../services/requestsService';
 import { formatNaira, formatDate } from '../utils/formatters';
+import { RentivoLoading } from '../components/RentivoLoading';
 
 interface RequestsPageProps {
   onBrowseListings: () => void;
@@ -239,6 +240,24 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
     }
   };
 
+  const getPresetDate = (daysAhead: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    return d.toISOString().split('T')[0];
+  };
+
+  const getNextSaturday = () => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = (6 - day + 7) % 7 || 7;
+    d.setDate(d.getDate() + diff);
+    return d.toISOString().split('T')[0];
+  };
+
+  const handleBrowseArea = (areaName: string) => {
+    navigate(`/account/search?area=${encodeURIComponent(areaName)}`);
+  };
+
   const handleConfirmSchedule = (reqId: string) => {
     if (selectedInspectionDate) {
       setScheduledDates(prev => ({
@@ -420,9 +439,8 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
             LIST OF REQUEST CARDS
            ----------------------------------------------------------------- */}
         {loading ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: '#64748B', backgroundColor: '#FFFFFF', borderRadius: '20px', border: '1px solid #E2E8F0' }}>
-            <Clock size={28} className="spinner" style={{ margin: '0 auto 12px' }} />
-            <div>Loading your property access requests...</div>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '24px', border: '1px solid #E2E8F0', padding: '24px' }}>
+            <RentivoLoading message="Loading your property access requests…" isFullScreen={false} />
           </div>
         ) : filteredRequests.length === 0 ? (
           <div 
@@ -559,6 +577,14 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
 
                   {/* 4-Step Visual Progress Stepper */}
                   <RequestStepProgress request={req} />
+
+                  {/* Seeker Custom Request Note */}
+                  {req.notes && (
+                    <div style={{ marginBottom: '16px', padding: '10px 14px', backgroundColor: '#F3E8FF', borderRadius: '12px', border: '1px solid #E9D5FF', fontSize: '13px', color: '#4A044E' }}>
+                      <span style={{ fontWeight: 800, color: '#6B21A8' }}>Your Message to Landlord: </span>
+                      "{req.notes}"
+                    </div>
+                  )}
 
                   {/* ---------------------------------------------------------
                       BODY STATE 1: WAITING PERIOD (PENDING VERIFICATION)
@@ -697,7 +723,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                           </a>
 
                           <a
-                            href={`https://wa.me/${(req.unlockedListerContact?.whatsapp || '+2348038900122').replace(/[^0-9]/g, '')}`}
+                            href={`https://wa.me/${(req.unlockedListerContact?.whatsapp || req.unlockedListerContact?.phone || '+2348038900122').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hello, I requested access to your property "${req.listingTitle}" (${req.listingArea}) on Rentivo and unlocked your contact. Are you available for a physical inspection?`)}`}
                             target="_blank"
                             rel="noreferrer"
                             style={{
@@ -754,25 +780,33 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                       BODY STATE 4: UNAVAILABLE NOTICE
                      --------------------------------------------------------- */}
                   {req.status === 'unavailable' && (
-                    <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '14px', padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                      <div style={{ fontSize: '13px', color: '#991B1B' }}>
+                    <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '14px', padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                      <div style={{ fontSize: '13.5px', color: '#991B1B', lineHeight: 1.4 }}>
                         The landlord confirmed this listing is no longer vacant. <strong>Zero charges were made to your account.</strong>
+                        <div style={{ fontSize: '12px', color: '#B91C1C', marginTop: '3px' }}>
+                          Rentivo guarantees ₦0 upfront fees when a property is taken.
+                        </div>
                       </div>
                       <button
                         type="button"
-                        onClick={onBrowseListings}
+                        onClick={() => handleBrowseArea(req.listingArea)}
                         style={{
                           backgroundColor: '#DC2626',
                           color: '#FFFFFF',
                           border: 'none',
-                          padding: '6px 12px',
+                          padding: '8px 16px',
                           borderRadius: '8px',
-                          fontSize: '12px',
+                          fontSize: '12.5px',
                           fontWeight: 700,
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          boxShadow: '0 1px 3px rgba(220, 38, 38, 0.2)'
                         }}
                       >
-                        Browse Similar in {req.listingArea}
+                        <span>Explore Vacant in {req.listingArea}</span>
+                        <ArrowRight size={13} />
                       </button>
                     </div>
                   )}
@@ -802,10 +836,76 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                 Choose a preferred date and time to visit the property in person. The landlord will confirm your inspection slot.
               </p>
 
+              {/* Quick Presets */}
+              <div style={{ marginBottom: '16px' }}>
+                <span style={{ display: 'block', fontSize: '11.5px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+                  Quick Schedule Presets
+                </span>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedInspectionDate(getPresetDate(1));
+                      setSelectedInspectionTime('10:00 AM');
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      backgroundColor: '#F8FAFC',
+                      color: '#000052',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ⚡ Tomorrow 10am
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedInspectionDate(getPresetDate(1));
+                      setSelectedInspectionTime('02:00 PM');
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      backgroundColor: '#F8FAFC',
+                      color: '#000052',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ⚡ Tomorrow 2pm
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedInspectionDate(getNextSaturday());
+                      setSelectedInspectionTime('11:00 AM');
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      backgroundColor: '#F8FAFC',
+                      color: '#000052',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ⚡ This Saturday 11am
+                  </button>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#000052', marginBottom: '6px' }}>
-                    Inspection Date
+                    Or Pick Custom Inspection Date
                   </label>
                   <input
                     type="date"
