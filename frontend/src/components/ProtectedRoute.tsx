@@ -29,11 +29,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (!user) {
     const next = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/login?next=${next}`} replace />;
+    const loginPath = adminOnly ? '/admin/login' : '/login';
+    return <Navigate to={`${loginPath}?next=${next}`} replace />;
   }
 
   if (adminOnly && user.role !== 'admin') {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/admin/login?reason=admin-required" replace />;
   }
 
   if (listerOnly && user.role !== 'landlord' && user.role !== 'agent') {

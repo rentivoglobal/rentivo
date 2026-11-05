@@ -618,6 +618,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   Create an account
                 </button>
               </p>
+              <p className="auth-switch-line" style={{ marginTop: '8px' }}>
+                Rentivo team member?{' '}
+                <button type="button" className="auth-link-btn" onClick={() => navigate('/admin/login')}>
+                  Go to Admin sign in
+                </button>
+              </p>
             </div>
           )}
 

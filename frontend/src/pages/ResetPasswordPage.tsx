@@ -6,11 +6,17 @@ import { authService } from '../services/authService';
 interface ResetPasswordPageProps {
   onSuccess: () => void;
   onNavigateHome: () => void;
+  signInPath?: string;
+  forgotPasswordPath?: string;
+  securityLabel?: string;
 }
 
 export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
   onSuccess,
-  onNavigateHome
+  onNavigateHome,
+  signInPath = '/login',
+  forgotPasswordPath = '/forgot-password',
+  securityLabel = 'Rentivo Account Security • Ibadan, Nigeria'
 }) => {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
@@ -77,13 +83,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
       <div style={{ maxWidth: '440px', width: '100%', marginBottom: '12px' }}>
         <button
           type="button"
-          onClick={() => {
-            if (window.history.length > 1) {
-              navigate(-1);
-            } else {
-              navigate('/login');
-            }
-          }}
+          onClick={() => navigate(signInPath)}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -152,7 +152,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
 
             <button
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate(forgotPasswordPath)}
               style={{
                 width: '100%',
                 backgroundColor: '#000052',
@@ -370,7 +370,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
       </div>
 
       <div style={{ marginTop: '20px', fontSize: '12px', color: '#94A3B8' }}>
-        Rentivo Account Security • Ibadan, Nigeria
+        {securityLabel}
       </div>
     </div>
   );

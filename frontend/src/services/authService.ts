@@ -397,7 +397,7 @@ export const authService = {
     return { success: true };
   },
 
-  async requestPasswordReset(email: string): Promise<{ success: boolean; error?: string }> {
+  async requestPasswordReset(email: string, redirectPath = '/reset-password'): Promise<{ success: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       return { success: false, error: 'Please enter a valid email address.' };
@@ -405,8 +405,13 @@ export const authService = {
     if (!isLiveBackend || !supabase) {
       return { success: true };
     }
+    const safeRedirectPath = redirectPath.startsWith('/') && !redirectPath.startsWith('//')
+      ? redirectPath
+      : '/reset-password';
+    const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : APP_URL;
+    const redirectTo = new URL(safeRedirectPath, `${redirectOrigin.replace(/\/+$/, '')}/`).toString();
     const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-      redirectTo: `${APP_URL}/reset-password`
+      redirectTo
     });
     if (error) return { success: false, error: error.message };
     return { success: true };
@@ -416,9 +421,39 @@ export const authService = {
     if (!isLiveBackend || !supabase) {
       return Boolean(localStore.getSession());
     }
+    const client = supabase;
     try {
-      const { data } = await supabase.auth.getSession();
-      return Boolean(data.session?.user);
+      const { data } = await client.auth.getSession();
+      if (data.session?.user) return true;
+
+      return await new Promise<boolean>((resolve) => {
+        let settled = false;
+        let subscription: { unsubscribe: () => void } | null = null;
+        let timeout: ReturnType<typeof setTimeout> | null = null;
+        const finish = (valid: boolean) => {
+          if (settled) return;
+          settled = true;
+          if (timeout) clearTimeout(timeout);
+          subscription?.unsubscribe();
+          resolve(valid);
+        };
+
+        const listener = client.auth.onAuthStateChange((event, session) => {
+          if (session?.user && (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN')) {
+            finish(true);
+          }
+        });
+        subscription = listener.data.subscription;
+        if (settled) subscription.unsubscribe();
+
+        if (!settled) {
+          timeout = setTimeout(() => {
+            void client.auth.getSession()
+              .then(({ data: latest }) => finish(Boolean(latest.session?.user)))
+              .catch(() => finish(false));
+          }, 3000);
+        }
+      });
     } catch {
       return false;
     }

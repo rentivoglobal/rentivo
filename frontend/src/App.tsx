@@ -9,6 +9,7 @@ import { AdminQueuePage } from './pages/AdminQueuePage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { ListingEditorPage } from './pages/ListingEditorPage';
 import { AuthPage } from './pages/AuthPage';
+import { AdminLoginPage } from './pages/AdminLoginPage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
 import { FavoritesPage } from './pages/FavoritesPage';
 import { TermsPage } from './pages/TermsPage';
@@ -173,6 +174,10 @@ export const App: React.FC = () => {
       pageTitle = 'Lister Verification & Onboarding — Rentivo';
     } else if (path.startsWith('/lister')) {
       pageTitle = 'Lister Dashboard — Rentivo';
+    } else if (path === '/admin/login') {
+      pageTitle = 'Admin Sign In — Rentivo';
+    } else if (path === '/admin/forgot-password' || path === '/admin/reset-password') {
+      pageTitle = 'Admin Password Reset — Rentivo';
     } else if (path.startsWith('/admin/invite')) {
       pageTitle = 'Accept Admin Invitation — Rentivo';
     } else if (path.startsWith('/admin')) {
@@ -469,6 +474,9 @@ export const App: React.FC = () => {
           <Route path="/lister/profile" element={<ProtectedRoute listerOnly><ListerRoute onReload={loadData} showToast={showToast} tab="profile" /></ProtectedRoute>} />
           <Route path="/lister/listings/new" element={<ProtectedRoute listerOnly><ListerPostingGuard><ListingEditorPage initialListing={null} onSaveSuccess={() => { void loadData(); showToast('Listing published! It is now in your Lister Dashboard.'); navigate('/lister/listings'); }} onCancel={() => navigate('/lister')} /></ListerPostingGuard></ProtectedRoute>} />
           <Route path="/lister/listings/:id/edit" element={<ProtectedRoute listerOnly><EditListingRoute onReload={loadData} showToast={showToast} /></ProtectedRoute>} />
+          <Route path="/admin/login" element={<AdminLoginPage initialMode="signin" />} />
+          <Route path="/admin/forgot-password" element={<AdminLoginPage initialMode="forgot" />} />
+          <Route path="/admin/reset-password" element={<ResetPasswordPage onSuccess={() => { showToast('Password updated. Sign in to the Admin Portal.'); navigate('/admin/login'); }} onNavigateHome={() => navigate('/admin/login')} signInPath="/admin/login" forgotPasswordPath="/admin/forgot-password" securityLabel="Rentivo Admin Security" />} />
           <Route
             path="/admin"
             element={

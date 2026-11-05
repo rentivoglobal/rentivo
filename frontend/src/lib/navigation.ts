@@ -83,6 +83,7 @@ export function pathForTab(
       const role = extra?.authRole ? `?role=${extra.authRole}` : '';
       if (mode === 'signup') return `/signup${role}`;
       if (mode === 'forgot') return '/forgot-password';
+      if (mode === 'admin') return '/admin/login';
       return `/login${role}`;
     }
     default:
