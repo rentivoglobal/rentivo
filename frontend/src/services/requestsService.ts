@@ -258,6 +258,7 @@ export const requestsService = {
         if (listing.lister?.email) {
           const token = localStore.createId('tok');
           await emailNotificationService.sendLandlordVacancyCheckEmail({
+            requestId: mapped.id,
             listing,
             recipientEmail: listing.lister.email,
             recipientName: listing.lister.fullName,
@@ -771,4 +772,3 @@ export const requestsService = {
     }
   }
 };
-

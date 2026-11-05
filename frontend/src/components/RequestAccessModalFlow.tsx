@@ -458,7 +458,7 @@ export const RequestAccessModalFlow: React.FC<RequestAccessModalFlowProps> = ({
   }
 
   return (
-    <div className="raf-overlay" data-theme="light" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="raf-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div
         className={`raf-card ${shake ? 'raf-shake' : ''}`}
         onClick={(e) => e.stopPropagation()}

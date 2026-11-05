@@ -1,0 +1,239 @@
+/* Marketplace-only dark theme overrides, loaded after app and page styles from main.tsx. */
+:root[data-theme="dark"] .marketplace-page {
+  color: #f1f5f9;
+  background: #0b1020;
+}
+:root[data-theme="dark"] .marketplace-page .marketplace-app-card,
+:root[data-theme="dark"] .marketplace-page .marketplace-topbar,
+:root[data-theme="dark"] .marketplace-page .topbar,
+:root[data-theme="dark"] .marketplace-page .marketplace-body > div[style*="background-color: rgb(255, 255, 255)"],
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card {
+  background-color: #111a2d;
+  color: #f1f5f9;
+  border-color: #344258;
+}
+:root[data-theme="dark"] .marketplace-page .marketplace-search-section {
+  background: #121b2e;
+  border-color: #344258;
+}
+:root[data-theme="dark"] .marketplace-page .unified-search-bar,
+:root[data-theme="dark"] .marketplace-page .market-search-pill,
+:root[data-theme="dark"] .marketplace-page .usb-popover,
+:root[data-theme="dark"] .marketplace-page .custom-dropdown-panel,
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card {
+  background: #111a2d;
+  border-color: #46556d;
+  color: #f1f5f9;
+}
+:root[data-theme="dark"] .marketplace-page .usb-microlabel,
+:root[data-theme="dark"] .marketplace-page .usb-value,
+:root[data-theme="dark"] .marketplace-page .usb-city-chevron,
+:root[data-theme="dark"] .marketplace-page .search-seg,
+:root[data-theme="dark"] .marketplace-page .market-search-pill input,
+:root[data-theme="dark"] .marketplace-page .usb-input-wrapper input,
+:root[data-theme="dark"] .marketplace-page .sort-select,
+:root[data-theme="dark"] .marketplace-page .sort-select select,
+:root[data-theme="dark"] .marketplace-page .cat,
+:root[data-theme="dark"] .marketplace-page .chip,
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card :is(h1,h2,h3,h4,p,span,label),
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .card-stats {
+  color: #e2e8f0;
+}
+:root[data-theme="dark"] .marketplace-page .usb-input-wrapper input::placeholder,
+:root[data-theme="dark"] .marketplace-page .market-search-pill input::placeholder,
+:root[data-theme="dark"] .marketplace-page .usb-popover input::placeholder {
+  color: #a9b7ca;
+}
+:root[data-theme="dark"] .marketplace-page .usb-divider,
+:root[data-theme="dark"] .marketplace-page .cat-row,
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card [style*="border-top"] {
+  border-color: #344258;
+  background-color: #344258;
+}
+:root[data-theme="dark"] .marketplace-page .usb-city-trigger:hover,
+:root[data-theme="dark"] .marketplace-page .usb-city-trigger[aria-expanded="true"],
+:root[data-theme="dark"] .marketplace-page .usb-btn-trigger:hover,
+:root[data-theme="dark"] .marketplace-page .custom-dropdown-item:hover,
+:root[data-theme="dark"] .marketplace-page .custom-dropdown-item:focus-visible {
+  background: #202c43;
+}
+:root[data-theme="dark"] .marketplace-page .custom-dropdown-item.is-active,
+:root[data-theme="dark"] .marketplace-page .custom-dropdown-item.is-disabled {
+  background: #202c43;
+  color: #e2e8f0;
+}
+:root[data-theme="dark"] .marketplace-page .custom-dropdown-item.is-disabled {
+  opacity: .62;
+}
+:root[data-theme="dark"] .marketplace-page .unified-search-bar:focus-within,
+:root[data-theme="dark"] .marketplace-page .unified-search-bar:hover,
+:root[data-theme="dark"] .marketplace-page .market-search-pill:focus-within {
+  border-color: #b9a0ff;
+  box-shadow: 0 0 0 3px rgb(185 160 255 / 22%);
+}
+:root[data-theme="dark"] .marketplace-page :is(input, select, button):focus-visible {
+  outline: 2px solid #b9a0ff;
+  outline-offset: 2px;
+}
+:root[data-theme="dark"] .marketplace-page .market-search-pill input,
+:root[data-theme="dark"] .marketplace-page .usb-input-wrapper input,
+:root[data-theme="dark"] .marketplace-page .usb-popover input,
+:root[data-theme="dark"] .marketplace-page .sort-select select {
+  background-color: #0b1020;
+  color: #f1f5f9;
+  border-color: #64748b;
+}
+:root[data-theme="dark"] .marketplace-page .usb-popover button[style*="background: #FFFFFF"],
+:root[data-theme="dark"] .marketplace-page .usb-popover button[style*="background: rgb(255, 255, 255)"] {
+  background: #202c43 !important;
+  color: #e2e8f0 !important;
+  border-color: #64748b !important;
+}
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .title,
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .price-row .now,
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .card-stats span,
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .loc,
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .price-row .per {
+  color: #e2e8f0 !important;
+}
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .b-type,
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .rating {
+  background: #202c43;
+  color: #e9d5ff;
+  border-color: #594b78;
+}
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .b-status {
+  background: #17352e !important;
+  color: #a7f3d0 !important;
+}
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card .photo {
+  background-color: #263247;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .marketplace-page {
+    color: #f1f5f9;
+    background: #0b1020;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .marketplace-app-card,
+  :root:not([data-theme="light"]) .marketplace-page .marketplace-topbar,
+  :root:not([data-theme="light"]) .marketplace-page .topbar,
+  :root:not([data-theme="light"]) .marketplace-page .marketplace-body > div[style*="background-color: rgb(255, 255, 255)"],
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card,
+  :root:not([data-theme="light"]) .marketplace-page .unified-search-bar,
+  :root:not([data-theme="light"]) .marketplace-page .market-search-pill,
+  :root:not([data-theme="light"]) .marketplace-page .usb-popover,
+  :root:not([data-theme="light"]) .marketplace-page .custom-dropdown-panel {
+    background: #111a2d;
+    color: #f1f5f9;
+    border-color: #46556d;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .marketplace-search-section {
+    background: #121b2e;
+    border-color: #344258;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .usb-microlabel,
+  :root:not([data-theme="light"]) .marketplace-page .usb-value,
+  :root:not([data-theme="light"]) .marketplace-page .usb-city-chevron,
+  :root:not([data-theme="light"]) .marketplace-page .search-seg,
+  :root:not([data-theme="light"]) .marketplace-page .market-search-pill input,
+  :root:not([data-theme="light"]) .marketplace-page .usb-input-wrapper input,
+  :root:not([data-theme="light"]) .marketplace-page .sort-select,
+  :root:not([data-theme="light"]) .marketplace-page .sort-select select,
+  :root:not([data-theme="light"]) .marketplace-page .cat,
+  :root:not([data-theme="light"]) .marketplace-page .chip,
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card :is(h1,h2,h3,h4,p,span,label),
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .card-stats {
+    color: #e2e8f0;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .usb-input-wrapper input::placeholder,
+  :root:not([data-theme="light"]) .marketplace-page .market-search-pill input::placeholder,
+  :root:not([data-theme="light"]) .marketplace-page .usb-popover input::placeholder {
+    color: #a9b7ca;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .usb-divider,
+  :root:not([data-theme="light"]) .marketplace-page .cat-row,
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card [style*="border-top"] {
+    border-color: #344258;
+    background-color: #344258;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .usb-city-trigger:hover,
+  :root:not([data-theme="light"]) .marketplace-page .usb-city-trigger[aria-expanded="true"],
+  :root:not([data-theme="light"]) .marketplace-page .usb-btn-trigger:hover,
+  :root:not([data-theme="light"]) .marketplace-page .custom-dropdown-item:hover,
+  :root:not([data-theme="light"]) .marketplace-page .custom-dropdown-item:focus-visible {
+    background: #202c43;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .custom-dropdown-item.is-active,
+  :root:not([data-theme="light"]) .marketplace-page .custom-dropdown-item.is-disabled {
+    background: #202c43;
+    color: #e2e8f0;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .custom-dropdown-item.is-disabled {
+    opacity: .62;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .unified-search-bar:focus-within,
+  :root:not([data-theme="light"]) .marketplace-page .unified-search-bar:hover,
+  :root:not([data-theme="light"]) .marketplace-page .market-search-pill:focus-within {
+    border-color: #b9a0ff;
+    box-shadow: 0 0 0 3px rgb(185 160 255 / 22%);
+  }
+  :root:not([data-theme="light"]) .marketplace-page :is(input, select, button):focus-visible {
+    outline: 2px solid #b9a0ff;
+    outline-offset: 2px;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .market-search-pill input,
+  :root:not([data-theme="light"]) .marketplace-page .usb-input-wrapper input,
+  :root:not([data-theme="light"]) .marketplace-page .usb-popover input,
+  :root:not([data-theme="light"]) .marketplace-page .sort-select select {
+    background-color: #0b1020;
+    color: #f1f5f9;
+    border-color: #64748b;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .usb-popover button[style*="background: #FFFFFF"],
+  :root:not([data-theme="light"]) .marketplace-page .usb-popover button[style*="background: rgb(255, 255, 255)"] {
+    background: #202c43 !important;
+    color: #e2e8f0 !important;
+    border-color: #64748b !important;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .title,
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .price-row .now,
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .card-stats span,
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .loc,
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .price-row .per {
+    color: #e2e8f0 !important;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .b-type,
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .rating {
+    background: #202c43;
+    color: #e9d5ff;
+    border-color: #594b78;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .b-status {
+    background: #17352e !important;
+    color: #a7f3d0 !important;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card .photo {
+    background-color: #263247;
+  }
+}
+
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card,
+:root[data-theme="dark"] .marketplace-page .marketplace-body > div[style*="background-color: rgb(255, 255, 255)"] {
+  background-color: #111a2d !important;
+  border-color: #46556d !important;
+  color: #f1f5f9 !important;
+}
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card :is(h1,h2,h3,h4,p,span,label) { color: #e2e8f0 !important; }
+:root[data-theme="dark"] .marketplace-page .listing-grid > .listing-card :is(.b-type,.rating) { background: #202c43 !important; color: #e9d5ff !important; border-color: #594b78 !important; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card,
+  :root:not([data-theme="light"]) .marketplace-page .marketplace-body > div[style*="background-color: rgb(255, 255, 255)"] {
+    background-color: #111a2d !important;
+    border-color: #46556d !important;
+    color: #f1f5f9 !important;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card :is(h1,h2,h3,h4,p,span,label) { color: #e2e8f0 !important; }
+  :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card :is(.b-type,.rating) { background: #202c43 !important; color: #e9d5ff !important; border-color: #594b78 !important; }
+}

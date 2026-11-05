@@ -1,130 +1,19 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
-
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-  "Content-Type": "application/json"
-};
-
+// Deprecated: public account creation must go through Supabase Auth signUp so
+// the configured email-confirmation and callback flow cannot be bypassed.
 Deno.serve(async (req) => {
+  const cors = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Content-Type": "application/json"
+  };
+
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
-    const body = await req.json().catch(() => ({}));
-    const email = (body.email || "").trim().toLowerCase();
-    const password = body.password || "";
-    const fullName = (body.fullName || "").trim();
-    const phone = (body.phone || "").trim();
-    const agencyName = (body.agencyName || "").trim();
-
-    // Strict Role Whitelisting (prevent privilege escalation)
-    const ALLOWED_SIGNUP_ROLES = ["tenant", "landlord", "agent", "business_renter"];
-    const requestedRole = typeof body.role === "string" ? body.role.toLowerCase().trim() : "tenant";
-    const role = ALLOWED_SIGNUP_ROLES.includes(requestedRole) ? requestedRole : "tenant";
-
-    // Strict Input Validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "A valid email address is required." 
-      }), {
-        status: 200,
-        headers: cors
-      });
-    }
-
-    if (!password || password.length < 8) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Password must be at least 8 characters long." 
-      }), {
-        status: 200,
-        headers: cors
-      });
-    }
-
-    if (!fullName || fullName.length < 2) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Please provide your full name." 
-      }), {
-        status: 200,
-        headers: cors
-      });
-    }
-
-    // 1. Create user with admin client
-    const { data: userData, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: false, // requires user verification
-      user_metadata: {
-        full_name: fullName,
-        phone,
-        role,
-        agency_name: agencyName
-      }
-    });
-
-    if (createError) {
-      const msg = createError.message || "";
-      // If user already exists
-      if (
-        msg.includes("already registered") || 
-        msg.includes("already exists") || 
-        msg.includes("email_exists") ||
-        (createError as any).status === 422
-      ) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "An account with this email already exists. Please sign in with your password." 
-        }), {
-          status: 200,
-          headers: cors
-        });
-      }
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: createError.message || "Failed to create account" 
-      }), {
-        status: 200,
-        headers: cors
-      });
-    }
-
-    const user = userData.user;
-
-    // 2. Ensure public.users profile exists with strictly sanitized role
-    if (user) {
-      await adminClient.from("users").upsert({
-        id: user.id,
-        email,
-        full_name: fullName || "Rentivo Member",
-        phone,
-        whatsapp: phone,
-        agency_name: agencyName || null,
-        role: role as any,
-        is_active: true
-      }, { onConflict: "id" });
-    }
-
-    return new Response(JSON.stringify({ success: true, user }), {
-      status: 200,
-      headers: cors
-    });
-  } catch (err: any) {
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: err?.message || "Failed to create account" 
-    }), {
-      status: 200,
-      headers: cors
-    });
-  }
+  return new Response(JSON.stringify({
+    success: false,
+    error: "This signup endpoint is disabled. Use Rentivo's native email-confirmation flow."
+  }), {
+    status: 410,
+    headers: cors
+  });
 });

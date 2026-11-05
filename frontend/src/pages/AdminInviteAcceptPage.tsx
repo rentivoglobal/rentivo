@@ -9,10 +9,7 @@ import {
   Phone,
   ArrowRight,
   CheckCircle2,
-  AlertCircle,
-  RefreshCw,
-  Sparkles,
-  ExternalLink
+  RefreshCw
 } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import { AdminRoleTier } from '../types';
@@ -25,10 +22,14 @@ interface AdminInviteAcceptPageProps {
 export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ showToast }) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user: currentUser, refresh: refreshAuth } = useAuth();
+  const { user: currentUser, refresh: refreshAuth, signOut } = useAuth();
 
   const token = searchParams.get('token') || '';
   const emailParam = searchParams.get('email') || '';
+  const invitePath = token
+    ? `/admin/invite?token=${encodeURIComponent(token)}${emailParam ? `&email=${encodeURIComponent(emailParam)}` : ''}`
+    : '/admin/invite';
+  const adminSignInUrl = `/admin/login?next=${encodeURIComponent(invitePath)}`;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isValid, setIsValid] = useState(false);
@@ -68,6 +69,9 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
         if (!res.valid || !res.invitation) {
           setIsValid(false);
           setErrorMessage(res.error || 'This invitation link is invalid or has expired.');
+        } else if (emailParam && emailParam.trim().toLowerCase() !== res.invitation.email.toLowerCase()) {
+          setIsValid(false);
+          setErrorMessage('The email address in this invitation link does not match the invited account. Please use the original email link.');
         } else {
           setIsValid(true);
           setInvitationData(res.invitation);
@@ -86,7 +90,7 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
     return () => {
       mounted = false;
     };
-  }, [token]);
+  }, [token, emailParam]);
 
   const roleTitle = invitationData?.role === 'super_admin'
     ? 'Super Administrator'
@@ -98,6 +102,15 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
     currentUser &&
     invitationData &&
     currentUser.email.toLowerCase() === invitationData.email.toLowerCase();
+
+  const handleSwitchAccount = async () => {
+    try {
+      await signOut();
+      navigate(adminSignInUrl);
+    } catch {
+      showToast('Could not switch accounts. Please sign out and reopen your invitation.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +139,12 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
         return;
       }
 
+      if (res.needsConfirmation && invitationData) {
+        const next = `/admin/invite?token=${encodeURIComponent(token)}&email=${encodeURIComponent(invitationData.email)}`;
+        navigate(`/verify?email=${encodeURIComponent(invitationData.email)}&type=signup&role=admin&next=${encodeURIComponent(next)}`);
+        return;
+      }
+
       await refreshAuth();
       showToast('🎉 Administrator privileges activated! Welcome to the team.');
       navigate('/admin');
@@ -138,7 +157,7 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
 
   if (isLoading) {
     return (
-      <div
+      <div className="admin-invite-page"
         style={{
           minHeight: '100vh',
           backgroundColor: '#F4F3F8',
@@ -164,7 +183,7 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
   // Error State
   if (!isValid || !invitationData) {
     return (
-      <div
+      <div className="admin-invite-page"
         style={{
           minHeight: '100vh',
           backgroundColor: '#F4F3F8',
@@ -174,7 +193,7 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
           padding: '24px'
         }}
       >
-        <div
+        <div className="admin-invite-card"
           style={{
             maxWidth: '460px',
             width: '100%',
@@ -235,7 +254,7 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
 
   // Active Acceptance Form
   return (
-    <div
+    <div className="admin-invite-page"
       style={{
         minHeight: '100vh',
         backgroundColor: '#F4F3F8',
@@ -245,7 +264,7 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
         padding: '32px 16px'
       }}
     >
-      <div
+      <div className="admin-invite-card"
         style={{
           maxWidth: '520px',
           width: '100%',
@@ -257,7 +276,7 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
         }}
       >
         {/* Brand Header */}
-        <div
+        <div className="admin-invite-header"
           style={{
             backgroundColor: '#000052',
             padding: '32px 32px 28px',
@@ -299,9 +318,9 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
         </div>
 
         {/* Form Body */}
-        <div style={{ padding: '32px' }}>
+        <div className="admin-invite-body" style={{ padding: '32px' }}>
           {invitationData.notes && (
-            <div
+            <div className="admin-invite-notes"
               style={{
                 padding: '14px 16px',
                 backgroundColor: '#FAF9FD',
@@ -318,10 +337,15 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
             </div>
           )}
 
-          {isAlreadyLoggedInWithMatch ? (
+          {currentUser && !isAlreadyLoggedInWithMatch ? (
+            <div className="admin-invite-account-mismatch" role="status">
+              <p>You are signed in as <strong>{currentUser.email}</strong>, but this invitation is for <strong>{invitationData.email}</strong>.</p>
+              <button type="button" onClick={() => void handleSwitchAccount()}>Sign out and switch to the invited account</button>
+            </div>
+          ) : isAlreadyLoggedInWithMatch ? (
             /* Logged In Confirmation */
             <div>
-              <div
+              <div className="admin-invite-status"
                 style={{
                   padding: '16px',
                   backgroundColor: '#ECFDF5',
@@ -545,11 +569,14 @@ export const AdminInviteAcceptPage: React.FC<AdminInviteAcceptPageProps> = ({ sh
                   </>
                 ) : (
                   <>
-                    <span>Complete Setup &amp; Launch Admin Portal</span>
-                    <ArrowRight size={16} />
-                  </>
-                )}
+                  <span>Complete Setup &amp; Launch Admin Portal</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
               </button>
+              <p className="admin-invite-existing-account">
+                Already have a Rentivo account? <Link to={adminSignInUrl}>Sign in, then accept this invitation</Link>.
+              </p>
             </form>
           )}
         </div>

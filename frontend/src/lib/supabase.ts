@@ -15,6 +15,20 @@ export const supabase: SupabaseClient | null = isLiveBackend
     })
   : null;
 
+if (supabase && typeof window !== 'undefined') {
+  supabase.auth.onAuthStateChange((event) => {
+    try {
+      if (event === 'PASSWORD_RECOVERY') {
+        window.sessionStorage.setItem('rentivo:password-recovery', '1');
+      } else if (event === 'SIGNED_OUT') {
+        window.sessionStorage.removeItem('rentivo:password-recovery');
+      }
+    } catch {
+      // Password reset pages fail closed if browser storage is unavailable.
+    }
+  });
+}
+
 export function requireSupabase(): SupabaseClient {
   if (!supabase) {
     throw new Error('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
@@ -51,4 +65,3 @@ export async function extractEdgeFunctionError(error: unknown, fallback = 'Opera
   }
   return fallback;
 }
-

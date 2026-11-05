@@ -1,4 +1,4 @@
-import { ListerOnboardingData, ListerOnboardingRole, ListerResidentialAddress, ListerUtilityBill, ListerApprovalStatus } from '../types';
+import { ListerOnboardingData } from '../types';
 import { isLiveBackend } from '../lib/config';
 import { supabase, extractEdgeFunctionError } from '../lib/supabase';
 import { authService } from './authService';
@@ -6,7 +6,6 @@ import { localStore } from './localStore';
 
 const STORAGE_KEY_PREFIX = 'rentivo_v6_lister_onboarding_';
 const ALL_APPLICATIONS_KEY = 'rentivo_v6_all_lister_applications';
-const BREVO_API_KEY = (import.meta as any).env?.VITE_BREVO_API_KEY || '';
 
 export interface NigerianBank {
   name: string;
@@ -190,18 +189,8 @@ export const listerOnboardingService = {
     return updated;
   },
 
-  /**
-   * Dispatches the real 6-digit confirmation code:
-   * 1. Attempts Brevo SMS to the Nigerian mobile number.
-   * 2. Simultaneously dispatches Brevo Transactional Email with the real OTP code to the lister's account email.
-   * This guarantees that even if the Brevo account has no active prepaid SMS addons,
-   * the lister receives their real code immediately without mock or sample codes.
-   */
-  async sendPhoneVerificationCode(
-    phone: string,
-    code: string,
-    recipientEmail?: string
-  ): Promise<PhoneVerificationResult> {
+  /** Generates and sends a phone-verification challenge on the server. */
+  async sendPhoneVerificationCode(phone: string, recipientEmail?: string): Promise<PhoneVerificationResult> {
     const recipient = formatNigerianPhoneForSMS(phone);
     if (!recipient || recipient.length < 10) {
       return {
@@ -214,152 +203,76 @@ export const listerOnboardingService = {
       };
     }
 
-    const effectiveEmail = (recipientEmail || authService.getCurrentUser()?.email || '').trim();
-
-    // 1. Attempt Brevo SMS
-    let smsSent = false;
-    let smsError = '';
-    try {
-      const smsResponse = await fetch('https://api.brevo.com/v3/transactionalSMS/sms', {
-        method: 'POST',
-        headers: {
-          'api-key': BREVO_API_KEY,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          sender: 'Rentivo',
-          recipient,
-          content: `Your Rentivo verification code is ${code}. Valid for 10 minutes. Do not disclose this code to anyone.`
-        })
-      });
-
-      const smsResult = await smsResponse.json().catch(() => ({}));
-      if (smsResponse.ok) {
-        smsSent = true;
-      } else {
-        smsError = smsResult.message || `Brevo SMS status ${smsResponse.status}`;
-        console.warn('Brevo SMS dispatch response:', smsError);
-      }
-    } catch (err: any) {
-      smsError = err?.message || 'Network error sending Brevo SMS';
-      console.warn('Brevo SMS dispatch network error:', err);
+    if (!isLiveBackend || !supabase) {
+      return {
+        success: true,
+        smsSent: false,
+        emailSent: false,
+        deliveryChannel: 'none',
+        recipientFormatted: recipient,
+        recipientEmail: recipientEmail || authService.getCurrentUser()?.email || '',
+        statusMessage: 'Demo mode only: no SMS was sent. Use the demo verification code 123456.'
+      };
     }
 
-    // 2. Dispatch Brevo Transactional Email with the real code
-    let emailSent = false;
-    let emailError = '';
-    if (effectiveEmail) {
-      try {
-        const emailHtml = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Your Rentivo Verification Code</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f2f0fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f0fa;padding:32px 16px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:540px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,82,0.08);">
-          <tr>
-            <td style="background:#000052;padding:24px 32px;">
-              <span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">
-                RENT<span style="color:#be89ff;">ivo</span>
-              </span>
-              <span style="float:right;color:#c9c3e8;font-size:12px;font-weight:600;padding-top:6px;">IBADAN PILOT</span>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:32px 32px 24px;">
-              <h2 style="font-size:20px;font-weight:700;color:#000052;margin:0 0 12px;">Confirm your phone number</h2>
-              <p style="font-size:15px;color:#4b4b6e;line-height:1.55;margin:0 0 24px;">
-                Use the real 6-digit confirmation code below to verify your phone number (<strong>${phone}</strong>) for your Rentivo lister account.
-              </p>
-              <div style="background:#f4ecff;border:2px dashed #be89ff;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-                <div style="font-size:36px;font-weight:800;letter-spacing:10px;color:#000052;">
-                  ${code}
-                </div>
-              </div>
-              <p style="font-size:13px;color:#7a7a9e;margin:0;line-height:1.5;">
-                This code expires in 10 minutes. For your security, do not share this code with anyone.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="background:#fafafc;border-top:1px solid #ececf2;padding:16px 32px;font-size:12px;color:#8a8aa5;text-align:center;">
-              Rentivo Nigeria · Verified Lister Onboarding
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-        const emailResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            'api-key': BREVO_API_KEY,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            sender: { name: 'Rentivo Security', email: 'info@rentivos.com.ng' },
-            to: [{ email: effectiveEmail, name: authService.getCurrentUser()?.name || 'Rentivo Lister' }],
-            subject: `${code} is your Rentivo verification code`,
-            htmlContent: emailHtml
-          })
-        });
-
-        if (emailResponse.ok) {
-          emailSent = true;
-        } else {
-          const emailResJson = await emailResponse.json().catch(() => ({}));
-          emailError = emailResJson.message || `Brevo Email status ${emailResponse.status}`;
-          console.warn('Brevo email dispatch failed:', emailError);
-        }
-      } catch (err: any) {
-        emailError = err?.message || 'Network error sending Brevo email';
-        console.warn('Brevo email dispatch network error:', err);
-      }
+    const { data, error } = await supabase.functions.invoke('verify-lister-phone', {
+      body: { action: 'send', phone }
+    });
+    if (error) {
+      return {
+        success: false,
+        smsSent: false,
+        emailSent: false,
+        deliveryChannel: 'none',
+        error: await extractEdgeFunctionError(error, 'Could not send a phone verification code.'),
+        statusMessage: 'Could not send a phone verification code. Please retry.'
+      };
     }
-
-    const success = smsSent || emailSent;
-    let deliveryChannel: 'sms' | 'email' | 'both' | 'none' = 'none';
-    if (smsSent && emailSent) deliveryChannel = 'both';
-    else if (smsSent) deliveryChannel = 'sms';
-    else if (emailSent) deliveryChannel = 'email';
-
-    let statusMessage = '';
-    if (deliveryChannel === 'both') {
-      statusMessage = `Real verification code sent to both your phone (${recipient}) and email (${effectiveEmail})!`;
-    } else if (deliveryChannel === 'email') {
-      statusMessage = `Real verification code sent to your email (${effectiveEmail}). Please check your inbox.`;
-    } else if (deliveryChannel === 'sms') {
-      statusMessage = `Real verification code sent via SMS to ${recipient}!`;
-    } else {
-      statusMessage = smsError || emailError || 'Unable to deliver verification code. Please check your network and try again.';
+    if (data?.success !== true || data?.smsSent !== true) {
+      return {
+        success: false,
+        smsSent: false,
+        emailSent: false,
+        deliveryChannel: 'none',
+        error: data?.error || 'The SMS provider did not confirm delivery.',
+        statusMessage: data?.error || 'The SMS provider did not confirm delivery.'
+      };
     }
 
     return {
-      success,
-      smsSent,
-      emailSent,
-      deliveryChannel,
-      recipientFormatted: recipient,
-      recipientEmail: effectiveEmail,
-      error: !success ? (smsError || emailError) : undefined,
-      statusMessage
+      success: true,
+      smsSent: true,
+      emailSent: false,
+      deliveryChannel: 'sms',
+      recipientFormatted: data.recipientFormatted || recipient,
+      recipientEmail: data.recipientEmail || recipientEmail || authService.getCurrentUser()?.email || '',
+      statusMessage: data.statusMessage || `A verification code was sent by SMS to ${recipient}.`
     };
+  },
+
+  /** Validates the code server-side and records the verified phone on the account profile. */
+  async verifyPhoneVerificationCode(phone: string, code: string): Promise<{ success: boolean; error?: string }> {
+    const recipient = formatNigerianPhoneForSMS(phone);
+    if (!recipient || recipient.length < 10) return { success: false, error: 'Enter a valid Nigerian phone number.' };
+    if (!/^\d{6}$/.test(code)) return { success: false, error: 'Enter the full 6-digit verification code.' };
+    if (!isLiveBackend || !supabase) {
+      return code === '123456' ? { success: true } : { success: false, error: 'Use the demo verification code 123456.' };
+    }
+
+    const { data, error } = await supabase.functions.invoke('verify-lister-phone', {
+      body: { action: 'verify', phone, code }
+    });
+    if (error) return { success: false, error: await extractEdgeFunctionError(error, 'Phone verification could not be completed.') };
+    if (data?.success !== true || data?.verified !== true) {
+      return { success: false, error: data?.error || 'The code could not be verified. Request a new code and try again.' };
+    }
+    return { success: true };
   },
 
   /**
    * Compatibility wrapper for phone verification dispatch.
    */
-  async sendPhoneVerificationSMS(phone: string, code: string, recipientEmail?: string): Promise<{
+  async sendPhoneVerificationSMS(phone: string, _code: string, recipientEmail?: string): Promise<{
     success: boolean;
     messageId?: string;
     error?: string;
@@ -369,7 +282,7 @@ export const listerOnboardingService = {
     statusMessage?: string;
     recipientEmail?: string;
   }> {
-    const res = await this.sendPhoneVerificationCode(phone, code, recipientEmail);
+    const res = await this.sendPhoneVerificationCode(phone, recipientEmail);
     return {
       success: res.success,
       error: res.error,

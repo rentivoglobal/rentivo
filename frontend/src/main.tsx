@@ -12,6 +12,12 @@ import './styles/renter-mobile.css'
 import './styles/admin.css'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext'
+import './styles/dark-mode-fixes.css'
+import './styles/dark-mode-marketplace.css'
+import './styles/dark-mode-checkout.css'
+import './styles/dark-mode-inspection.css'
+import './styles/dark-mode-portals.css'
+import './styles/dark-mode-auth-legal.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

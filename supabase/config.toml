@@ -14,7 +14,7 @@ major_version = 15
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173/auth/callback", "http://localhost:5173/reset-password"]
+additional_redirect_urls = ["http://localhost:5173/**", "https://rentivos.com.ng/**", "https://www.rentivos.com.ng/**"]
 jwt_expiry = 3600
 enable_signup = true
 
@@ -43,3 +43,12 @@ verify_jwt = true
 
 [functions.resolve-bank-account]
 verify_jwt = false
+
+[functions.auth-signup]
+verify_jwt = true
+
+[functions.send-email]
+verify_jwt = true
+
+[functions.verify-lister-phone]
+verify_jwt = true

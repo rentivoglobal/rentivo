@@ -1,0 +1,203 @@
+/* Field Inspection route only. Loaded after app and page styles from main.tsx. */
+:root[data-theme="dark"] .field-inspect-app {
+  --inspect-bg: #0b1220;
+  --inspect-surface: #111c2e;
+  --inspect-surface-raised: #172338;
+  --inspect-border: #34445c;
+  --inspect-text: #f1f5f9;
+  --inspect-muted: #bdc9d8;
+  --inspect-accent: #c4d2ff;
+  --inspect-input: #0c1728;
+  --inspect-success-bg: #123326;
+  --inspect-success-border: #247353;
+  --inspect-success-text: #b8f1d5;
+  --inspect-danger-bg: #3a1e27;
+  --inspect-danger-border: #984b58;
+  --inspect-danger-text: #ffd0d5;
+  background-color: var(--inspect-bg);
+  color: var(--inspect-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .field-inspect-app {
+    --inspect-bg: #0b1220;
+    --inspect-surface: #111c2e;
+    --inspect-surface-raised: #172338;
+    --inspect-border: #34445c;
+    --inspect-text: #f1f5f9;
+    --inspect-muted: #bdc9d8;
+    --inspect-accent: #c4d2ff;
+    --inspect-input: #0c1728;
+    --inspect-success-bg: #123326;
+    --inspect-success-border: #247353;
+    --inspect-success-text: #b8f1d5;
+    --inspect-danger-bg: #3a1e27;
+    --inspect-danger-border: #984b58;
+    --inspect-danger-text: #ffd0d5;
+    background-color: var(--inspect-bg);
+    color: var(--inspect-text);
+  }
+}
+
+/* Keep selectors rooted to this standalone inspection application. */
+:root[data-theme="dark"] .field-inspect-app .field-inspect-header,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-progress-wrap,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-prop-card,
+:root[data-theme="dark"] .field-inspect-app .field-section-card,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-footer-bar,
+:root[data-theme="dark"] .field-inspect-app .inspect-locked-info {
+  background-color: var(--inspect-surface);
+  border-color: var(--inspect-border);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-header,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-progress-wrap,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-prop-card,
+  :root:not([data-theme="light"]) .field-inspect-app .field-section-card,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-footer-bar,
+  :root:not([data-theme="light"]) .field-inspect-app .inspect-locked-info {
+    background-color: var(--inspect-surface);
+    border-color: var(--inspect-border);
+  }
+}
+
+:root[data-theme="dark"] .field-inspect-app .field-inspect-brand-title,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-progress-step-name,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-prop-title,
+:root[data-theme="dark"] .field-inspect-app .field-section-title,
+:root[data-theme="dark"] .field-inspect-app .inspect-locked-title,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-btn-outline,
+:root[data-theme="dark"] .field-inspect-app .inspect-locked-info strong {
+  color: var(--inspect-text);
+}
+:root[data-theme="dark"] .field-inspect-app .field-inspect-progress-info,
+:root[data-theme="dark"] .field-inspect-app .field-section-subtitle,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-prop-loc,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-prop-contact,
+:root[data-theme="dark"] .field-inspect-app .field-label,
+:root[data-theme="dark"] .field-inspect-app .field-sublabel,
+:root[data-theme="dark"] .field-inspect-app .photo-slot-label,
+:root[data-theme="dark"] .field-inspect-app .inspect-locked-desc {
+  color: var(--inspect-muted);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-brand-title,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-progress-step-name,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-prop-title,
+  :root:not([data-theme="light"]) .field-inspect-app .field-section-title,
+  :root:not([data-theme="light"]) .field-inspect-app .inspect-locked-title,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-btn-outline,
+  :root:not([data-theme="light"]) .field-inspect-app .inspect-locked-info strong {
+    color: var(--inspect-text);
+  }
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-progress-info,
+  :root:not([data-theme="light"]) .field-inspect-app .field-section-subtitle,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-prop-loc,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-prop-contact,
+  :root:not([data-theme="light"]) .field-inspect-app .field-label,
+  :root:not([data-theme="light"]) .field-inspect-app .field-sublabel,
+  :root:not([data-theme="light"]) .field-inspect-app .photo-slot-label,
+  :root:not([data-theme="light"]) .field-inspect-app .inspect-locked-desc {
+    color: var(--inspect-muted);
+  }
+}
+
+:root[data-theme="dark"] .field-inspect-app .field-input,
+:root[data-theme="dark"] .field-inspect-app .field-select,
+:root[data-theme="dark"] .field-inspect-app .field-textarea {
+  color: var(--inspect-text);
+  background-color: var(--inspect-input);
+  border-color: #52647d;
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .field-inspect-app .field-input::placeholder,
+:root[data-theme="dark"] .field-inspect-app .field-textarea::placeholder { color: #a8b6c9; opacity: 1; }
+:root[data-theme="dark"] .field-inspect-app .field-input:focus,
+:root[data-theme="dark"] .field-inspect-app .field-select:focus,
+:root[data-theme="dark"] .field-inspect-app .field-textarea:focus { border-color: #a9bcff; box-shadow: 0 0 0 3px rgb(169 188 255 / 24%); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .field-inspect-app .field-input,
+  :root:not([data-theme="light"]) .field-inspect-app .field-select,
+  :root:not([data-theme="light"]) .field-inspect-app .field-textarea {
+    color: var(--inspect-text); background-color: var(--inspect-input); border-color: #52647d; color-scheme: dark;
+  }
+  :root:not([data-theme="light"]) .field-inspect-app .field-input::placeholder,
+  :root:not([data-theme="light"]) .field-inspect-app .field-textarea::placeholder { color: #a8b6c9; opacity: 1; }
+  :root:not([data-theme="light"]) .field-inspect-app .field-input:focus,
+  :root:not([data-theme="light"]) .field-inspect-app .field-select:focus,
+  :root:not([data-theme="light"]) .field-inspect-app .field-textarea:focus { border-color: #a9bcff; box-shadow: 0 0 0 3px rgb(169 188 255 / 24%); }
+}
+
+:root[data-theme="dark"] .field-inspect-app .field-option-btn,
+:root[data-theme="dark"] .field-inspect-app .gps-box,
+:root[data-theme="dark"] .field-inspect-app .photo-slot-card,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-btn-outline { color: var(--inspect-text); background-color: var(--inspect-surface-raised); border-color: var(--inspect-border); }
+:root[data-theme="dark"] .field-inspect-app .field-option-btn:hover,
+:root[data-theme="dark"] .field-inspect-app .photo-slot-card:hover,
+:root[data-theme="dark"] .field-inspect-app .field-inspect-btn-outline:active { background-color: #22314a; border-color: #7185a2; }
+:root[data-theme="dark"] .field-inspect-app .field-option-btn.selected,
+:root[data-theme="dark"] .field-inspect-app .gps-box.verified,
+:root[data-theme="dark"] .field-inspect-app .inspect-locked-icon { color: var(--inspect-success-text); background-color: var(--inspect-success-bg); border-color: var(--inspect-success-border); }
+:root[data-theme="dark"] .field-inspect-app .field-option-btn.selected-danger { color: var(--inspect-danger-text); background-color: var(--inspect-danger-bg); border-color: #d77b88; }
+:root[data-theme="dark"] .field-inspect-app .field-option-btn.selected-amber { color: #ffe3a3; background-color: #3b2e17; border-color: #b7893d; }
+:root[data-theme="dark"] .field-inspect-app .photo-slot-card.has-photo { background-color: var(--inspect-surface); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .field-inspect-app .field-option-btn,
+  :root:not([data-theme="light"]) .field-inspect-app .gps-box,
+  :root:not([data-theme="light"]) .field-inspect-app .photo-slot-card,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-btn-outline { color: var(--inspect-text); background-color: var(--inspect-surface-raised); border-color: var(--inspect-border); }
+  :root:not([data-theme="light"]) .field-inspect-app .field-option-btn:hover,
+  :root:not([data-theme="light"]) .field-inspect-app .photo-slot-card:hover,
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-btn-outline:active { background-color: #22314a; border-color: #7185a2; }
+  :root:not([data-theme="light"]) .field-inspect-app .field-option-btn.selected,
+  :root:not([data-theme="light"]) .field-inspect-app .gps-box.verified,
+  :root:not([data-theme="light"]) .field-inspect-app .inspect-locked-icon { color: var(--inspect-success-text); background-color: var(--inspect-success-bg); border-color: var(--inspect-success-border); }
+  :root:not([data-theme="light"]) .field-inspect-app .field-option-btn.selected-danger { color: var(--inspect-danger-text); background-color: var(--inspect-danger-bg); border-color: #d77b88; }
+  :root:not([data-theme="light"]) .field-inspect-app .field-option-btn.selected-amber { color: #ffe3a3; background-color: #3b2e17; border-color: #b7893d; }
+  :root:not([data-theme="light"]) .field-inspect-app .photo-slot-card.has-photo { background-color: var(--inspect-surface); }
+}
+
+/* The page's loading and invalid-link cards, plus GPS/verdict feedback, use inline colors. */
+:root[data-theme="dark"] .field-inspect-app > div[style*="background-color: rgb(255, 255, 255)"],
+:root[data-theme="dark"] .field-inspect-app > div[style*="background-color: #FFFFFF"] { background-color: var(--inspect-surface) !important; border-color: var(--inspect-border) !important; color: var(--inspect-text); }
+:root[data-theme="dark"] .field-inspect-app [style*="color: #000052"],
+:root[data-theme="dark"] .field-inspect-app [style*="color: rgb(0, 0, 82)"] { color: var(--inspect-text) !important; }
+:root[data-theme="dark"] .field-inspect-app [style*="color: #64748B"],
+:root[data-theme="dark"] .field-inspect-app [style*="color: rgb(100, 116, 139)"] { color: var(--inspect-muted) !important; }
+:root[data-theme="dark"] .field-inspect-app [style*="background-color: #ECFDF5"],
+:root[data-theme="dark"] .field-inspect-app [style*="background-color: rgb(236, 253, 245)"] { background-color: var(--inspect-success-bg) !important; border-color: var(--inspect-success-border) !important; color: var(--inspect-success-text) !important; }
+:root[data-theme="dark"] .field-inspect-app [style*="color: #047857"],
+:root[data-theme="dark"] .field-inspect-app [style*="color: #065F46"] { color: var(--inspect-success-text) !important; }
+:root[data-theme="dark"] .field-inspect-app [style*="background-color: #FEF2F2"] { background-color: var(--inspect-danger-bg) !important; border-color: var(--inspect-danger-border) !important; color: var(--inspect-danger-text) !important; }
+:root[data-theme="dark"] .field-inspect-app [style*="color: #DC2626"] { color: var(--inspect-danger-text) !important; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .field-inspect-app > div[style*="background-color: rgb(255, 255, 255)"],
+  :root:not([data-theme="light"]) .field-inspect-app > div[style*="background-color: #FFFFFF"] { background-color: var(--inspect-surface) !important; border-color: var(--inspect-border) !important; color: var(--inspect-text); }
+  :root:not([data-theme="light"]) .field-inspect-app [style*="color: #000052"],
+  :root:not([data-theme="light"]) .field-inspect-app [style*="color: rgb(0, 0, 82)"] { color: var(--inspect-text) !important; }
+  :root:not([data-theme="light"]) .field-inspect-app [style*="color: #64748B"],
+  :root:not([data-theme="light"]) .field-inspect-app [style*="color: rgb(100, 116, 139)"] { color: var(--inspect-muted) !important; }
+  :root:not([data-theme="light"]) .field-inspect-app [style*="background-color: #ECFDF5"],
+  :root:not([data-theme="light"]) .field-inspect-app [style*="background-color: rgb(236, 253, 245)"] { background-color: var(--inspect-success-bg) !important; border-color: var(--inspect-success-border) !important; color: var(--inspect-success-text) !important; }
+  :root:not([data-theme="light"]) .field-inspect-app [style*="color: #047857"],
+  :root:not([data-theme="light"]) .field-inspect-app [style*="color: #065F46"] { color: var(--inspect-success-text) !important; }
+  :root:not([data-theme="light"]) .field-inspect-app [style*="background-color: #FEF2F2"] { background-color: var(--inspect-danger-bg) !important; border-color: var(--inspect-danger-border) !important; color: var(--inspect-danger-text) !important; }
+  :root:not([data-theme="light"]) .field-inspect-app [style*="color: #DC2626"] { color: var(--inspect-danger-text) !important; }
+}
+
+:root[data-theme="dark"] .field-inspect-app .field-inspect-prop-media { background-color: #202d40; }
+:root[data-theme="dark"] .field-inspect-app .field-inspect-prop-contact { border-color: var(--inspect-border); }
+:root[data-theme="dark"] .field-inspect-app .field-inspect-progress-bar-bg { background-color: #26354b; }
+:root[data-theme="dark"] .field-inspect-app .inspect-locked-info > div[style*="border-top"] { border-color: var(--inspect-border) !important; }
+:root[data-theme="dark"] .field-inspect-app .field-inspect-btn:disabled,
+:root[data-theme="dark"] .field-inspect-app .gps-action-btn:disabled { opacity: .55; cursor: not-allowed; }
+:root[data-theme="dark"] .field-inspect-app :focus-visible { outline: 3px solid #a9bcff; outline-offset: 2px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-prop-media { background-color: #202d40; }
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-prop-contact { border-color: var(--inspect-border); }
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-progress-bar-bg { background-color: #26354b; }
+  :root:not([data-theme="light"]) .field-inspect-app .inspect-locked-info > div[style*="border-top"] { border-color: var(--inspect-border) !important; }
+  :root:not([data-theme="light"]) .field-inspect-app .field-inspect-btn:disabled,
+  :root:not([data-theme="light"]) .field-inspect-app .gps-action-btn:disabled { opacity: .55; cursor: not-allowed; }
+  :root:not([data-theme="light"]) .field-inspect-app :focus-visible { outline: 3px solid #a9bcff; outline-offset: 2px; }
+}

@@ -8,11 +8,21 @@ interface AdminLoginPageProps {
   initialMode?: 'signin' | 'forgot';
 }
 
+function isInvitationDestination(candidate: string): boolean {
+  try {
+    const parsed = new URL(candidate, 'https://rentivo.invalid');
+    return parsed.origin === 'https://rentivo.invalid' && parsed.pathname === '/admin/invite' && Boolean(parsed.searchParams.get('token'));
+  } catch {
+    return false;
+  }
+}
+
 function safeAdminDestination(candidate: string | null): string {
+  if (candidate && isInvitationDestination(candidate)) return candidate;
   if (!candidate || (candidate !== '/admin' && !candidate.startsWith('/admin/')) || candidate.startsWith('//') || candidate.includes('\\')) {
     return '/admin';
   }
-  if (candidate === '/admin/login' || candidate.startsWith('/admin/forgot-password') || candidate.startsWith('/admin/reset-password')) {
+  if (candidate === '/admin/login' || candidate === '/admin/invite' || candidate.startsWith('/admin/forgot-password') || candidate.startsWith('/admin/reset-password')) {
     return '/admin';
   }
   return candidate;
@@ -34,7 +44,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ initialMode = 's
   const hasOtherSession = Boolean(user && user.role !== 'admin');
 
   useEffect(() => {
-    if (!authLoading && user?.role === 'admin' && mode === 'signin') {
+    if (!authLoading && user && mode === 'signin' && (user.role === 'admin' || isInvitationDestination(nextPath))) {
       navigate(nextPath, { replace: true });
     }
   }, [authLoading, mode, navigate, nextPath, user]);
@@ -51,6 +61,11 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ initialMode = 's
         return;
       }
       if (result.user?.role !== 'admin') {
+        if (isInvitationDestination(nextPath)) {
+          await refresh();
+          navigate(nextPath, { replace: true });
+          return;
+        }
         await signOut();
         setError('This account does not have Rentivo Admin access. Sign in with an authorized administrator account.');
         return;
@@ -94,8 +109,8 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ initialMode = 's
   };
 
   return (
-    <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px 20px', background: 'linear-gradient(135deg, #f7f5fc 0%, #eef1fa 100%)' }}>
-      <section style={{ width: 'min(100%, 460px)', background: '#fff', border: '1px solid #e6e2f4', borderRadius: 20, padding: '36px clamp(22px, 6vw, 42px)', boxShadow: '0 18px 55px rgba(0, 0, 82, 0.10)' }}>
+    <main className="admin-auth-page" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px 20px', background: 'linear-gradient(135deg, #f7f5fc 0%, #eef1fa 100%)' }}>
+      <section className="admin-auth-card" style={{ width: 'min(100%, 460px)', background: '#fff', border: '1px solid #e6e2f4', borderRadius: 20, padding: '36px clamp(22px, 6vw, 42px)', boxShadow: '0 18px 55px rgba(0, 0, 82, 0.10)' }}>
         <a href="/" onClick={(event) => { event.preventDefault(); navigate('/'); }} aria-label="Rentivo home" style={{ display: 'inline-flex', marginBottom: 28 }}>
           <img src="/RENTIVO-lockup.svg" alt="Rentivo" style={{ height: 34 }} />
         </a>
@@ -118,7 +133,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ initialMode = 's
         </p>
 
         {hasOtherSession && (
-          <div role="status" style={{ padding: '12px 14px', marginBottom: 18, border: '1px solid #f2d08a', borderRadius: 10, background: '#fff8e6', color: '#7a4d00', fontSize: 13, lineHeight: 1.5 }}>
+          <div className="admin-auth-warning" role="status" style={{ padding: '12px 14px', marginBottom: 18, border: '1px solid #f2d08a', borderRadius: 10, background: '#fff8e6', color: '#7a4d00', fontSize: 13, lineHeight: 1.5 }}>
             The current account is not an administrator.
             <button type="button" onClick={() => void handleSignOut()} disabled={busy} style={{ display: 'block', marginTop: 8, padding: 0, border: 0, background: 'none', color: '#000052', fontWeight: 700, textDecoration: 'underline', cursor: 'pointer' }}>
               Sign out to switch accounts
@@ -158,8 +173,8 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ initialMode = 's
             </button>
           </form>
         ) : resetSent ? (
-          <div role="status" style={{ padding: '18px 16px', border: '1px solid #ccebdc', borderRadius: 12, background: '#f0fdf4', color: '#166534', fontSize: 14, lineHeight: 1.6 }}>
-            If an account matches that email, a reset link has been sent. Open it on this device to set a new password and return to Admin sign in.
+          <div className="admin-auth-success" role="status" style={{ padding: '18px 16px', border: '1px solid #ccebdc', borderRadius: 12, background: '#f0fdf4', color: '#166534', fontSize: 14, lineHeight: 1.6 }}>
+            If an account matches that email, Supabase accepted a reset-link request. Check your inbox and spam folder, then open the link on this device to set a new password. A successful request does not confirm provider delivery.
           </div>
         ) : (
           <form onSubmit={handlePasswordReset}>

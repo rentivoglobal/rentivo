@@ -393,7 +393,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
     ];
 
   return (
-    <div className="prop-detail-page" data-theme="light" ref={pageContainerRef}>
+    <div className="prop-detail-page" ref={pageContainerRef}>
       {/* -------------------------------------------------------------
           HEADER (FIXED, TRANSITIONS TO SOLID ON SCROLL)
          ------------------------------------------------------------- */}

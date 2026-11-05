@@ -1,0 +1,199 @@
+/* Dark-mode corrections for the Lister dashboard and Admin Operations portal only.
+   This file intentionally does not affect onboarding, authentication, renter, or marketplace routes. */
+
+:root[data-theme="dark"] .lister-portal {
+  color-scheme: dark;
+  --bg: #0c0c1f;
+  --surface: #15152f;
+  --surface-2: #1d1d3d;
+  --row-hover: #191938;
+  --ink: #f1f0fb;
+  --ink-2: #c4c2df;
+  --ink-3: #aaa8c8;
+  --line: #383854;
+  --line-strong: #555578;
+  --field-line: #77779f;
+  --violet: #d0aaff;
+  --primary: #be89ff;
+  --primary-hover: #d0aaff;
+  --on-primary: #17132a;
+  --ok: #75d6a7;
+  --ok-bg: #123b2b;
+  --ok-solid: #27865d;
+  --warn: #ffd081;
+  --warn-bg: #493516;
+  --bad: #ff9cab;
+  --bad-bg: #4a211f;
+  --bad-solid: #ba4058;
+  --info: #d0b9ff;
+  --info-bg: #30234a;
+  --toast-bg: #29294d;
+  --toast-ink: #f5f4ff;
+  background-color: var(--bg);
+  color: var(--ink);
+}
+
+/* The legacy Lister palette is already tokenized; make its remaining native controls,
+   semantic feedback, and overlays legible without disturbing branded navigation/actions. */
+:root[data-theme="dark"] .lister-portal input,
+:root[data-theme="dark"] .lister-portal select,
+:root[data-theme="dark"] .lister-portal textarea,
+:root[data-theme="dark"] .lister-portal option,
+:root[data-theme="dark"] .lister-portal .field,
+:root[data-theme="dark"] .lister-portal .search-input,
+:root[data-theme="dark"] .lister-portal .filter-select {
+  color-scheme: dark;
+  color: var(--ink);
+  background-color: var(--surface);
+  border-color: var(--field-line);
+}
+:root[data-theme="dark"] .lister-portal input::placeholder,
+:root[data-theme="dark"] .lister-portal textarea::placeholder { color: var(--ink-3); opacity: 1; }
+:root[data-theme="dark"] .lister-portal :disabled,
+:root[data-theme="dark"] .lister-portal [aria-disabled="true"] { opacity: .62; }
+:root[data-theme="dark"] .lister-portal .panel,
+:root[data-theme="dark"] .lister-portal .card,
+:root[data-theme="dark"] .lister-portal .modal,
+:root[data-theme="dark"] .lister-portal .modal-content,
+:root[data-theme="dark"] .lister-portal .dialog { background-color: var(--surface); color: var(--ink); border-color: var(--line); }
+:root[data-theme="dark"] .lister-portal .banner[style*="background"],
+:root[data-theme="dark"] .lister-portal [role="alert"],
+:root[data-theme="dark"] .lister-portal .error { color: var(--bad); }
+:root[data-theme="dark"] .lister-portal [role="status"],
+:root[data-theme="dark"] .lister-portal .success { color: var(--ok); }
+:root[data-theme="dark"] .lister-portal :focus-visible { outline-color: var(--violet); }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .lister-portal {
+    color-scheme: dark;
+    --bg: #0c0c1f;
+    --surface: #15152f;
+    --surface-2: #1d1d3d;
+    --row-hover: #191938;
+    --ink: #f1f0fb;
+    --ink-2: #c4c2df;
+    --ink-3: #aaa8c8;
+    --line: #383854;
+    --line-strong: #555578;
+    --field-line: #77779f;
+    --violet: #d0aaff;
+    --primary: #be89ff;
+    --primary-hover: #d0aaff;
+    --on-primary: #17132a;
+    --ok: #75d6a7;
+    --ok-bg: #123b2b;
+    --ok-solid: #27865d;
+    --warn: #ffd081;
+    --warn-bg: #493516;
+    --bad: #ff9cab;
+    --bad-bg: #4a211f;
+    --bad-solid: #ba4058;
+    --info: #d0b9ff;
+    --info-bg: #30234a;
+    --toast-bg: #29294d;
+    --toast-ink: #f5f4ff;
+    background-color: var(--bg);
+    color: var(--ink);
+  }
+  :root:not([data-theme="light"]) .lister-portal input,
+  :root:not([data-theme="light"]) .lister-portal select,
+  :root:not([data-theme="light"]) .lister-portal textarea,
+  :root:not([data-theme="light"]) .lister-portal option,
+  :root:not([data-theme="light"]) .lister-portal .field,
+  :root:not([data-theme="light"]) .lister-portal .search-input,
+  :root:not([data-theme="light"]) .lister-portal .filter-select {
+    color-scheme: dark;
+    color: var(--ink);
+    background-color: var(--surface);
+    border-color: var(--field-line);
+  }
+  :root:not([data-theme="light"]) .lister-portal input::placeholder,
+  :root:not([data-theme="light"]) .lister-portal textarea::placeholder { color: var(--ink-3); opacity: 1; }
+  :root:not([data-theme="light"]) .lister-portal :disabled,
+  :root:not([data-theme="light"]) .lister-portal [aria-disabled="true"] { opacity: .62; }
+  :root:not([data-theme="light"]) .lister-portal .panel,
+  :root:not([data-theme="light"]) .lister-portal .card,
+  :root:not([data-theme="light"]) .lister-portal .modal,
+  :root:not([data-theme="light"]) .lister-portal .modal-content,
+  :root:not([data-theme="light"]) .lister-portal .dialog { background-color: var(--surface); color: var(--ink); border-color: var(--line); }
+  :root:not([data-theme="light"]) .lister-portal .banner[style*="background"],
+  :root:not([data-theme="light"]) .lister-portal [role="alert"],
+  :root:not([data-theme="light"]) .lister-portal .error { color: var(--bad); }
+  :root:not([data-theme="light"]) .lister-portal [role="status"],
+  :root:not([data-theme="light"]) .lister-portal .success { color: var(--ok); }
+  :root:not([data-theme="light"]) .lister-portal :focus-visible { outline-color: var(--violet); }
+
+  :root:not([data-theme="light"]) .roc-app {
+    color-scheme: dark;
+    --bg: #0a0a1a;
+    --surface: #181834;
+    --surface-2: #1e1e3b;
+    --line: #3b3b5f;
+    --line-2: #30304e;
+    --ink: #f5f4ff;
+    --ink-2: #d2d0eb;
+    --ink-3: #b7b4d2;
+    --accent: #c79bff;
+    --accent-ink: #0a0a1a;
+    --accent-soft: #30234a;
+    --link: #d0acff;
+    --ok: #75d6a7;
+    --ok-bg: #123b2b;
+    --warn: #ffd081;
+    --warn-bg: #493516;
+    --bad: #ffaaa1;
+    --bad-bg: #4a211f;
+    --info: #c0bdff;
+    --info-bg: #29294d;
+    --scrim: rgba(4, 4, 18, .76);
+    background-color: var(--bg);
+    color: var(--ink);
+  }
+  :root:not([data-theme="light"]) .roc-app .roc-btn.b-sec { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+  :root:not([data-theme="light"]) .roc-app input,
+  :root:not([data-theme="light"]) .roc-app select,
+  :root:not([data-theme="light"]) .roc-app textarea { color-scheme: dark; color: var(--ink); background-color: var(--surface); border-color: var(--line); }
+  :root:not([data-theme="light"]) .roc-app input::placeholder,
+  :root:not([data-theme="light"]) .roc-app textarea::placeholder { color: var(--ink-3); opacity: 1; }
+  :root:not([data-theme="light"]) .roc-app .roc-sheet { background-color: var(--surface); color: var(--ink); border-color: var(--line); }
+  :root:not([data-theme="light"]) .roc-app :disabled,
+  :root:not([data-theme="light"]) .roc-app [aria-disabled="true"] { opacity: .62; }
+  :root:not([data-theme="light"]) .roc-app :focus-visible { outline-color: #d0acff; }
+}
+
+:root[data-theme="dark"] .roc-app {
+  color-scheme: dark;
+  --bg: #0a0a1a;
+  --surface: #181834;
+  --surface-2: #1e1e3b;
+  --line: #3b3b5f;
+  --line-2: #30304e;
+  --ink: #f5f4ff;
+  --ink-2: #d2d0eb;
+  --ink-3: #b7b4d2;
+  --accent: #c79bff;
+  --accent-ink: #0a0a1a;
+  --accent-soft: #30234a;
+  --link: #d0acff;
+  --ok: #75d6a7;
+  --ok-bg: #123b2b;
+  --warn: #ffd081;
+  --warn-bg: #493516;
+  --bad: #ffaaa1;
+  --bad-bg: #4a211f;
+  --info: #c0bdff;
+  --info-bg: #29294d;
+  --scrim: rgba(4, 4, 18, .76);
+  background-color: var(--bg);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .roc-app .roc-btn.b-sec { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+:root[data-theme="dark"] .roc-app input,
+:root[data-theme="dark"] .roc-app select,
+:root[data-theme="dark"] .roc-app textarea { color-scheme: dark; color: var(--ink); background-color: var(--surface); border-color: var(--line); }
+:root[data-theme="dark"] .roc-app input::placeholder,
+:root[data-theme="dark"] .roc-app textarea::placeholder { color: var(--ink-3); opacity: 1; }
+:root[data-theme="dark"] .roc-app .roc-sheet { background-color: var(--surface); color: var(--ink); border-color: var(--line); }
+:root[data-theme="dark"] .roc-app :disabled,
+:root[data-theme="dark"] .roc-app [aria-disabled="true"] { opacity: .62; }
+:root[data-theme="dark"] .roc-app :focus-visible { outline-color: #d0acff; }

@@ -46,7 +46,6 @@ export const ListerOnboardingPage: React.FC = () => {
 
   // Step 2: Phone confirmation & Brevo SMS states
   const [phoneCode, setPhoneCode] = useState<string[]>(['', '', '', '', '', '']);
-  const [activeOTP, setActiveOTP] = useState<string>('');
   const [isCodeSent, setIsCodeSent] = useState<boolean>(false);
   const [codeTimer, setCodeTimer] = useState<number>(60);
   const [isSendingSMS, setIsSendingSMS] = useState<boolean>(false);
@@ -116,7 +115,7 @@ export const ListerOnboardingPage: React.FC = () => {
     return updated;
   };
 
-  // Step 2 Phone Send & Verify via Brevo SMS + Email dispatch
+  // Step 2 Phone Send & Verify through the authenticated server-side challenge.
   const handleSendPhoneCode = async () => {
     if (!data.phone || data.phone.trim().length < 10) {
       setPhoneError('Please enter a valid Nigerian phone number (e.g. 08012345678)');
@@ -126,22 +125,19 @@ export const ListerOnboardingPage: React.FC = () => {
     setIsSendingSMS(true);
     setSmsStatusMessage(null);
 
-    // Generate real 6-digit verification code
-    const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-    setActiveOTP(generatedOTP);
-
     const effectiveEmail = data.userEmail || user?.email || '';
-    const res = await listerOnboardingService.sendPhoneVerificationCode(data.phone, generatedOTP, effectiveEmail);
+    const res = await listerOnboardingService.sendPhoneVerificationCode(data.phone, effectiveEmail);
     setIsSendingSMS(false);
-    setIsCodeSent(true);
-    setCodeTimer(60);
 
     if (res.success) {
       setSmsSuccess(true);
       setSmsStatusMessage(res.statusMessage);
+      setIsCodeSent(true);
+      setCodeTimer(60);
     } else {
       setSmsSuccess(false);
       setSmsStatusMessage(res.error || 'Failed to dispatch verification code. Please try again.');
+      setIsCodeSent(false);
     }
     // Keep digits empty for user input
     setPhoneCode(['', '', '', '', '', '']);
@@ -166,15 +162,14 @@ export const ListerOnboardingPage: React.FC = () => {
       setPhoneError('Please enter the full 6-digit confirmation code.');
       return;
     }
-    if (code !== activeOTP) {
-      setPhoneError('Incorrect verification code. Please enter the real 6-digit code sent to your email or mobile.');
-      return;
-    }
     setIsVerifyingCode(true);
     setPhoneError(null);
-
-    await new Promise((res) => setTimeout(res, 400));
+    const verification = await listerOnboardingService.verifyPhoneVerificationCode(data.phone, code);
     setIsVerifyingCode(false);
+    if (!verification.success) {
+      setPhoneError(verification.error || 'The code could not be verified. Request a new code and try again.');
+      return;
+    }
 
     await handleSavePartial({
       phone: data.phone,
@@ -669,6 +664,9 @@ export const ListerOnboardingPage: React.FC = () => {
                     onChange={(e) => {
                       setData({ ...data, phone: e.target.value, whatsapp: data.whatsapp || e.target.value });
                       setPhoneError(null);
+                      setIsCodeSent(false);
+                      setPhoneCode(['', '', '', '', '', '']);
+                      setSmsStatusMessage(null);
                     }}
                   />
                 </div>
@@ -690,23 +688,23 @@ export const ListerOnboardingPage: React.FC = () => {
                 <div className="lister-onb-field">
                   <label className="lister-onb-label">
                     <span>Account Email</span>
-                    <span className="lister-onb-label-hint">For receiving your real 6-digit verification code</span>
+                    <span className="lister-onb-label-hint">Signed-in account email</span>
                   </label>
                   <input
                     type="email"
                     className="lister-onb-input"
                     placeholder="name@example.com"
-                    value={data.userEmail || user?.email || ''}
-                    onChange={(e) => setData({ ...data, userEmail: e.target.value })}
+                    value={user?.email || data.userEmail || ''}
+                    readOnly
                   />
                 </div>
 
                 {smsStatusMessage && (
                   <div
                     style={{
-                      background: smsSuccess ? '#E2F5EC' : '#FFFBEB',
-                      border: `1px solid ${smsSuccess ? '#A3E3C6' : '#FDE68A'}`,
-                      color: smsSuccess ? '#0B6B4B' : '#92400E',
+                      background: smsSuccess ? 'var(--color-success-bg, #E2F5EC)' : 'var(--color-warning-bg, #FFFBEB)',
+                      border: `1px solid ${smsSuccess ? 'var(--color-success-border, #A3E3C6)' : 'var(--color-warning-border, #FDE68A)'}`,
+                      color: smsSuccess ? 'var(--color-success, #0B6B4B)' : 'var(--color-warning, #92400E)',
                       padding: '10px 14px',
                       borderRadius: '10px',
                       fontSize: '0.86rem',
@@ -733,9 +731,8 @@ export const ListerOnboardingPage: React.FC = () => {
                   </button>
                 ) : (
                   <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ fontSize: '0.88rem', color: '#000052', fontWeight: 600 }}>
-                      Enter the 6-digit confirmation code sent to {data.phone}
-                      {(data.userEmail || user?.email) ? ` and ${data.userEmail || user?.email}` : ''}:
+                    <div style={{ fontSize: '0.88rem', color: 'var(--color-text, #000052)', fontWeight: 600 }}>
+                      Enter the 6-digit confirmation code sent by SMS to {data.phone}:
                     </div>
 
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -759,13 +756,13 @@ export const ListerOnboardingPage: React.FC = () => {
                       ))}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: '#5C5C85' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.82rem', color: 'var(--color-text-muted, #5C5C85)' }}>
                       <span>
                         {codeTimer > 0 ? `Resend in ${codeTimer}s` : (
                           <button
                             type="button"
                             onClick={handleSendPhoneCode}
-                            style={{ background: 'none', border: 'none', color: '#6B2FD6', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                            style={{ background: 'none', border: 'none', color: 'var(--color-primary, #6B2FD6)', fontWeight: 700, cursor: 'pointer', padding: 0 }}
                           >
                             Resend code now
                           </button>
@@ -773,8 +770,8 @@ export const ListerOnboardingPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '0.78rem', color: '#5C5C85', marginTop: '2px', lineHeight: 1.4 }}>
-                      💡 Check your email inbox (or spam) for the real 6-digit code delivered via Brevo.
+                    <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted, #5C5C85)', marginTop: '2px', lineHeight: 1.4 }}>
+                      Check your phone’s SMS inbox for the code. Rentivo will never ask you to share it.
                     </div>
                   </div>
                 )}
@@ -1287,4 +1284,3 @@ export const ListerOnboardingPage: React.FC = () => {
     </div>
   );
 };
-

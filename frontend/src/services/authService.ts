@@ -1,9 +1,40 @@
 import { User, UserRole } from '../types';
-import { isLiveBackend } from '../lib/config';
-import { supabase, extractEdgeFunctionError } from '../lib/supabase';
-import { APP_URL } from '../lib/config';
+import { APP_URL, isLiveBackend } from '../lib/config';
+import { supabase } from '../lib/supabase';
 import { localStore, roleFromSignup } from './localStore';
 import { renterProfileService } from './renterProfileService';
+
+const RECOVERY_SESSION_KEY = 'rentivo:password-recovery';
+
+function currentAppOrigin(): string {
+  return typeof window !== 'undefined' ? window.location.origin : APP_URL;
+}
+
+function appRedirect(pathOrUrl = '/auth/callback'): string {
+  const origin = currentAppOrigin().replace(/\/+$/, '');
+  try {
+    const target = new URL(pathOrUrl, `${origin}/`);
+    return target.origin === origin ? target.toString() : `${origin}/auth/callback`;
+  } catch {
+    return `${origin}/auth/callback`;
+  }
+}
+
+function markRecoverySession(): void {
+  try {
+    window.sessionStorage.setItem(RECOVERY_SESSION_KEY, '1');
+  } catch {
+    // The recovery check will fail closed when browser storage is unavailable.
+  }
+}
+
+function clearRecoverySession(): void {
+  try {
+    window.sessionStorage.removeItem(RECOVERY_SESSION_KEY);
+  } catch {
+    // Ignore unavailable browser storage.
+  }
+}
 
 function mapProfile(row: {
   id: string;
@@ -84,7 +115,21 @@ export const authService = {
     }
     if (!supabase) return { success: false, error: 'Authentication is not configured.' };
     const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-    if (error || !data.user) return { success: false, error: error?.message || 'Failed to sign in.' };
+    if (error || !data.user) {
+      const message = error?.message || '';
+      if (message.toLowerCase().includes('email not confirmed') || message.toLowerCase().includes('email_not_confirmed')) {
+        const { error: resendError } = await supabase.auth.resend({
+          type: 'signup',
+          email: cleanEmail,
+          options: { emailRedirectTo: appRedirect('/auth/callback') }
+        });
+        if (!resendError) {
+          return { success: false, error: `Your email is not confirmed yet. Supabase accepted a request for a fresh confirmation email to ${cleanEmail}. Check your inbox and spam folder.` };
+        }
+        return { success: false, error: 'Your email is not confirmed yet. Request a fresh verification code from the confirmation page.' };
+      }
+      return { success: false, error: message || 'Failed to sign in.' };
+    }
     const profile = await fetchProfile(data.user.id);
     if (profile && (profile.role === 'tenant' || profile.role === 'business_renter')) {
       void renterProfileService.syncGuestProfile(profile.id);
@@ -99,6 +144,7 @@ export const authService = {
     role: UserRole;
     agencyName?: string;
     password?: string;
+    emailRedirectTo?: string;
   }): Promise<{ success: boolean; user?: User; error?: string; needsConfirmation?: boolean }> {
     // Whitelist allowed public signup roles (strictly prevent admin role escalation)
     const ALLOWED_SIGNUP_ROLES: UserRole[] = ['tenant', 'landlord', 'agent', 'business_renter'];
@@ -145,7 +191,8 @@ export const authService = {
           phone: cleanPhone,
           role,
           agency_name: input.agencyName?.trim() || ''
-        }
+        },
+        emailRedirectTo: appRedirect(input.emailRedirectTo || '/auth/callback')
       }
     });
 
@@ -160,27 +207,7 @@ export const authService = {
         return { success: false, error: 'An account with this email already exists. Please sign in instead.' };
       }
 
-      // Fallback: If client signup is restricted, invoke auth-signup edge function
-      const { data: edgeRes, error: edgeErr } = await supabase.functions.invoke('auth-signup', {
-        body: {
-          email: cleanEmail,
-          password: input.password || '',
-          fullName: cleanName,
-          phone: cleanPhone,
-          role,
-          agencyName: input.agencyName?.trim() || ''
-        }
-      });
-
-      if (edgeErr || edgeRes?.error || edgeRes?.success === false) {
-        let errorMsg = edgeRes?.error;
-        if (!errorMsg && edgeErr) {
-          errorMsg = await extractEdgeFunctionError(edgeErr, 'Failed to create account.');
-        }
-        return { success: false, error: errorMsg || signUpErr.message || 'Failed to create account.' };
-      }
-
-      return { success: true, needsConfirmation: true };
+      return { success: false, error: signUpErr.message || 'Failed to create account. Please try again.' };
     }
 
     // If email confirmation is required (Supabase returns session: null)
@@ -354,14 +381,14 @@ export const authService = {
     const { error } = await supabase.auth.signInWithOtp({
       email: cleanEmail,
       options: {
-        emailRedirectTo: `${APP_URL}/auth/callback`
+        emailRedirectTo: appRedirect('/auth/callback')
       }
     });
     if (error) return { success: false, error: error.message };
     return { success: true };
   },
 
-  async resendVerificationCode(email: string, type: 'signup' | 'login'): Promise<{ success: boolean; error?: string }> {
+  async resendVerificationCode(email: string, type: 'signup' | 'login', redirectTo?: string): Promise<{ success: boolean; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
     if (!isLiveBackend || !supabase) {
       return { success: true };
@@ -369,7 +396,8 @@ export const authService = {
     if (type === 'signup') {
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: cleanEmail
+        email: cleanEmail,
+        options: { emailRedirectTo: appRedirect(redirectTo || '/auth/callback') }
       });
       if (error) return { success: false, error: error.message };
       return { success: true };
@@ -377,7 +405,7 @@ export const authService = {
       const { error } = await supabase.auth.signInWithOtp({
         email: cleanEmail,
         options: {
-          emailRedirectTo: `${APP_URL}/auth/callback`
+          emailRedirectTo: appRedirect('/auth/callback')
         }
       });
       if (error) return { success: false, error: error.message };
@@ -391,7 +419,7 @@ export const authService = {
     }
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: { emailRedirectTo: `${APP_URL}/auth/callback` }
+      options: { emailRedirectTo: appRedirect('/auth/callback') }
     });
     if (error) return { success: false, error: error.message };
     return { success: true };
@@ -408,8 +436,7 @@ export const authService = {
     const safeRedirectPath = redirectPath.startsWith('/') && !redirectPath.startsWith('//')
       ? redirectPath
       : '/reset-password';
-    const redirectOrigin = typeof window !== 'undefined' ? window.location.origin : APP_URL;
-    const redirectTo = new URL(safeRedirectPath, `${redirectOrigin.replace(/\/+$/, '')}/`).toString();
+    const redirectTo = appRedirect(safeRedirectPath);
     const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
       redirectTo
     });
@@ -424,7 +451,7 @@ export const authService = {
     const client = supabase;
     try {
       const { data } = await client.auth.getSession();
-      if (data.session?.user) return true;
+      if (data.session?.user && window.sessionStorage.getItem(RECOVERY_SESSION_KEY) === '1') return true;
 
       return await new Promise<boolean>((resolve) => {
         let settled = false;
@@ -439,7 +466,8 @@ export const authService = {
         };
 
         const listener = client.auth.onAuthStateChange((event, session) => {
-          if (session?.user && (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN')) {
+          if (session?.user && event === 'PASSWORD_RECOVERY') {
+            markRecoverySession();
             finish(true);
           }
         });
@@ -449,9 +477,11 @@ export const authService = {
         if (!settled) {
           timeout = setTimeout(() => {
             void client.auth.getSession()
-              .then(({ data: latest }) => finish(Boolean(latest.session?.user)))
+              .then(({ data: latest }) => finish(
+                Boolean(latest.session?.user && window.sessionStorage.getItem(RECOVERY_SESSION_KEY) === '1')
+              ))
               .catch(() => finish(false));
-          }, 3000);
+          }, 5000);
         }
       });
     } catch {
@@ -472,6 +502,7 @@ export const authService = {
 
     const { error } = await supabase.auth.updateUser({ password });
     if (error) return { success: false, error: error.message || 'Failed to update password. Reset link may have expired.' };
+    clearRecoverySession();
     return { success: true };
   },
 

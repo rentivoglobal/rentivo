@@ -1,9 +1,7 @@
 import { AccessRequest, Listing, ListerContact } from '../types';
 import { APP_URL, isLiveBackend } from '../lib/config';
-import { supabase } from '../lib/supabase';
+import { extractEdgeFunctionError, supabase } from '../lib/supabase';
 
-const BREVO_API_KEY = (import.meta as any).env?.VITE_BREVO_API_KEY || '';
-const DEFAULT_SENDER = { name: 'Rentivo', email: 'info@rentivos.com.ng' };
 const LOGO_URL = 'https://uovlgngsmvjcgkgznyme.supabase.co/storage/v1/object/public/assets/rentivo-logo.svg';
 const DEFAULT_PHOTO = 'https://ik.imagekit.io/3unwhixxd/Property%20type.png';
 
@@ -1044,70 +1042,41 @@ async function dispatchEmail(payload: {
   htmlContent: string;
   data: Record<string, any>;
 }): Promise<{ success: boolean; error?: string }> {
-  // 1. Direct Brevo API dispatch first (fast, reliable, zero dependency on Edge deployment status)
-  if (BREVO_API_KEY && BREVO_API_KEY.trim().length > 5) {
-    try {
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': BREVO_API_KEY.trim(),
-          'Content-Type': 'application/json',
-          accept: 'application/json'
-        },
-        body: JSON.stringify({
-          sender: DEFAULT_SENDER,
-          to: [{ email: payload.recipientEmail, name: payload.recipientName }],
-          subject: payload.subject,
-          htmlContent: payload.htmlContent
-        })
-      });
-
-      if (response.ok) {
-        console.info(`[Rentivo Email] Successfully dispatched "${payload.template}" to ${payload.recipientEmail} via Brevo`);
-        return { success: true };
-      }
-      const errJson = await response.json().catch(() => ({}));
-      const brevoMsg = errJson?.message || `HTTP ${response.status}`;
-      console.warn('Brevo client delivery error:', errJson);
-      // Fall through to Edge function if direct Brevo dispatch returned non-200
-    } catch (err: any) {
-      console.warn('Brevo network exception (falling through to Edge Function):', err?.message);
-    }
+  if (!isLiveBackend || !supabase) {
+    return { success: false, error: 'Email delivery is only available when the Rentivo Supabase backend is configured.' };
   }
 
-  // 2. Fallback to Supabase Edge Function
-  if (isLiveBackend && supabase) {
-    try {
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: {
-          template: payload.template,
-          recipientEmail: payload.recipientEmail,
-          recipientName: payload.recipientName,
-          data: payload.data
-        }
-      });
-      if (!error && data?.success) {
-        if (data?.emailError) {
-          return { success: false, error: data.emailError };
-        }
-        return { success: true };
+  try {
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        template: payload.template,
+        recipientEmail: payload.recipientEmail,
+        recipientName: payload.recipientName,
+        data: payload.data
       }
-      if (error || (data && !data.success)) {
-        const edgeErr = error?.message || data?.error || data?.emailError || 'Edge function error';
-        console.warn(`Edge Function send-email note for ${payload.template}:`, edgeErr);
-        return { success: false, error: edgeErr };
-      }
-    } catch (err: any) {
-      console.warn(`Edge Function send-email invoke exception for ${payload.template}:`, err?.message);
-    }
-  }
+    });
 
-  // 3. No delivery channel available — return informative error
-  console.warn(`[Rentivo Notification Dispatcher] No delivery channel available for "${payload.template}" to ${payload.recipientEmail}`);
-  return {
-    success: false,
-    error: `No email delivery channel configured. Check Brevo API key permissions (requires "Transactional emails" scope) or Supabase Edge Function setup.`
-  };
+    if (error) {
+      return {
+        success: false,
+        error: await extractEdgeFunctionError(error, 'The email service could not confirm delivery.')
+      };
+    }
+
+    if (data?.success === true && data?.delivered === true) {
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      error: data?.error || data?.emailError || 'The email provider did not confirm delivery. Please retry.'
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || 'The email service could not confirm delivery.'
+    };
+  }
 }
 
 export const emailNotificationService = {
@@ -1115,6 +1084,7 @@ export const emailNotificationService = {
    * 0. Notifies the landlord that a verified renter has requested access, asking them to confirm availability.
    */
   async sendLandlordVacancyCheckEmail(params: {
+    requestId: string;
     recipientEmail: string;
     recipientName?: string;
     renterName: string;
@@ -1130,6 +1100,7 @@ export const emailNotificationService = {
     referenceId?: string;
   }): Promise<{ success: boolean; error?: string }> {
     const {
+      requestId,
       recipientEmail,
       recipientName = params.listing?.lister?.fullName || 'Property Owner',
       renterName,
@@ -1165,6 +1136,7 @@ export const emailNotificationService = {
       subject: `Action Required: Is "${propertyTitle}" still available? — Rentivo`,
       htmlContent,
       data: {
+        requestId,
         renterName,
         renterNotes,
         propertyTitle,
@@ -1216,6 +1188,7 @@ export const emailNotificationService = {
       subject: `Available! Good news regarding "${propertyTitle}" — Rentivo`,
       htmlContent,
       data: {
+        requestId: request.id,
         propertyTitle,
         propertyArea,
         propertyPrice,
@@ -1275,6 +1248,7 @@ export const emailNotificationService = {
       subject: `Access Unlocked: Landlord details for "${propertyTitle}" — Rentivo`,
       htmlContent,
       data: {
+        requestId: request.id,
         propertyTitle,
         propertyArea,
         propertyPrice,
@@ -1323,6 +1297,7 @@ export const emailNotificationService = {
       subject: `Refund Approved: ₦5,000 for "${propertyTitle}" — Rentivo`,
       htmlContent,
       data: {
+        requestId: request.id,
         propertyTitle,
         propertyArea,
         originalTransaction,
@@ -1369,6 +1344,7 @@ export const emailNotificationService = {
       subject: `We're checking on this one for you: "${propertyTitle}" — Rentivo`,
       htmlContent,
       data: {
+        requestId: request.id,
         propertyTitle,
         propertyArea,
         propertyPrice,
@@ -1423,6 +1399,7 @@ export const emailNotificationService = {
       subject: `Update: "${propertyTitle}" is no longer available — Rentivo`,
       htmlContent,
       data: {
+        requestId: request.id,
         propertyTitle,
         propertyArea,
         propertyPrice,
@@ -1480,6 +1457,7 @@ export const emailNotificationService = {
       subject: `Update on your availability inquiry: ${propertyTitle} — Rentivo`,
       htmlContent,
       data: {
+        requestId: request.id,
         propertyTitle,
         propertyArea,
         propertyPrice,
@@ -1531,6 +1509,7 @@ export const emailNotificationService = {
       subject: `Verified: "${propertyTitle}" has been Emerald Verified! — Rentivo`,
       htmlContent,
       data: {
+        listingId: listing.id,
         propertyTitle,
         propertyArea,
         propertyPrice,
@@ -1583,6 +1562,7 @@ export const emailNotificationService = {
       subject: `Action Required: Verification feedback for "${propertyTitle}" — Rentivo`,
       htmlContent,
       data: {
+        listingId: listing.id,
         propertyTitle,
         propertyArea,
         propertyPrice,
@@ -1635,6 +1615,7 @@ export const emailNotificationService = {
       subject: `Verification decision regarding "${propertyTitle}" — Rentivo`,
       htmlContent,
       data: {
+        listingId: listing.id,
         propertyTitle,
         propertyArea,
         propertyPrice,

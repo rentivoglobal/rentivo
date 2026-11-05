@@ -6,8 +6,21 @@ import { authService } from './authService';
 import { emailNotificationService } from './emailNotificationService';
 
 function buildInviteUrl(token: string, email: string): string {
-  const base = APP_URL || window.location.origin;
-  return `${base}/admin/invite?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+  const base = typeof window !== 'undefined' ? window.location.origin : APP_URL;
+  return `${base.replace(/\/+$/, '')}/admin/invite?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+}
+
+function buildInviteConfirmationUrl(token: string): string {
+  const base = typeof window !== 'undefined' ? window.location.origin : APP_URL;
+  const callback = new URL('/auth/callback', `${base.replace(/\/+$/, '')}/`);
+  callback.searchParams.set('adminInviteToken', token);
+  return callback.toString();
+}
+
+function createInvitationToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export const adminService = {
@@ -116,7 +129,12 @@ export const adminService = {
     }
 
     const currentAdminUser = authService.getCurrentUser();
-    const token = crypto.randomUUID ? crypto.randomUUID() : `inv-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    let token: string;
+    try {
+      token = createInvitationToken();
+    } catch {
+      return { success: false, error: 'Secure invitation token generation is unavailable in this browser.' };
+    }
     const inviteUrl = buildInviteUrl(token, cleanEmail);
 
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -134,9 +152,8 @@ export const adminService = {
       createdAt: new Date().toISOString()
     };
 
-    let emailError: string | undefined;
-
-    if (isLiveBackend && supabase) {
+    if (isLiveBackend) {
+      if (!supabase) return { success: false, error: 'Supabase is not configured.' };
       try {
         const { data, error } = await supabase
           .from('admin_invitations')
@@ -154,20 +171,18 @@ export const adminService = {
           .select()
           .single();
 
-        if (error) {
-          console.error('Supabase admin_invitations insert error:', error);
-          // Fall back to localStore if live database fails
-          localStore.saveAdminInvitation(newInvitation);
-        } else if (data) {
-          newInvitation.id = data.id;
+        if (error || !data) {
+          return { success: false, error: error?.message || 'Invitation could not be saved to the Rentivo database.' };
         }
+        newInvitation.id = data.id;
       } catch (err: any) {
-        console.warn('Exception writing invitation to Supabase:', err);
-        localStore.saveAdminInvitation(newInvitation);
+        return { success: false, error: err?.message || 'Invitation could not be saved to the Rentivo database.' };
       }
     } else {
       localStore.saveAdminInvitation(newInvitation);
     }
+
+    let emailError: string | undefined;
 
     // Dispatch invitation email via Brevo / Edge Function pipeline
     try {
@@ -202,13 +217,17 @@ export const adminService = {
     const invitations = await this.getInvitations();
     const inv = invitations.find(i => i.id === invitationId);
     if (!inv) return { success: false, error: 'Invitation not found.' };
+    if (inv.status === 'accepted' || inv.status === 'revoked') {
+      return { success: false, error: `A ${inv.status} invitation cannot be resent.` };
+    }
 
     const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const inviteUrl = buildInviteUrl(inv.token, inv.email);
 
-    if (isLiveBackend && supabase) {
+    if (isLiveBackend) {
+      if (!supabase) return { success: false, error: 'Supabase is not configured.' };
       try {
-        await supabase
+        const { error } = await supabase
           .from('admin_invitations')
           .update({
             expires_at: newExpiresAt,
@@ -216,11 +235,13 @@ export const adminService = {
             updated_at: new Date().toISOString()
           })
           .eq('id', invitationId);
+        if (error) return { success: false, error: error.message };
       } catch (err) {
-        console.warn('Failed to update invite expiry on Supabase:', err);
+        return { success: false, error: err instanceof Error ? err.message : 'Could not refresh invitation expiry.' };
       }
+    } else {
+      localStore.updateAdminInvitation(invitationId, { expiresAt: newExpiresAt, status: 'pending' });
     }
-    localStore.updateAdminInvitation(invitationId, { expiresAt: newExpiresAt, status: 'pending' });
 
     // Send email again
     const emailRes = await emailNotificationService.sendAdminInvitationEmail({
@@ -233,7 +254,7 @@ export const adminService = {
     });
 
     if (!emailRes.success) {
-      return { success: true, inviteUrl, error: `Link refreshed, but email failed: ${emailRes.error}` };
+      return { success: false, inviteUrl, error: `The invitation expiry was refreshed, but the email was not delivered: ${emailRes.error}` };
     }
 
     return { success: true, inviteUrl };
@@ -317,62 +338,25 @@ export const adminService = {
   }> {
     if (!token) return { valid: false, error: 'Invitation link is missing token.' };
 
-    if (isLiveBackend && supabase) {
+    if (isLiveBackend) {
+      if (!supabase) return { valid: false, error: 'Invitation validation is unavailable. Please try again.' };
       try {
         const { data, error } = await supabase.rpc('get_admin_invitation_by_token', { p_token: token });
-        if (error) {
-          console.warn('RPC get_admin_invitation_by_token error, falling back to direct query:', error);
-        } else if (data) {
-          if (!data.success) {
-            return { valid: false, error: data.error };
-          }
-          return {
-            valid: true,
-            invitation: {
-              email: data.email,
-              fullName: data.full_name,
-              role: data.role,
-              invitedByName: data.invited_by_name,
-              notes: data.notes,
-              expiresAt: data.expires_at
-            }
-          };
-        }
-
-        // Direct select fallback
-        const { data: invRow, error: selectErr } = await supabase
-          .from('admin_invitations')
-          .select('*')
-          .eq('token', token)
-          .maybeSingle();
-
-        if (selectErr || !invRow) {
-          return { valid: false, error: 'Invalid or expired invitation token.' };
-        }
-
-        if (invRow.status === 'accepted') {
-          return { valid: false, error: 'This invitation has already been accepted.' };
-        }
-        if (invRow.status === 'revoked') {
-          return { valid: false, error: 'This invitation has been revoked by an administrator.' };
-        }
-        if (new Date(invRow.expires_at).getTime() < Date.now()) {
-          return { valid: false, error: 'This invitation has expired. Please request a new invite.' };
-        }
-
+        if (error) return { valid: false, error: 'Could not validate this invitation. Please retry.' };
+        if (!data?.success) return { valid: false, error: data?.error || 'Invalid or expired invitation token.' };
         return {
           valid: true,
           invitation: {
-            email: invRow.email,
-            fullName: invRow.full_name,
-            role: invRow.role as AdminRoleTier,
-            invitedByName: invRow.invited_by_name,
-            notes: invRow.notes,
-            expiresAt: invRow.expires_at
+            email: data.email,
+            fullName: data.full_name,
+            role: data.role as AdminRoleTier,
+            invitedByName: data.invited_by_name,
+            notes: data.notes,
+            expiresAt: data.expires_at
           }
         };
       } catch (err: any) {
-        console.error('Error verifying token on Supabase:', err);
+        return { valid: false, error: err?.message || 'Could not validate this invitation. Please retry.' };
       }
     }
 
@@ -411,13 +395,13 @@ export const adminService = {
     password?: string;
     phone?: string;
     fullName?: string;
-  }): Promise<{ success: boolean; error?: string }> {
+  }): Promise<{ success: boolean; error?: string; needsConfirmation?: boolean }> {
     const verification = await this.verifyInvitationToken(token);
     if (!verification.valid || !verification.invitation) {
       return { success: false, error: verification.error || 'Invalid invitation.' };
     }
 
-    const { email, fullName, role } = verification.invitation;
+    const { email, fullName } = verification.invitation;
     const finalName = input.fullName?.trim() || fullName;
     const phone = input.phone?.trim() || '';
 
@@ -454,30 +438,26 @@ export const adminService = {
       return { success: true };
     }
 
-    // Live Supabase Backend
+    // Live Supabase Backend: never promote a role or accept an invite through client-side table writes.
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      let userId = sessionData.session?.user?.id;
+      if (!supabase) return { success: false, error: 'Supabase is not configured.' };
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) return { success: false, error: sessionError.message };
+      const activeUser = sessionData.session?.user;
 
-      // If user is already authenticated with the matching email:
-      if (userId && sessionData.session?.user?.email?.toLowerCase() === email.toLowerCase()) {
-        const { data: rpcData, error: rpcErr } = await supabase.rpc('accept_admin_invitation', {
+      const acceptForUser = async (userId: string) => {
+        const { data, error } = await supabase!.rpc('accept_admin_invitation', {
           p_token: token,
           p_user_id: userId
         });
-
-        if (rpcErr) {
-          console.warn('RPC accept_admin_invitation error, performing direct update:', rpcErr);
-          await supabase.from('users').update({ role: 'admin' }).eq('id', userId);
-          await supabase.from('admin_invitations').update({
-            status: 'accepted',
-            accepted_at: new Date().toISOString()
-          }).eq('token', token);
-        }
-
-        // Refresh session
+        if (error) return { success: false, error: error.message };
+        if (data?.success !== true) return { success: false, error: data?.error || 'Invitation could not be accepted.' };
         await authService.getSessionUser();
         return { success: true };
+      };
+
+      if (activeUser?.email?.trim().toLowerCase() === email.trim().toLowerCase()) {
+        return acceptForUser(activeUser.id);
       }
 
       // If not logged in, but password was provided:
@@ -492,10 +472,7 @@ export const adminService = {
       });
 
       if (!signInErr && signInData?.user) {
-        userId = signInData.user.id;
-        await supabase.rpc('accept_admin_invitation', { p_token: token, p_user_id: userId });
-        await authService.getSessionUser();
-        return { success: true };
+        return acceptForUser(signInData.user.id);
       }
 
       // Create new account via supabase.auth.signUp
@@ -506,8 +483,9 @@ export const adminService = {
           data: {
             full_name: finalName,
             phone,
-            role: 'admin'
-          }
+            role: 'tenant'
+          },
+          emailRedirectTo: buildInviteConfirmationUrl(token)
         }
       });
 
@@ -519,28 +497,12 @@ export const adminService = {
         return { success: false, error: signUpErr.message };
       }
 
-      userId = signUpData.user?.id;
-      if (userId) {
-        // Ensure public.users row exists and invitation is marked accepted
-        await supabase.from('users').upsert({
-          id: userId,
-          email,
-          full_name: finalName,
-          phone,
-          whatsapp: phone,
-          role: 'admin',
-          is_active: true
-        }, { onConflict: 'id' });
-
-        await supabase.from('admin_invitations').update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString()
-        }).eq('token', token);
-
-        await authService.getSessionUser();
+      if (signUpData.user && !signUpData.session) {
+        return { success: true, needsConfirmation: true };
       }
 
-      return { success: true };
+      if (signUpData.session?.user) return acceptForUser(signUpData.session.user.id);
+      return { success: false, error: 'Account setup could not be completed. Request a fresh invitation and try again.' };
     } catch (err: any) {
       console.error('Accept invitation error:', err);
       return { success: false, error: err?.message || 'Failed to accept invitation' };

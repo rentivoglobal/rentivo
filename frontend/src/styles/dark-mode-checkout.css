@@ -1,0 +1,101 @@
+/* Page-scoped dark theme corrections for checkout and renter request details.
+   Loaded after app and page styles from main.tsx. */
+:root[data-theme="dark"] .checkout-flow {
+  --navy: #c4b5fd;
+  --navy-soft: #ddd6fe;
+  --lavender: #a78bfa;
+  --lavender-deep: #c4b5fd;
+  --gold: #fbbf24;
+  --gold-bg: #422f13;
+  --success: #6ee7a8;
+  --success-bg: #123a2a;
+  --coral: #fda4af;
+  --coral-bg: #451d27;
+  --paper: #10111b;
+  --surface: #1b1c29;
+  --surface-2: #262738;
+  --ink: #f3f2fb;
+  --ink-soft: #c1c0d4;
+  --ink-faint: #a3a2bb;
+  --border: #3b3b50;
+  --border-strong: #55556d;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.55);
+  --shadow-pop: 0 16px 40px -10px rgba(0,0,0,.65);
+  background: var(--paper);
+  color: var(--ink);
+}
+:root[data-theme="dark"] .checkout-flow .mini-step.now { color: #ddd6fe; }
+:root[data-theme="dark"] .checkout-flow .mini-step.now .dot { background: #5b46a6; color: #fff; }
+:root[data-theme="dark"] .checkout-flow .fee-row.total .amt,
+:root[data-theme="dark"] .checkout-flow .unlocked-name { color: #ddd6fe; }
+:root[data-theme="dark"] .checkout-flow .btn-accent { background: #a78bfa; color: #161326; }
+:root[data-theme="dark"] .checkout-flow .btn-navy,
+:root[data-theme="dark"] .checkout-flow .promo-apply-btn { background: #5b46a6; color: #fff; }
+:root[data-theme="dark"] .checkout-flow .hero-badge,
+:root[data-theme="dark"] .checkout-flow .hero-badge.badge-danger { background: rgba(24,25,37,.96); }
+:root[data-theme="dark"] .checkout-flow :is(input, textarea, select) { color: var(--ink); background-color: var(--surface); border-color: var(--border-strong); }
+:root[data-theme="dark"] .checkout-flow :is(input, textarea, select)::placeholder { color: var(--ink-faint); opacity: 1; }
+:root[data-theme="dark"] .checkout-flow :is(input, textarea, select):focus-visible,
+:root[data-theme="dark"] .checkout-flow button:focus-visible,
+:root[data-theme="dark"] .checkout-flow a:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }
+:root[data-theme="dark"] .checkout-flow button:disabled,
+:root[data-theme="dark"] .checkout-flow .btn:disabled { opacity: .58; cursor: not-allowed; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .checkout-flow .mini-step.now { color: #ddd6fe; }
+  :root:not([data-theme="light"]) .checkout-flow .mini-step.now .dot { background: #5b46a6; color: #fff; }
+  :root:not([data-theme="light"]) .checkout-flow .fee-row.total .amt,
+  :root:not([data-theme="light"]) .checkout-flow .unlocked-name { color: #ddd6fe; }
+  :root:not([data-theme="light"]) .checkout-flow .btn-accent { background: #a78bfa; color: #161326; }
+  :root:not([data-theme="light"]) .checkout-flow .btn-navy,
+  :root:not([data-theme="light"]) .checkout-flow .promo-apply-btn { background: #5b46a6; color: #fff; }
+  :root:not([data-theme="light"]) .checkout-flow .hero-badge,
+  :root:not([data-theme="light"]) .checkout-flow .hero-badge.badge-danger { background: rgba(24,25,37,.96); }
+  :root:not([data-theme="light"]) .checkout-flow :is(input, textarea, select) { color: var(--ink); background-color: var(--surface); border-color: var(--border-strong); }
+  :root:not([data-theme="light"]) .checkout-flow :is(input, textarea, select)::placeholder { color: var(--ink-faint); opacity: 1; }
+  :root:not([data-theme="light"]) .checkout-flow :is(input, textarea, select):focus-visible,
+  :root:not([data-theme="light"]) .checkout-flow button:focus-visible,
+  :root:not([data-theme="light"]) .checkout-flow a:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 2px; }
+  :root:not([data-theme="light"]) .checkout-flow button:disabled,
+  :root:not([data-theme="light"]) .checkout-flow .btn:disabled { opacity: .58; cursor: not-allowed; }
+}
+
+/* Request details list is identified by its actual runtime card under this root. */
+:root[data-theme="dark"] .renter-page-container:has(.renter-request-card) {
+  background-color: #10111b !important;
+  color: #f3f2fb;
+}
+:root[data-theme="dark"] .renter-page-container:has(.renter-request-card) :is(h1,h2,h3,h4),
+:root[data-theme="dark"] .renter-page-container:has(.renter-request-card) .renter-request-card { color: #f3f2fb; }
+:root[data-theme="dark"] .renter-page-container:has(.renter-request-card) .renter-request-card { background: #1b1c29; border-color: #3b3b50; }
+:root[data-theme="dark"] .renter-page-container:has(.renter-request-card) .renter-request-header { border-color: #3b3b50 !important; }
+:root[data-theme="dark"] .renter-page-container:has(.renter-request-card) button:not(:disabled) { color: #e6e3f4; }
+:root[data-theme="dark"] .renter-page-container:has(.renter-request-card) :is(input,textarea,select) { color: #f3f2fb; background: #1b1c29; border-color: #55556d; }
+:root[data-theme="dark"] .renter-page-container:has(.renter-request-card) .modal-backdrop .modal-card { color: #f3f2fb; background: #1b1c29 !important; border-color: #3b3b50 !important; }
+:root[data-theme="dark"] .renter-page-container:has(.renter-request-card) button:disabled { opacity: .58; cursor: not-allowed; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .renter-page-container:has(.renter-request-card) :is(h1,h2,h3,h4),
+  :root:not([data-theme="light"]) .renter-page-container:has(.renter-request-card) .renter-request-card { color: #f3f2fb; }
+  :root:not([data-theme="light"]) .renter-page-container:has(.renter-request-card) .renter-request-card { background: #1b1c29; border-color: #3b3b50; }
+  :root:not([data-theme="light"]) .renter-page-container:has(.renter-request-card) .renter-request-header { border-color: #3b3b50 !important; }
+  :root:not([data-theme="light"]) .renter-page-container:has(.renter-request-card) button:not(:disabled) { color: #e6e3f4; }
+  :root:not([data-theme="light"]) .renter-page-container:has(.renter-request-card) :is(input,textarea,select) { color: #f3f2fb; background: #1b1c29; border-color: #55556d; }
+  :root:not([data-theme="light"]) .renter-page-container:has(.renter-request-card) .modal-backdrop .modal-card { color: #f3f2fb; background: #1b1c29 !important; border-color: #3b3b50 !important; }
+  :root:not([data-theme="light"]) .renter-page-container:has(.renter-request-card) button:disabled { opacity: .58; cursor: not-allowed; }
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .checkout-flow {
+    --navy: #c4b5fd; --navy-soft: #ddd6fe; --lavender: #a78bfa; --lavender-deep: #c4b5fd;
+    --gold: #fbbf24; --gold-bg: #422f13; --success: #6ee7a8; --success-bg: #123a2a;
+    --coral: #fda4af; --coral-bg: #451d27; --paper: #10111b; --surface: #1b1c29;
+    --surface-2: #262738; --ink: #f3f2fb; --ink-soft: #c1c0d4; --ink-faint: #a3a2bb;
+    --border: #3b3b50; --border-strong: #55556d;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.55);
+    --shadow-pop: 0 16px 40px -10px rgba(0,0,0,.65);
+    background: var(--paper); color: var(--ink);
+  }
+  :root:not([data-theme="light"]) .renter-page-container:has(.renter-request-card) {
+    background-color: #10111b !important; color: #f3f2fb;
+  }
+}

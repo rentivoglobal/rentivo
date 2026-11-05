@@ -145,7 +145,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const selectedBudgetLabel = selectedBudget;
 
   return (
-    <div className="shell">
+    <div className="shell home-page-root">
       {/* Top Hero Section */}
       <section className="hero">
         {/* Interactive SVG Roads Background */}

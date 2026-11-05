@@ -1,7 +1,9 @@
 export const ACCESS_FEE_KOBO = Number(import.meta.env.VITE_ACCESS_FEE_KOBO || 500000);
 export const ACCESS_FEE_NAIRA = ACCESS_FEE_KOBO / 100;
 export const PROMO_CAP = Number(import.meta.env.VITE_PROMO_CAP || 100);
-export const APP_URL = import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173');
+export const APP_URL = typeof window !== 'undefined'
+  ? window.location.origin
+  : (import.meta.env.VITE_APP_URL || 'http://localhost:5173');
 
 export const isLiveBackend = Boolean(
   import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY

@@ -33,8 +33,6 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
   onInviteSent,
   showToast
 }) => {
-  if (!isOpen) return null;
-
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<AdminRoleTier>('admin');
@@ -45,6 +43,8 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
   // Success state for shareable link
   const [createdInvite, setCreatedInvite] = useState<{ invitation: AdminInvitation; inviteUrl: string; emailError?: string } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleCopyLink = async () => {
     if (!createdInvite?.inviteUrl) return;
@@ -86,7 +86,7 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
       onInviteSent(res.invitation, res.inviteUrl);
 
       if (res.emailError) {
-        showToast(`⚠️ Invitation created! Note: ${res.emailError}`);
+        showToast(`Invitation saved, but the email was not delivered: ${res.emailError}. Check the BREVO_API_KEY secret in Supabase Edge Function settings.`);
       } else {
         showToast(`🎉 Invitation generated & sent to ${email.trim()}!`);
       }
@@ -113,7 +113,7 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
 
   return (
     <div
-      className="verif-modal-backdrop"
+      className="verif-modal-backdrop admin-invite-modal"
       style={{
         position: 'fixed',
         inset: 0,
@@ -216,6 +216,7 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
             <div>
               {/* Status banner — adapts based on email delivery outcome */}
               <div
+                className={`admin-invite-modal-status ${createdInvite.emailError ? 'failed' : 'sent'}`}
                 style={{
                   textAlign: 'center',
                   padding: '20px 16px',
@@ -247,7 +248,7 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
                   {createdInvite.emailError
                     ? <>
                         Email could not be sent to <strong>{createdInvite.invitation.email}</strong>. Share the link below directly via WhatsApp or copy it.
-                        <br /><span style={{ fontSize: '12px', opacity: 0.8, display: 'block', marginTop: '6px' }}>Fix: Go to <strong>brevo.com → Settings → API Keys</strong> and enable the <em>Transactional Emails</em> scope.</span>
+                        <br /><span style={{ fontSize: '12px', opacity: 0.8, display: 'block', marginTop: '6px' }}>Configure a rotated <strong>BREVO_API_KEY</strong> as a server-side Supabase Edge Function secret, then resend.</span>
                       </>
                     : <>An authorization email has been sent to <strong>{createdInvite.invitation.email}</strong>.</>
                   }
@@ -258,7 +259,7 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
                 <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#000052', marginBottom: '8px' }}>
                   Direct Invitation Link (Expires in 7 days):
                 </label>
-                <div
+                <div className="admin-invite-link-box"
                   style={{
                     display: 'flex',
                     alignItems: 'center',

@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react';
 import { authService } from '../services/authService';
+import { adminService } from '../services/adminService';
 import { listerOnboardingService } from '../services/listerOnboardingService';
 import { useAuth } from '../contexts/AuthContext';
 import { NavigationTab } from '../types';
@@ -199,14 +200,43 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
         return;
       }
 
+      let acceptedAdminInvitation = false;
+      if (verifyType === 'signup' && nextParam) {
+        try {
+          const nextUrl = new URL(nextParam, window.location.origin);
+          const inviteToken = nextUrl.origin === window.location.origin && nextUrl.pathname === '/admin/invite'
+            ? nextUrl.searchParams.get('token')
+            : null;
+          if (inviteToken) {
+            const acceptRes = await adminService.acceptInvitation(inviteToken, {});
+            if (!acceptRes.success) {
+              setIsVerifying(false);
+              setError(`Your email is confirmed, but administrator setup could not finish: ${acceptRes.error || 'Please reopen your invitation.'}`);
+              triggerShake();
+              return;
+            }
+            acceptedAdminInvitation = true;
+          }
+        } catch {
+          // Invalid or external `next` values are ignored; ordinary verification still succeeds.
+        }
+      }
+
       setSuccess(true);
       await refresh();
 
       setTimeout(() => {
-        // Redirection logic
-        if (nextParam && nextParam.startsWith('/')) {
-          navigate(nextParam, { replace: true });
+        if (acceptedAdminInvitation) {
+          navigate('/admin', { replace: true });
           return;
+        }
+        // Redirection logic
+        if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')) {
+          const safeNext = new URL(nextParam, window.location.origin);
+          if (safeNext.origin === window.location.origin) {
+            navigate(`${safeNext.pathname}${safeNext.search}${safeNext.hash}`, { replace: true });
+            return;
+          }
         }
 
         if (verifyType === 'signup') {
@@ -260,11 +290,27 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
     setError(null);
     setResendFeedback(null);
 
-    const res = await authService.resendVerificationCode(email, verifyType);
+    let emailRedirectTo: string | undefined;
+    try {
+      if (nextParam) {
+        const nextUrl = new URL(nextParam, window.location.origin);
+        const inviteToken = nextUrl.origin === window.location.origin && nextUrl.pathname === '/admin/invite'
+          ? nextUrl.searchParams.get('token')
+          : null;
+        if (inviteToken) {
+          const callback = new URL('/auth/callback', window.location.origin);
+          callback.searchParams.set('adminInviteToken', inviteToken);
+          emailRedirectTo = callback.toString();
+        }
+      }
+    } catch {
+      emailRedirectTo = undefined;
+    }
+    const res = await authService.resendVerificationCode(email, verifyType, emailRedirectTo);
     setIsResending(false);
 
     if (res.success) {
-      setResendFeedback(`A fresh 6-digit code has been sent to ${email}.`);
+      setResendFeedback(`If ${email} is eligible, Supabase accepted a request for a fresh 6-digit code. Check your inbox and spam folder; this does not confirm provider delivery.`);
       setResendCooldown(60);
       setDigits(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
@@ -308,7 +354,7 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
   const isComplete = digits.join('').length === 6;
 
   return (
-    <div style={{
+    <div className="verify-page-root" style={{
       backgroundColor: '#F8FAFC',
       minHeight: '100vh',
       display: 'flex',
@@ -377,7 +423,7 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
       </div>
 
       {/* Centered Minimalist Card */}
-      <div style={{
+      <div className="verify-page-card" style={{
         maxWidth: '430px',
         width: '100%',
         backgroundColor: '#FFFFFF',

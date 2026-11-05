@@ -35,7 +35,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     void refresh();
     if (!isLiveBackend || !supabase) return;
-    const { data } = supabase.auth.onAuthStateChange(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      try {
+        if (event === 'PASSWORD_RECOVERY') {
+          window.sessionStorage.setItem('rentivo:password-recovery', '1');
+        } else if (event === 'SIGNED_OUT') {
+          window.sessionStorage.removeItem('rentivo:password-recovery');
+        }
+      } catch {
+        // The password reset flow fails closed if session storage is unavailable.
+      }
       void refresh();
     });
     return () => data.subscription.unsubscribe();

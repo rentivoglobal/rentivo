@@ -78,6 +78,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
   // Forgot password fields
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSubmitted, setForgotSubmitted] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotFeedback, setForgotFeedback] = useState<string | null>(null);
   const [forgotShake, setForgotShake] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
@@ -263,22 +265,53 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setForgotError(null);
     if (!isEmailValid(forgotEmail)) {
+      setForgotError('Enter a valid email address.');
       setForgotShake(true);
       setTimeout(() => setForgotShake(false), 400);
       return;
     }
 
     setIsSendingReset(true);
-    const res = await authService.requestPasswordReset(forgotEmail);
-    setIsSendingReset(false);
-    if (!res.success) {
+    try {
+      const res = await authService.requestPasswordReset(forgotEmail);
+      if (!res.success) {
+        setForgotError(res.error || 'Could not request a password reset. Please try again.');
+        setForgotShake(true);
+        setTimeout(() => setForgotShake(false), 400);
+        return;
+      }
+      setForgotSubmitted(true);
+      setForgotFeedback(null);
+      setResendTimer(30);
+    } catch (error: any) {
+      setForgotError(error?.message || 'Could not request a password reset. Please try again.');
       setForgotShake(true);
       setTimeout(() => setForgotShake(false), 400);
-      return;
+    } finally {
+      setIsSendingReset(false);
     }
-    setForgotSubmitted(true);
-    setResendTimer(30);
+  };
+
+  const handleResendResetLink = async () => {
+    if (resendTimer > 0 || isSendingReset) return;
+    setIsSendingReset(true);
+    setForgotError(null);
+    setForgotFeedback(null);
+    try {
+      const res = await authService.requestPasswordReset(forgotEmail);
+      if (!res.success) {
+        setForgotError(res.error || 'Could not request another reset link. Please try again.');
+        return;
+      }
+      setForgotFeedback('Supabase accepted another reset-email request. Check your inbox and spam folder; this does not confirm that the email provider delivered it.');
+      setResendTimer(30);
+    } catch (error: any) {
+      setForgotError(error?.message || 'Could not request another reset link. Please try again.');
+    } finally {
+      setIsSendingReset(false);
+    }
   };
 
   const handleSendLoginCode = async () => {
@@ -903,7 +936,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
               {!forgotSubmitted ? (
                 <div className="auth-fw-anim">
                   <h2>Reset your password</h2>
-                  <p className="sub">Enter the email tied to your account and we'll send a reset link.</p>
+                  <p className="sub">Enter the email tied to your account. If it is eligible, Supabase will accept a reset-link request.</p>
 
                   <form onSubmit={handleForgotSubmit} noValidate>
                     <div className={`auth-field ${forgotEmail ? 'filled' : ''} ${forgotShake ? 'error shake' : ''}`}>
@@ -914,7 +947,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                           id={forgotEmailId}
                           type="email" 
                           value={forgotEmail}
-                          onChange={(e) => setForgotEmail(e.target.value)}
+                          onChange={(e) => { setForgotEmail(e.target.value); setForgotError(null); }}
                           placeholder="name@example.com"
                           required 
                         />
@@ -923,7 +956,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                           className={`auth-status-icon ok ${isEmailValid(forgotEmail) ? 'show' : ''}`} 
                         />
                       </div>
-                      <div className="auth-field-error">Enter a valid registered email address.</div>
+                      <div className="auth-field-error">{forgotError || 'Enter a valid registered email address.'}</div>
                     </div>
 
                     <button 
@@ -961,8 +994,10 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                   </div>
                   <h2>Check your email</h2>
                   <p className="sub" style={{ maxWidth: '34ch', margin: '0 auto 20px' }}>
-                    We've sent a password reset link to <strong>{forgotEmail}</strong>. It expires in 30 minutes — check your spam folder if it doesn't arrive shortly.
+                    If an account matches <strong>{forgotEmail}</strong>, Supabase accepted a password-reset email request. Check your inbox and spam folder; this response does not confirm provider delivery. The link expires 30 minutes after it is issued.
                   </p>
+                  {forgotFeedback && <p role="status" className="auth-reset-feedback">{forgotFeedback}</p>}
+                  {forgotError && <p role="alert" className="auth-reset-error">{forgotError}</p>}
 
                   <button 
                     type="button" 
@@ -978,14 +1013,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({
                     {resendTimer > 0 ? (
                       <span style={{ color: '#000052', fontWeight: 600 }}>Resend in {resendTimer}s</span>
                     ) : (
-                      <button 
+                      <button
                         type="button" 
-                        onClick={() => {
-                          setResendTimer(30);
-                        }}
+                        onClick={() => void handleResendResetLink()}
+                        disabled={isSendingReset}
                         className="auth-link-btn"
                       >
-                        Resend reset link
+                        {isSendingReset ? 'Requesting reset link…' : 'Resend reset link'}
                       </button>
                     )}
                   </div>
