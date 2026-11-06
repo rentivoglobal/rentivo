@@ -197,3 +197,55 @@
 :root[data-theme="dark"] .roc-app :disabled,
 :root[data-theme="dark"] .roc-app [aria-disabled="true"] { opacity: .62; }
 :root[data-theme="dark"] .roc-app :focus-visible { outline-color: #d0acff; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .roc-app [style*="color: rgb(0, 0, 82)"],
+  :root:not([data-theme="light"]) .roc-app [style*="color: rgb(92, 92, 133)"] { color: var(--ink) !important; }
+  :root:not([data-theme="light"]) .roc-app [style*="color: rgb(107, 47, 214)"] { color: var(--link) !important; }
+  :root:not([data-theme="light"]) .roc-app [style*="color: rgb(11, 107, 75)"] { color: var(--ok) !important; }
+  :root:not([data-theme="light"]) .roc-app [style*="color: rgb(146, 64, 14)"],
+  :root:not([data-theme="light"]) .roc-app [style*="color: rgb(180, 83, 9)"] { color: var(--warn) !important; }
+  :root:not([data-theme="light"]) .roc-app [style*="color: rgb(153, 27, 27)"] { color: var(--bad) !important; }
+  :root:not([data-theme="light"]) .roc-app [style*="color: rgb(220, 38, 38)"] { color: var(--bad) !important; }
+  :root:not([data-theme="light"]) .roc-app .roc-av[style*="rgb(42, 42, 156)"] { color: #ffffff !important; }
+  :root:not([data-theme="light"]) .roc-app svg[color="#000052"] { color: var(--ink) !important; }
+  :root:not([data-theme="light"]) .roc-app [style*="rgb(248, 250, 252)"],
+  :root:not([data-theme="light"]) .roc-app [style*="rgb(244, 236, 255)"] {
+    background-color: var(--surface-2) !important;
+    border-color: var(--line) !important;
+  }
+  :root:not([data-theme="light"]) .roc-app [style*="rgb(254, 242, 242)"] {
+    background-color: var(--bad-bg) !important;
+    border-color: var(--bad) !important;
+  }
+  :root:not([data-theme="light"]) .roc-app [style*="rgb(255, 251, 235)"] {
+    background-color: var(--warn-bg) !important;
+    border-color: var(--warn) !important;
+  }
+  :root:not([data-theme="light"]) .roc-app .roc-sheet [style*="rgb(226, 232, 240)"] { border-color: var(--line) !important; }
+}
+
+:root[data-theme="dark"] .roc-app [style*="color: rgb(0, 0, 82)"],
+:root[data-theme="dark"] .roc-app [style*="color: rgb(92, 92, 133)"] { color: var(--ink) !important; }
+:root[data-theme="dark"] .roc-app [style*="color: rgb(107, 47, 214)"] { color: var(--link) !important; }
+:root[data-theme="dark"] .roc-app [style*="color: rgb(11, 107, 75)"] { color: var(--ok) !important; }
+:root[data-theme="dark"] .roc-app [style*="color: rgb(146, 64, 14)"],
+:root[data-theme="dark"] .roc-app [style*="color: rgb(180, 83, 9)"] { color: var(--warn) !important; }
+:root[data-theme="dark"] .roc-app [style*="color: rgb(153, 27, 27)"] { color: var(--bad) !important; }
+:root[data-theme="dark"] .roc-app [style*="color: rgb(220, 38, 38)"] { color: var(--bad) !important; }
+:root[data-theme="dark"] .roc-app .roc-av[style*="rgb(42, 42, 156)"] { color: #ffffff !important; }
+:root[data-theme="dark"] .roc-app svg[color="#000052"] { color: var(--ink) !important; }
+:root[data-theme="dark"] .roc-app [style*="rgb(248, 250, 252)"],
+:root[data-theme="dark"] .roc-app [style*="rgb(244, 236, 255)"] {
+  background-color: var(--surface-2) !important;
+  border-color: var(--line) !important;
+}
+:root[data-theme="dark"] .roc-app [style*="rgb(254, 242, 242)"] {
+  background-color: var(--bad-bg) !important;
+  border-color: var(--bad) !important;
+}
+:root[data-theme="dark"] .roc-app [style*="rgb(255, 251, 235)"] {
+  background-color: var(--warn-bg) !important;
+  border-color: var(--warn) !important;
+}
+:root[data-theme="dark"] .roc-app .roc-sheet [style*="rgb(226, 232, 240)"] { border-color: var(--line) !important; }

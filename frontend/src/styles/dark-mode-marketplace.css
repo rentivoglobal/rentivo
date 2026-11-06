@@ -237,3 +237,63 @@
   :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card :is(h1,h2,h3,h4,p,span,label) { color: #e2e8f0 !important; }
   :root:not([data-theme="light"]) .marketplace-page .listing-grid > .listing-card :is(.b-type,.rating) { background: #202c43 !important; color: #e9d5ff !important; border-color: #594b78 !important; }
 }
+
+:root[data-theme="dark"] .marketplace-page .chip-scroll .chip {
+  background: #202c43 !important;
+  border-color: #53627a !important;
+  color: #e2e8f0 !important;
+}
+:root[data-theme="dark"] .marketplace-page .chip-scroll .chip:hover,
+:root[data-theme="dark"] .marketplace-page .chip-scroll .chip:focus-visible {
+  background: #293b54 !important;
+  border-color: #b9a0ff !important;
+  color: #f8fafc !important;
+}
+:root[data-theme="dark"] .marketplace-page .chip-scroll .chip.on {
+  background: #c79bff !important;
+  border-color: #c79bff !important;
+  color: #0b1020 !important;
+}
+:root[data-theme="dark"] .marketplace-page .filter-actions .filter-btn {
+  background: #202c43 !important;
+  border-color: #53627a !important;
+  color: #e2e8f0 !important;
+}
+:root[data-theme="dark"] .marketplace-page .filter-actions .filter-btn svg { stroke: #e2e8f0 !important; }
+:root[data-theme="dark"] .marketplace-page .filter-actions .filter-btn[style*="rgb(4, 120, 87)"] {
+  background: #17352e !important;
+  border-color: #34d399 !important;
+  color: #a7f3d0 !important;
+}
+:root[data-theme="dark"] .marketplace-page .filter-actions .filter-btn[style*="rgb(4, 120, 87)"] svg { stroke: #a7f3d0 !important; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .marketplace-page .chip-scroll .chip {
+    background: #202c43 !important;
+    border-color: #53627a !important;
+    color: #e2e8f0 !important;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .chip-scroll .chip:hover,
+  :root:not([data-theme="light"]) .marketplace-page .chip-scroll .chip:focus-visible {
+    background: #293b54 !important;
+    border-color: #b9a0ff !important;
+    color: #f8fafc !important;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .chip-scroll .chip.on {
+    background: #c79bff !important;
+    border-color: #c79bff !important;
+    color: #0b1020 !important;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .filter-actions .filter-btn {
+    background: #202c43 !important;
+    border-color: #53627a !important;
+    color: #e2e8f0 !important;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .filter-actions .filter-btn svg { stroke: #e2e8f0 !important; }
+  :root:not([data-theme="light"]) .marketplace-page .filter-actions .filter-btn[style*="rgb(4, 120, 87)"] {
+    background: #17352e !important;
+    border-color: #34d399 !important;
+    color: #a7f3d0 !important;
+  }
+  :root:not([data-theme="light"]) .marketplace-page .filter-actions .filter-btn[style*="rgb(4, 120, 87)"] svg { stroke: #a7f3d0 !important; }
+}
