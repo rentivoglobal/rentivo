@@ -7,6 +7,16 @@
   width: 100%;
   min-height: 100vh;
   background: #FFFFFF;
+  color: #14142F;
+  color-scheme: light;
+  --color-text: #14142F;
+  --color-text-muted: #5D5D78;
+  --color-navy: #000052;
+  --ink: #17172B;
+  --muted: #636377;
+  --navy: #000052;
+  --canvas: #EFEFF4;
+  --line: #E6E3EE;
   margin: 0;
   padding: 0 0 80px 0;
 }
