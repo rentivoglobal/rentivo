@@ -7,10 +7,11 @@ const cors = {
 };
 
 const secret = Deno.env.get("PAYSTACK_SECRET_KEY") || "";
-const appUrl = Deno.env.get("APP_URL") || "https://rentivos.com.ng";
+const appUrl = Deno.env.get("APP_URL") || "https://www.rentivos.com.ng";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return new Response("method not allowed", { status: 405, headers: cors });
 
   try {
     const supabase = createClient(
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
 
     const { data: plan } = await supabase
       .from("subscription_plans")
-      .select("id, code, audience, amount_kobo, paystack_plan_code, is_free, is_active")
+      .select("id, code, name, audience, amount_kobo, paystack_plan_code, is_free, is_active")
       .eq("code", planCode)
       .eq("is_active", true)
       .maybeSingle();
@@ -124,7 +125,7 @@ Deno.serve(async (req) => {
         plan: paystackPlanCode,
         reference,
         metadata: { userId: auth.user.id, planCode: plan.code, subscriptionPlanId: plan.id },
-        callback_url: `${appUrl}/${plan.audience === "lister" ? "lister" : "account"}/subscription`
+        callback_url: `${appUrl.replace(/\/$/, "")}/${plan.audience === "lister" ? "lister" : "account"}/subscription?plan=${encodeURIComponent(plan.code)}`
       })
     });
     const payload = await response.json();

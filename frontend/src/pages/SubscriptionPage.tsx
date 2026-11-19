@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, CreditCard, ArrowLeft, RefreshCw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatNaira } from '../utils/formatters';
 import { subscriptionService } from '../services/subscriptionService';
 import { SubscriptionAudience, SubscriptionEntitlements, SubscriptionPlan, UsageSummary } from '../types';
@@ -28,6 +28,7 @@ function entitlementLabel(key: string, value: number | boolean | null): string {
 
 export const SubscriptionPage: React.FC<{ defaultAudience?: SubscriptionAudience }> = ({ defaultAudience }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const initialAudience = defaultAudience || (user?.role === 'landlord' || user?.role === 'agent' ? 'lister' : 'renter');
   const accountAudience = user
@@ -40,14 +41,15 @@ export const SubscriptionPage: React.FC<{ defaultAudience?: SubscriptionAudience
   const [loading, setLoading] = useState(true);
   const [checkoutCode, setCheckoutCode] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [paymentConfirmation, setPaymentConfirmation] = useState<'pending' | 'confirmed' | 'not-confirmed' | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [availablePlans, currentEntitlements, currentUsage] = await Promise.all([
         subscriptionService.listPlans(audience),
-        user ? subscriptionService.getEntitlements() : Promise.resolve(null),
-        user ? subscriptionService.getUsageSummary() : Promise.resolve(null)
+        user?.id ? subscriptionService.getEntitlements() : Promise.resolve(null),
+        user?.id ? subscriptionService.getUsageSummary() : Promise.resolve(null)
       ]);
       setPlans(availablePlans.length ? availablePlans : FALLBACK_PLANS.filter((plan) => plan.audience === audience));
       setEntitlements(currentEntitlements);
@@ -58,9 +60,52 @@ export const SubscriptionPage: React.FC<{ defaultAudience?: SubscriptionAudience
     } finally {
       setLoading(false);
     }
-  };
+  }, [audience, user]);
 
-  useEffect(() => { void load(); }, [audience, user?.id]);
+  useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    const reference = searchParams.get('reference') || searchParams.get('trxref');
+    const expectedPlanCode = searchParams.get('plan');
+    if (!reference || !expectedPlanCode) return;
+
+    let cancelled = false;
+    setPaymentConfirmation('pending');
+    const confirmPayment = async () => {
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 12; attempt++) {
+        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
+        if (cancelled) return;
+
+        try {
+          const currentEntitlements = await subscriptionService.getEntitlements();
+          if (currentEntitlements?.planCode === expectedPlanCode && ['active', 'non-renewing'].includes(currentEntitlements.status)) {
+            const currentUsage = await subscriptionService.getUsageSummary();
+            if (cancelled) return;
+            setEntitlements(currentEntitlements);
+            setUsage(currentUsage);
+            setPaymentConfirmation('confirmed');
+            break;
+          }
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (lastError) console.error('Unable to verify returned subscription payment:', lastError);
+      if (!cancelled) {
+        setPaymentConfirmation((current) => current === 'confirmed' ? current : 'not-confirmed');
+        const cleanedParams = new URLSearchParams(window.location.search);
+        cleanedParams.delete('reference');
+        cleanedParams.delete('trxref');
+        cleanedParams.delete('plan');
+        window.history.replaceState({}, '', `${window.location.pathname}${cleanedParams.toString() ? `?${cleanedParams}` : ''}`);
+      }
+    };
+
+    void confirmPayment();
+    return () => { cancelled = true; };
+  }, [searchParams, user?.id]);
 
   const selectedPlan = useMemo(
     () => plans.find((plan) => plan.code === entitlements?.planCode),
@@ -127,6 +172,27 @@ export const SubscriptionPage: React.FC<{ defaultAudience?: SubscriptionAudience
           <h1 style={{ color: '#000052', fontSize: 40, margin: '8px 0 10px' }}>Choose the access that fits you</h1>
           <p style={{ maxWidth: 640, margin: '0 auto', fontSize: 16 }}>Browse freely. Upgrade when you need more verified property access or more renter leads.</p>
         </div>
+        {paymentConfirmation && (
+          <div
+            role={paymentConfirmation === 'not-confirmed' ? 'alert' : 'status'}
+            style={{
+              background: paymentConfirmation === 'confirmed' ? '#F0FDF4' : '#EFF6FF',
+              border: `1px solid ${paymentConfirmation === 'confirmed' ? '#86EFAC' : '#BFDBFE'}`,
+              color: '#1E3A8A',
+              borderRadius: 12,
+              padding: '12px 16px',
+              marginBottom: 16,
+              textAlign: 'center',
+              fontSize: 14
+            }}
+          >
+            {paymentConfirmation === 'pending'
+              ? 'We are confirming your payment. Keep this page open for a moment.'
+              : paymentConfirmation === 'confirmed'
+                ? `Payment confirmed. Your ${entitlements?.planName || 'subscription'} membership is active.`
+                : 'We could not confirm the subscription yet. If Paystack showed success, wait briefly and refresh this page before trying checkout again.'}
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
           {(['renter', 'lister'] as SubscriptionAudience[]).map((value) => (
             <button key={value} type="button" onClick={() => setAudience(value)} style={{ padding: '11px 20px', borderRadius: 999, border: `1px solid ${audience === value ? '#000052' : '#CBD5E1'}`, background: audience === value ? '#000052' : '#fff', color: audience === value ? '#fff' : '#475569', fontWeight: 800 }}>
