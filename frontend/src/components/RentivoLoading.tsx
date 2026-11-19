@@ -11,7 +11,7 @@ const STATUS_MESSAGES = [
   'Checking on-site inspection timestamps…',
   'Confirming direct lister credentials…',
   'Preparing authentic high-res photos…',
-  'Certifying flat access fee terms…'
+  'Certifying subscription membership terms…'
 ];
 
 export const RentivoLoading: React.FC<RentivoLoadingProps> = ({

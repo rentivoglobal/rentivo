@@ -38,7 +38,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-lilac)' }}>
               <ShieldCheck size={16} />
-              <span>Flat access fee only after confirmation.</span>
+              <span>Subscription access with free browsing and flexible plans.</span>
             </div>
           </div>
 

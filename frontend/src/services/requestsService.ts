@@ -5,6 +5,7 @@ import { localStore } from './localStore';
 import { authService } from './authService';
 import { listingsService } from './listingsService';
 import { emailNotificationService } from './emailNotificationService';
+import { subscriptionService } from './subscriptionService';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -36,6 +37,11 @@ function mapRequest(row: Record<string, unknown>, listing?: Listing): AccessRequ
 }
 
 export const requestsService = {
+  async unlockWithSubscription(requestId: string): Promise<AccessRequest | undefined> {
+    await subscriptionService.consumeRenterUnlock(requestId);
+    return this.getRequestById(requestId);
+  },
+
   async getAllRequests(): Promise<AccessRequest[]> {
     if (!isLiveBackend || !supabase) return localStore.getRequests();
     try {

@@ -21,7 +21,7 @@ import { Listing, AccessRequest } from '../types';
 import { requestsService } from '../services/requestsService';
 import { formatNaira } from '../utils/formatters';
 import { EmailNotificationModal } from './EmailNotificationModal';
-import { isDemoSimulator, ACCESS_FEE_KOBO, paystackPublicKey } from '../lib/config';
+import { isDemoSimulator, isLiveBackend, ACCESS_FEE_KOBO, paystackPublicKey } from '../lib/config';
 import { openPaystackCheckout } from '../lib/paystack';
 
 
@@ -81,6 +81,14 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
     if (!createdRequest) return;
     setStep('paying');
     try {
+      if (isLiveBackend) {
+        const unlocked = await requestsService.unlockWithSubscription(createdRequest.id);
+        if (!unlocked) throw new Error('Unable to unlock this request.');
+        setCreatedRequest(unlocked);
+        setStep('unlocked');
+        return;
+      }
+
       if (paystackPublicKey) {
         const init = await requestsService.initializePaystack(createdRequest.id, email);
         const checkoutRes = await openPaystackCheckout({
@@ -254,7 +262,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   <ul style={{ fontSize: '12.5px', color: '#1E293B', lineHeight: 1.6, margin: 0, paddingLeft: '18px' }}>
                     <li><b>Free to submit:</b> Zero payment card or fee required to check vacancy.</li>
                     <li><b>Automated verification:</b> We email <b>{listing.lister.fullName}</b> a one-click YES / NO link to confirm the unit is unoccupied.</li>
-                     <li><b>Flat access fee:</b> Only charged if the property is confirmed vacant and ready.</li>
+                     <li><b>Subscription unlock:</b> Uses one of your monthly renter membership unlocks after the property is confirmed vacant.</li>
                   </ul>
                 </div>
 
@@ -399,7 +407,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
               </div>
             )}
 
-            {/* STEP 3: Confirmed Available - Prompt ₦5,000 Paystack */}
+            {/* STEP 3: Confirmed Available - Consume subscription unlock */}
             {step === 'confirmed' && (
               <div style={{ textAlign: 'center', padding: '10px 4px' }}>
                 <div style={{ 
@@ -424,7 +432,7 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   <b>{listing.lister.fullName}</b> verified that <b>{listing.title}</b> is currently unoccupied and open for immediate inspection.
                 </p>
 
-                {/* High-Contrast Transparent Fee Breakdown Card */}
+                {/* Membership unlock or legacy demo payment summary */}
                 <div style={{ 
                   backgroundColor: '#F8FAFC', 
                   border: '1.5px solid #CBD5E1', 
@@ -434,8 +442,12 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   marginBottom: '18px' 
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>One-time Direct Access Fee:</span>
-                    <span style={{ fontSize: '18px', fontWeight: 800, color: '#000052', fontFamily: 'monospace' }}>Access Fee</span>
+                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#334155' }}>
+                      {isLiveBackend ? 'Subscription unlock:' : 'One-time Direct Access Fee:'}
+                    </span>
+                    <span style={{ fontSize: '18px', fontWeight: 800, color: '#000052', fontFamily: 'monospace' }}>
+                      {isLiveBackend ? '1 monthly unlock' : 'Access Fee'}
+                    </span>
                   </div>
 
                   <div style={{ borderTop: '1px dashed #CBD5E1', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12.5px' }}>
@@ -481,12 +493,12 @@ export const RequestAccessModal: React.FC<RequestAccessModalProps> = ({
                   }}
                 >
                   <CreditCard size={18} />
-                  <span>Pay Access Fee with Paystack</span>
+                  <span>{isLiveBackend ? 'Use Subscription Unlock' : 'Pay Access Fee with Paystack'}</span>
                 </button>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11.5px', color: '#64748B' }}>
                   <ShieldCheck size={13} color="#16794A" />
-                  <span>Secured by Paystack 256-bit SSL · Instant Email Receipt</span>
+                  <span>{isLiveBackend ? 'No charge now · unlock deducted only after confirmation' : 'Secured by Paystack 256-bit SSL · Instant Email Receipt'}</span>
                 </div>
               </div>
             )}

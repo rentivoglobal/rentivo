@@ -27,7 +27,7 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748B' }}>
             <NairaIcon size={15} color="#000052" />
-            <span style={{ fontWeight: 600 }}>Fee Transparency Policy</span>
+            <span style={{ fontWeight: 600 }}>Membership &amp; Legacy Access Policy</span>
           </div>
         </div>
       </div>
@@ -40,10 +40,10 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
             <span>Transparent Pricing Guarantee</span>
           </div>
           <h1 style={{ fontSize: '32px', fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.02em', lineHeight: 1.2, color: '#FFFFFF' }}>
-            Access Fee Policy &amp; Guarantees
+            Subscription &amp; Legacy Unlock Policy
           </h1>
           <p style={{ fontSize: '15px', color: 'rgba(255, 255, 255, 0.8)', margin: '0 auto', maxWidth: '640px', lineHeight: 1.6 }}>
-            Understanding Rentivo's direct landlord connection model, our zero-upfront guarantee, and the 100% refund policy.
+            How monthly memberships work and how valid one-time unlocks from the previous pricing model are honored.
           </p>
         </div>
       </div>
@@ -52,18 +52,18 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
       <div style={{ maxWidth: '840px', margin: '-24px auto 0', padding: '0 20px' }}>
         <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '36px 32px', boxShadow: '0 4px 20px rgba(0, 0, 82, 0.04)' }}>
 
-          {/* Section 1: What is the Direct Access Fee? */}
+          {/* Section 1: Subscription and legacy unlocks */}
           <div style={{ marginBottom: '32px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#000052', marginBottom: '10px' }}>
-              1. What Is the Direct Access Fee?
+              1. Membership Unlocks
             </h2>
             <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px' }}>
-              Rentivo eliminates exploitative agency and legal commissions (traditionally 10% to 50% in Nigerian real estate) by providing a technology-verified direct connection. The <strong>flat access fee</strong> covers:
+              Rentivo offers free and paid monthly renter and lister plans. Plan allowances are shown on the pricing page and may include confirmed-property contact unlocks, active listings, and renter leads. Existing one-time contact unlocks remain valid permanently.
             </p>
             <ul style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px', paddingLeft: '20px' }}>
               <li><strong>Physical On-Site Inspection Audits:</strong> Our field officers in Ibadan personally verify that the property exists, photos are authentic, and the lister has letting authority.</li>
               <li><strong>Real-Time Vacancy Verification:</strong> We contact the landlord directly before you spend a single Naira to verify the home is vacant and ready for inspection.</li>
-              <li><strong>Direct Contact Dossier:</strong> Unlocks direct phone calling, pre-filled WhatsApp chat link, exact street address with landmark directions, and an official PDF invoice.</li>
+              <li><strong>Direct Contact Dossier:</strong> A successful unlock provides the lister's direct phone and WhatsApp details and the available property address information.</li>
             </ul>
           </div>
 
@@ -96,56 +96,51 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
                 <div style={{ fontSize: '13px', color: '#14532D', lineHeight: 1.6 }}>
                   <div>• Browsing &amp; requests: ₦0 (100% Free)</div>
                   <div>• Upfront viewing fees: ₦0</div>
-                  <div>• Post-confirmation fee: flat one-time access fee</div>
+                  <div>• Post-confirmation: one subscription unlock or valid legacy unlock</div>
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #86EFAC', fontWeight: 800, color: '#15803D' }}>
-                    Total on ₦800,000 Flat: <strong>flat access fee</strong> (Save ~₦165,000)
+                    Total on ₦800,000 Flat: <strong>membership unlock</strong> (Save ~₦165,000)
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Section 3: When Is the Fee Charged? */}
+          {/* Section 3: Unlock timing */}
           <div style={{ marginBottom: '32px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#000052', marginBottom: '10px' }}>
-              3. The Zero-Upfront Guarantee
+              3. When a Renter Unlock Is Used
             </h2>
             <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px' }}>
-              You are <strong>never asked for payment upfront</strong>. When you click "Request Access", the listing enters the automated verification loop. If the landlord responds that the property is taken or fails to respond within the SLA window, <strong>₦0 is charged</strong> and your request is closed without cost.
+              Browsing and requesting availability are free. One unlock is deducted from the renter's monthly allowance only after the lister confirms the property is available. If the lister reports it unavailable, no unlock is used.
             </p>
           </div>
 
-          {/* Section 4: 100% Refund Policy */}
+          {/* Section 4: Legacy refunds and subscription cancellation */}
           <div style={{ marginBottom: '32px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#000052', marginBottom: '10px' }}>
-              4. 100% Money-Back Refund Commitment
+              4. Legacy Payments and Subscription Cancellation
             </h2>
             <div style={{ backgroundColor: '#EFF6FF', border: '1.5px solid #BFDBFE', borderRadius: '12px', padding: '18px 20px', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#1E40AF', fontWeight: 800, fontSize: '14px', marginBottom: '6px' }}>
                 <CheckCircle2 size={16} />
-                <span>Automated Refund Conditions</span>
+                <span>Previous One-Time Unlocks</span>
               </div>
               <p style={{ fontSize: '13.5px', color: '#1E3A8A', lineHeight: 1.6, margin: '0 0 8px' }}>
-                Rentivo will refund your full payment immediately via Paystack if any of the following occur within 24 hours of contact unlock:
+                Refund requests for one-time unlocks purchased under the previous pricing model remain subject to the applicable purchase terms. Subscription cancellation stops future renewal; access continues until the current paid period ends. Cancellation does not automatically refund a completed billing period.
               </p>
-              <ul style={{ fontSize: '13px', color: '#1E3A8A', lineHeight: 1.6, margin: 0, paddingLeft: '18px' }}>
-                <li>The landlord or mandated agent is unreachable across phone and WhatsApp for more than 24 hours.</li>
-                <li>The property is discovered to have already been rented before your unlock was confirmed.</li>
-                <li>The rental price or property specs differ substantially from what was advertised and verified.</li>
-              </ul>
             </div>
           </div>
 
-          {/* Section 5: What the Fee Does NOT Cover */}
+          {/* Section 5: What subscriptions do not cover */}
           <div style={{ marginBottom: '32px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#000052', marginBottom: '10px' }}>
-              5. Important Non-Guarantee Disclaimers
+              5. Important Disclaimers
             </h2>
             <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px' }}>
               To maintain complete legal clarity under Nigerian consumer protection standards:
             </p>
             <ul style={{ fontSize: '14px', color: '#475569', lineHeight: 1.7, margin: '0 0 12px', paddingLeft: '20px' }}>
-              <li><strong>Not Tenancy Rent:</strong> The access fee is an access and verification fee. It does not apply toward annual rent or security deposits paid to the landlord.</li>
+              <li><strong>Not Tenancy Rent:</strong> Subscription charges do not apply toward annual rent or security deposits paid to the landlord.</li>
               <li><strong>Landlord Lease Discretion:</strong> Property owners retain final discretion to approve lease applications, verify tenant employment/ID, and execute tenancy contracts.</li>
             </ul>
           </div>

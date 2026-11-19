@@ -831,7 +831,7 @@ export const PropertyDetailPage: React.FC<PropertyDetailPageProps> = ({
             <span>/ year</span>
           </div>
           <p className="fee-note">
-            Plus a one-time access fee — charged only after the landlord confirms this property is still available.
+            Membership unlock available after the landlord confirms this property is still available.
           </p>
 
           {existingRequest ? (

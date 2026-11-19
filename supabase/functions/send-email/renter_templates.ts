@@ -1,5 +1,47 @@
 import { emailHead, emailFoot, formatNaira, DEFAULT_PHOTO } from "./common.ts";
 
+export function generateSubscriptionWelcomeEmailHtml(params: {
+  recipientName: string;
+  planName: string;
+  audience: "renter" | "lister";
+  monthlyAmount: number | string;
+  dashboardUrl: string;
+  entitlements: Record<string, unknown>;
+}): string {
+  const { recipientName, planName, audience, monthlyAmount, dashboardUrl, entitlements } = params;
+  const audienceLabel = audience === "lister" ? "property lister" : "renter";
+  const included = Object.entries(entitlements)
+    .filter(([, value]) => value !== false && value !== null)
+    .map(([key, value]) => `<li style="margin:0 0 8px;color:#55557a;">&#10003;&nbsp; ${key.replaceAll("_", " ")}: <strong>${value === true ? "Included" : value}</strong></li>`)
+    .join("");
+
+  return `${emailHead(
+    `Welcome to ${planName}`,
+    `Your Rentivo ${audienceLabel} subscription is active.`
+  )}
+<tr><td style="padding:32px 32px 20px;" class="px">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+  <td style="background:#e3f4ec;color:#17794e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;padding:7px 16px;border-radius:20px;">
+    <span style="letter-spacing:0.02em;">&#10003; Subscription active</span>
+  </td></tr></table>
+<h1 class="h1" style="margin:16px 0 8px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;font-weight:700;color:#16163a;">Welcome to ${planName}!</h1>
+<p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#55557a;">Hi ${recipientName || "Rentivo Member"}, your Rentivo subscription is now active. You can start using your ${audienceLabel} benefits immediately.</p>
+</td></tr>
+<tr><td style="padding:0 32px 24px;" class="px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f5fc;border-radius:12px;"><tr><td style="padding:20px;" class="px">
+<p style="margin:0 0 12px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:#16163a;">Your plan</p>
+<p style="margin:0 0 4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#55557a;"><strong>${planName}</strong> &middot; ₦${formatNaira(monthlyAmount)} per month</p>
+<ul style="padding:0 0 0 18px;margin:14px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;">${included}</ul>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:0 32px 32px;" class="px"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-radius:10px;background:#000052;">
+<a href="${dashboardUrl}" style="display:inline-block;padding:15px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">Open your Rentivo account &rarr;</a>
+</td></tr></table>
+<p style="margin:14px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12.5px;color:#8583a8;">You can manage your plan, view usage, or cancel renewal from your account at any time.</p>
+</td></tr>
+${emailFoot("You're receiving this because you activated a Rentivo subscription.")}`;
+}
+
 // 0. LANDLORD VACANCY CHECK
 export function generateLandlordVacancyCheckEmailHtml(params: {
   recipientName: string;

@@ -38,6 +38,24 @@ verify_jwt = false
 [functions.paystack-refund]
 verify_jwt = true
 
+[functions.subscription-initialize]
+verify_jwt = true
+
+[functions.subscription-webhook]
+verify_jwt = false
+
+[functions.subscription-welcome-email]
+verify_jwt = true
+
+[functions.subscription-status-email]
+verify_jwt = true
+
+[functions.subscription-plan-bootstrap]
+verify_jwt = true
+
+[functions.subscription-cancel]
+verify_jwt = true
+
 [functions.escalate-requests]
 verify_jwt = true
 

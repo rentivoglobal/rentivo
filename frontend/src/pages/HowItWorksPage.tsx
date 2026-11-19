@@ -281,11 +281,11 @@ export const HowItWorksPage: React.FC<HowItWorksPageProps> = ({
                       3. Unlock Direct Landlord Access
                     </h3>
                     <span style={{ fontSize: '11px', fontWeight: 800, color: '#6B21A8', backgroundColor: '#F3E8FF', padding: '3px 8px', borderRadius: '6px' }}>
-                      Flat ₦5,000 fee
+                      Subscription unlock
                     </span>
                   </div>
                   <p style={{ fontSize: '13.5px', color: '#64748B', lineHeight: 1.5, margin: 0 }}>
-                    Pay the flat ₦5,000 access fee via secure Paystack. Instantly unlock the landlord's direct phone number, WhatsApp chat, and physical address. Zero 10% agent commission.
+                    Use one contact unlock from your monthly renter plan. Instantly access the landlord's direct phone number, WhatsApp chat, and physical address. Zero 10% agent commission.
                   </p>
                 </div>
               </div>
@@ -417,7 +417,7 @@ export const HowItWorksPage: React.FC<HowItWorksPageProps> = ({
               <Sparkles size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '13px', fontWeight: 800, color: '#000052' }}>Flat ₦5,000 Only</div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#000052' }}>Flexible monthly plans</div>
               <div style={{ fontSize: '12px', color: '#64748B' }}>Skip 10% agent commission</div>
             </div>
           </div>

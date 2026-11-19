@@ -25,7 +25,7 @@ import { Listing, AccessRequest, ListerContact } from '../types';
 import { requestsService } from '../services/requestsService';
 import { formatNaira } from '../utils/formatters';
 import { EmailNotificationModal } from '../components/EmailNotificationModal';
-import { ACCESS_FEE_KOBO, paystackPublicKey } from '../lib/config';
+import { ACCESS_FEE_KOBO, isLiveBackend, paystackPublicKey } from '../lib/config';
 import { openPaystackCheckout } from '../lib/paystack';
 import { useAuth } from '../contexts/AuthContext';
 import '../styles/checkout.css';
@@ -70,6 +70,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   // Email preview drawer
   const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!existingRequest) return;
@@ -187,6 +188,27 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 
   const handlePay = async () => {
     if (!createdRequest) return;
+
+    if (isLiveBackend) {
+      setLoading(true);
+      setSubscriptionError(null);
+      try {
+        const unlocked = await requestsService.unlockWithSubscription(createdRequest.id);
+        if (!unlocked) throw new Error('Unable to unlock this request.');
+        setCreatedRequest(unlocked);
+        setStep('unlocked');
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Subscription access could not be applied.';
+        setSubscriptionError(message);
+        if (message.toLowerCase().includes('limit')) {
+          navigate('/pricing');
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     if (appliedPromoCode) {
       await handleClaimWaiver();
@@ -395,8 +417,8 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
               {/* Section 2: Fee Breakdown */}
               <div className="sect">
                 <div className="fee-row">
-                  <span className="lbl">Rentivo access fee</span>
-                  <span>₦5,000</span>
+                  <span className="lbl">Subscription unlock</span>
+                  <span>Included</span>
                 </div>
                 <div className="fee-row">
                   <span className="lbl">Processing fee</span>
@@ -408,24 +430,24 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     <span className="lbl" style={{ color: 'var(--lavender-deep)' }}>
                       Promo waiver ({appliedPromoCode})
                     </span>
-                    <span>-₦5,000</span>
+                    <span>-Included</span>
                   </div>
                 )}
 
                 <div className="fee-row total">
                   <span className="lbl">Total due</span>
-                  <span className="amt">{appliedPromoCode ? '₦0' : '₦5,000'}</span>
+                  <span className="amt">{appliedPromoCode ? '₦0 legacy' : 'Subscription allowance'}</span>
                 </div>
 
                 <div className="fee-note">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
-                  A flat one-time fee — never a percentage of your rent — and fully refunded if this property turns out to be unavailable.
+                  One monthly membership unlock is used only after the lister confirms availability. Existing one-time unlocks remain valid.
                 </div>
 
                 {/* Promo Code Box */}
-                <div className="promo-toggle-wrap">
+                {!isLiveBackend && <div className="promo-toggle-wrap">
                   {appliedPromoCode ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
                       <span style={{ color: 'var(--success)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
@@ -438,6 +460,11 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       >
                         Remove
                       </button>
+                      {subscriptionError && (
+                        <p className="pay-hint" style={{ color: '#B42318', marginTop: 10 }}>
+                          {subscriptionError}. Choose a plan to continue.
+                        </p>
+                      )}
                     </div>
                   ) : showPromoBox ? (
                     <div>
@@ -478,15 +505,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       <span>Have a promo or waiver code? Click to enter</span>
                     </button>
                   )}
-                </div>
+                </div>}
               </div>
 
               {/* Section 3: Payment Lead & Methods */}
               <div className="sect">
                 <p className="pay-lead">
-                  You&apos;ll complete payment in a secure Paystack window — card, bank transfer, USSD and mobile money are all supported there.
+                  {isLiveBackend
+                    ? 'Your monthly subscription unlock will be used only after the lister confirms this property is available.'
+                    : 'You&apos;ll complete payment in a secure Paystack window — card, bank transfer, USSD and mobile money are all supported there.'}
                 </p>
-                <div className="method-row">
+                {!isLiveBackend && <div className="method-row">
                   <span className="method-chip">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -514,7 +543,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     </svg>
                     Mobile money
                   </span>
-                </div>
+                </div>}
 
                 <button 
                   type="button"
@@ -526,13 +555,13 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     <rect x="5" y="10" width="14" height="10" rx="2" />
                     <path d="M8 10V7a4 4 0 0 1 8 0v3" />
                   </svg>
-                  {appliedPromoCode ? 'Claim Waiver & Unlock Contact (₦0)' : 'Pay ₦5,000 with Paystack'}
+                  {isLiveBackend ? 'Use Subscription Unlock' : appliedPromoCode ? 'Claim Waiver & Unlock Contact' : 'Pay with Paystack'}
                 </button>
                 <p className="pay-hint desktop-pay">
-                  A secure Paystack window will open — you won&apos;t leave Rentivo.
+                  {isLiveBackend ? 'Your plan usage is updated after the unlock succeeds.' : 'A secure Paystack window will open — you won&apos;t leave Rentivo.'}
                 </p>
 
-                <div className="trust-row">
+                {!isLiveBackend && <div className="trust-row">
                   <span className="trust-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                       <path d="M20 6L9 17l-5-5" />
@@ -551,7 +580,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                     </svg>
                     100% refundable
                   </span>
-                </div>
+                </div>}
               </div>
             </>
           )}
@@ -792,7 +821,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
       {step === 'confirmed' && (
         <div className="stickybar">
           <div className="stickybar-row">
-            <div className="amt">{appliedPromoCode ? '₦0' : '₦5,000'}</div>
+            <div className="amt">{appliedPromoCode ? '₦0 legacy' : 'Subscription'}</div>
             <button 
               type="button"
               className="btn btn-accent" 
@@ -803,7 +832,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <rect x="5" y="10" width="14" height="10" rx="2" />
                 <path d="M8 10V7a4 4 0 0 1 8 0v3" />
               </svg>
-              {appliedPromoCode ? 'Claim Waiver' : 'Pay with Paystack'}
+              {appliedPromoCode ? 'Claim Waiver' : 'Use Subscription Unlock'}
             </button>
           </div>
         </div>
@@ -841,9 +870,9 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                 <path d="M20 6L9 17l-5-5" />
               </svg>
             </div>
-            <h3>Payment successful!</h3>
+            <h3>Unlock successful!</h3>
             <p>
-              {appliedPromoCode ? '₦0 launch waiver applied.' : '₦5,000 received.'} The landlord&apos;s phone number, WhatsApp link and exact address are unlocked.
+              {appliedPromoCode ? '₦0 legacy waiver applied.' : 'Your subscription unlock was applied.'} The landlord&apos;s phone number, WhatsApp link and exact address are unlocked.
             </p>
             <div className="email-note">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

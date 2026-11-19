@@ -28,7 +28,7 @@ import {
   Zap
 } from 'lucide-react';
 import '../styles/lister.css';
-import { Listing } from '../types';
+import { Listing, SubscriptionEntitlements, UsageSummary } from '../types';
 import { formatNaira, formatPriceWithPeriod } from '../utils/formatters';
 import { listingsService } from '../services/listingsService';
 import { requestsService } from '../services/requestsService';
@@ -38,6 +38,7 @@ import { ListerVerificationPage } from './ListerVerificationPage';
 import { useNavigate } from 'react-router-dom';
 import { listerOnboardingService } from '../services/listerOnboardingService';
 import { OnboardingWidget, OnboardingStep } from '../components/ui/OnboardingWidget';
+import { subscriptionService } from '../services/subscriptionService';
 
 interface ListerDashboardPageProps {
   onListingCreated?: () => void;
@@ -109,6 +110,12 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
     }
     if (!isOnboardingApproved) {
       navigate('/onboarding/lister');
+      return;
+    }
+    const listingLimit = subscriptionEntitlements?.entitlements?.active_listing_limit;
+    if (subscriptionEntitlements && typeof listingLimit === 'number' && activeCount >= listingLimit) {
+      showToast(`Your ${subscriptionEntitlements.planName} plan allows ${listingLimit} active listing${listingLimit === 1 ? '' : 's'}. Upgrade to post another property.`);
+      navigate('/lister/subscription');
       return;
     }
     if (onOpenCreateListing) {
@@ -270,6 +277,8 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
 
   // Inquiries / Requests State
   const [inquiries, setInquiries] = useState<ListerInquiry[]>([]);
+  const [subscriptionEntitlements, setSubscriptionEntitlements] = useState<SubscriptionEntitlements | null>(null);
+  const [subscriptionUsage, setSubscriptionUsage] = useState<UsageSummary | null>(null);
 
   // Modals & Feedback
   const [denyModalInquiry, setDenyModalInquiry] = useState<ListerInquiry | null>(null);
@@ -339,15 +348,29 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
     }
   }, []);
 
+  const loadSubscription = useCallback(async () => {
+    try {
+      const [currentEntitlements, currentUsage] = await Promise.all([
+        subscriptionService.getEntitlements(),
+        subscriptionService.getUsageSummary()
+      ]);
+      setSubscriptionEntitlements(currentEntitlements);
+      setSubscriptionUsage(currentUsage);
+    } catch (err) {
+      console.error('Failed to load lister subscription:', err);
+    }
+  }, []);
+
   useEffect(() => {
     void loadListings();
     void loadInquiries();
+    void loadSubscription();
     const interval = setInterval(() => {
       void loadListings();
       void loadInquiries();
     }, 30000);
     return () => clearInterval(interval);
-  }, [loadListings, loadInquiries]);
+  }, [loadListings, loadInquiries, loadSubscription]);
 
 
   // Time-based greeting
@@ -357,7 +380,10 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
   }, []);
 
   // Computed Portfolio Stats
-  const activeCount = useMemo(() => dashboardListings.filter((l) => l.isAvailable).length, [dashboardListings]);
+  const activeCount = useMemo(
+    () => dashboardListings.filter((listing) => listing.moderationStatus === 'active' && listing.isApproved).length,
+    [dashboardListings]
+  );
   const verifiedCount = useMemo(
     () => dashboardListings.filter((l) => l.verificationStatus === 'verified').length,
     [dashboardListings]
@@ -374,6 +400,16 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
     () => inquiries.filter((inq) => inq.status === 'escalated').length,
     [inquiries]
   );
+  const listingLimit = subscriptionEntitlements?.entitlements?.active_listing_limit;
+  const leadLimit = subscriptionEntitlements?.entitlements?.monthly_lead_limit;
+  const leadsUsed = subscriptionUsage?.period?.lister_leads_used || 0;
+  const listingLimitReached = typeof listingLimit === 'number' && activeCount >= listingLimit;
+  const leadLimitReached = typeof leadLimit === 'number' && leadsUsed >= leadLimit;
+  const subscriptionStatusMessage = subscriptionEntitlements?.status === 'attention'
+    ? `Your latest subscription payment needs attention${subscriptionEntitlements.graceUntil ? ` before ${new Date(subscriptionEntitlements.graceUntil).toLocaleDateString()}` : ''}.`
+    : subscriptionEntitlements?.status === 'non-renewing'
+      ? 'Your subscription will not renew after the current billing period.'
+      : null;
 
   // Filtered Listings for Listings Tab
   const filteredListings = useMemo(() => {
@@ -426,7 +462,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
           : item
       )
     );
-    showToast('Confirmed — the renter can now pay the access fee');
+    showToast('Confirmed — the renter can now use a subscription unlock');
   };
 
   // Deny Availability from Request Card (Opens dialog)
@@ -511,7 +547,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
           cls: 'done',
           icon: 'check',
           title: `You confirmed availability for ${title}`,
-          desc: `${r.renterName} can now pay the access fee · ${r.since || 'recently'}`
+          desc: `${r.renterName} can now use a subscription unlock · ${r.since || 'recently'}`
         });
       } else if (r.status === 'unavailable') {
         items.push({
@@ -814,6 +850,72 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
               <p className="greet-sub">Here's how your properties are doing on Rentivo today.</p>
             </div>
           </div>
+
+          {subscriptionEntitlements && (
+            <section
+              aria-labelledby="subscription-summary"
+              style={{
+                background: '#fff',
+                border: `1px solid ${subscriptionStatusMessage || listingLimitReached || leadLimitReached ? '#FDBA74' : '#E2E8F0'}`,
+                borderRadius: 16,
+                padding: '18px 20px',
+                marginBottom: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 18,
+                flexWrap: 'wrap'
+              }}
+            >
+              <div>
+                <strong id="subscription-summary" style={{ color: '#000052', display: 'block' }}>
+                  {subscriptionEntitlements.planName} plan
+                </strong>
+                <span style={{ color: '#64748B', fontSize: 13 }}>
+                  {activeCount} of {listingLimit === null || listingLimit === undefined ? 'unlimited' : listingLimit} active listings
+                  {' · '}
+                  {leadsUsed} of {leadLimit === null || leadLimit === undefined ? 'unlimited' : leadLimit} renter leads this period
+                </span>
+                {subscriptionStatusMessage && (
+                  <span role="alert" style={{ color: '#9A3412', display: 'block', fontSize: 13, marginTop: 6 }}>
+                    {subscriptionStatusMessage}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/lister/subscription')}
+                style={{ color: '#000052', fontWeight: 800, whiteSpace: 'nowrap' }}
+              >
+                Manage subscription →
+              </button>
+            </section>
+          )}
+
+          {listingLimitReached && (
+            <div className="banner" style={{ background: 'var(--info-bg)', marginBottom: 20 }}>
+              <Lock style={{ color: 'var(--info)' }} />
+              <p>
+                <strong>Active listing limit reached.</strong>{' '}
+                Upgrade your plan before adding another active property.
+                <button type="button" className="link-btn" style={{ color: 'var(--info)', fontWeight: 700 }} onClick={() => navigate('/lister/subscription')}>
+                  View plans
+                </button>
+              </p>
+            </div>
+          )}
+          {leadLimitReached && (
+            <div className="banner" style={{ background: 'var(--info-bg)', marginBottom: 20 }}>
+              <Lock style={{ color: 'var(--info)' }} />
+              <p>
+                <strong>Monthly renter lead limit reached.</strong>{' '}
+                You can still manage existing inquiries; upgrade to receive new leads.
+                <button type="button" className="link-btn" style={{ color: 'var(--info)', fontWeight: 700 }} onClick={() => navigate('/lister/subscription')}>
+                  View plans
+                </button>
+              </p>
+            </div>
+          )}
 
           {/* Attention Banner if requests need reply */}
           {escalatedCount > 0 ? (
@@ -1177,7 +1279,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
                   <div className="howit-item">
                     <span className="howit-num">3</span>
                     <p>
-                      Once you confirm, the renter pays a flat access fee and{' '}
+                      Once you confirm, the renter uses a membership unlock and{' '}
                       <strong>your contact is shared</strong> with them.
                     </p>
                   </div>
@@ -1459,7 +1561,7 @@ export const ListerDashboardPage: React.FC<ListerDashboardPageProps> = ({
             <div>
               <h1 className="lister-page-title">Requests</h1>
               <p className="lister-page-sub">
-                Confirm property availability within 30 minutes so prospective renters can proceed to pay the verified access fee.
+                Confirm property availability within 30 minutes so prospective renters can use a verified subscription unlock.
               </p>
             </div>
           </div>

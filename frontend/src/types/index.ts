@@ -176,6 +176,45 @@ export interface User {
   createdAt?: string;
 }
 
+export type SubscriptionAudience = 'renter' | 'lister';
+
+export interface SubscriptionPlan {
+  id: string;
+  code: string;
+  name: string;
+  audience: SubscriptionAudience;
+  amountKobo: number;
+  currencyCode: string;
+  interval: 'monthly' | 'annual';
+  paystackPlanCode?: string;
+  entitlements: Record<string, number | boolean | null>;
+  isFree: boolean;
+  sortOrder: number;
+}
+
+export interface SubscriptionEntitlements {
+  audience: SubscriptionAudience;
+  planCode: string;
+  planName: string;
+  subscriptionId?: string;
+  status: string;
+  periodStart?: string;
+  periodEnd?: string;
+  graceUntil?: string;
+  entitlements: Record<string, number | boolean | null>;
+}
+
+export interface UsageSummary {
+  entitlements: SubscriptionEntitlements;
+  period?: {
+    renter_unlocks_used: number;
+    lister_leads_used: number;
+    active_listings_count: number;
+    period_start: string;
+    period_end: string;
+  };
+}
+
 export interface AreaLocation {
   id: string;
   cityId: string;

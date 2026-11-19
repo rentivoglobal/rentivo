@@ -13,6 +13,7 @@ import {
   Lock
 } from 'lucide-react';
 import { AccessRequest, Listing } from '../types';
+import { isLiveBackend } from '../lib/config';
 
 interface EmailNotificationModalProps {
   isOpen: boolean;
@@ -218,7 +219,7 @@ export const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
             Hello {request.renterName},
           </h2>
           <p style={{ fontSize: '14px', lineHeight: 1.6, color: '#334155', marginBottom: '20px' }}>
-            Your <b>access fee</b> payment via Paystack was successful. You now have direct, unhindered access to contact the verified owner/mandated agent for <b>{listing.title}</b>.
+            {isLiveBackend ? 'Your subscription unlock was successful.' : 'Your access payment was successful.'} You now have direct, unhindered access to contact the verified owner/mandated agent for <b>{listing.title}</b>.
           </p>
 
           {/* Landlord Contact Unlocked Dossier */}
@@ -379,12 +380,12 @@ export const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-                <span>One-Time Direct Access Fee:</span>
-                <span style={{ fontWeight: 700, color: '#0F172A' }}>Access Fee</span>
+                <span>{isLiveBackend ? 'Subscription unlock:' : 'One-Time Direct Access Fee:'}</span>
+                <span style={{ fontWeight: 700, color: '#0F172A' }}>{isLiveBackend ? '1 monthly unlock' : 'Access Fee'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-                <span>Payment Gateway:</span>
-                <span style={{ fontWeight: 600 }}>Paystack (Ref: PSTK-{request.id.slice(-6)})</span>
+                <span>{isLiveBackend ? 'Plan allowance:' : 'Payment Gateway:'}</span>
+                <span style={{ fontWeight: 600 }}>{isLiveBackend ? 'Included in membership' : `Paystack (Ref: PSTK-${request.id.slice(-6)})`}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16794A' }}>
                 <span>Typical Agent Commission Saved:</span>
@@ -395,8 +396,8 @@ export const EmailNotificationModal: React.FC<EmailNotificationModalProps> = ({
                 <span style={{ fontWeight: 700 }}>₦0.00</span>
               </div>
               <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '8px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '15px', color: '#000052' }}>
-                <span>Total Paid:</span>
-                <span>Access Fee</span>
+                <span>{isLiveBackend ? 'Unlock used:' : 'Total Paid:'}</span>
+                <span>{isLiveBackend ? '1 monthly allowance' : 'Access Fee'}</span>
               </div>
             </div>
           </div>

@@ -164,7 +164,7 @@ export const RequestConfirmationModal: React.FC<RequestConfirmationModalProps> =
                   </div>
                 </div>
 
-                {/* Step 3: Pay the access fee */}
+                {/* Step 3: Use a subscription unlock */}
                 <div className="rc-tl-item todo">
                   <span className="rc-tl-dot">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -173,11 +173,11 @@ export const RequestConfirmationModal: React.FC<RequestConfirmationModalProps> =
                     </svg>
                   </span>
                   <div className="rc-tl-title-row">
-                    <span className="rc-tl-title">Pay the access fee</span>
-                    <span className="rc-pill rc-pill-info">First 100 renters free</span>
+                    <span className="rc-tl-title">Use a membership unlock</span>
+                    <span className="rc-pill rc-pill-info">Monthly allowance</span>
                   </div>
                   <div className="rc-tl-desc">
-                    A flat access fee, only if the lister confirms. Nothing is charged until then.
+                    Once the lister confirms availability, unlock their contact details using your renter membership allowance.
                   </div>
                 </div>
 

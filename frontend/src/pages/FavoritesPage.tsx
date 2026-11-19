@@ -116,7 +116,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
             Saved Properties ({savedListings.length})
           </h1>
           <p style={{ fontSize: '14px', color: '#636377', margin: 0, lineHeight: 1.5 }}>
-            Review your shortlisted properties in Ibadan. Requesting access is always free, and you only pay a flat access fee once vacancy is certified.
+            Review your shortlisted properties in Ibadan. Requesting vacancy checks is free, and confirmed contacts use a monthly renter membership unlock.
           </p>
         </div>
 
@@ -297,7 +297,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
                           {activeReq.status === 'confirmed' && (
                             <div style={{ backgroundColor: '#F0E6FF', border: '1px solid #D8B4FE', borderRadius: '10px', padding: '8px 12px', fontSize: '12px', color: '#000052', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
                               <CheckCircle2 size={14} color="#16794A" />
-                              <span>Confirmed Vacant! Ready to pay access fee.</span>
+                              <span>Confirmed Vacant! Ready to use a membership unlock.</span>
                             </div>
                           )}
 

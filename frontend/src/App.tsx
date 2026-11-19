@@ -23,6 +23,7 @@ import { ListerVerificationPage } from './pages/ListerVerificationPage';
 import { VerifyPage } from './pages/VerifyPage';
 import { FieldInspectionPage } from './pages/FieldInspectionPage';
 import { AdminInviteAcceptPage } from './pages/AdminInviteAcceptPage';
+import { SubscriptionPage } from './pages/SubscriptionPage';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -147,6 +148,8 @@ export const App: React.FC = () => {
       pageTitle = 'Privacy Policy — Rentivo';
     } else if (path === '/access-fee-terms') {
       pageTitle = 'Access Fee Policy & Guarantees — Rentivo';
+    } else if (path === '/pricing' || path.endsWith('/subscription')) {
+      pageTitle = 'Rentivo Plans & Subscription — Rentivo';
     } else if (path === '/login') {
       pageTitle = 'Sign In — Rentivo';
     } else if (path === '/signup') {
@@ -373,6 +376,7 @@ export const App: React.FC = () => {
           <Route path="/terms" element={<TermsPage onBack={() => { if (window.history.length > 1) { navigate(-1); } else { navigate('/'); } }} onNavigateToTab={handleNavigate} />} />
           <Route path="/privacy" element={<PrivacyPage onBack={() => { if (window.history.length > 1) { navigate(-1); } else { navigate('/'); } }} onNavigateToTab={handleNavigate} />} />
           <Route path="/access-fee-terms" element={<AccessFeeTermsPage onBack={() => { if (window.history.length > 1) { navigate(-1); } else { navigate('/search'); } }} onBrowseListings={() => navigate('/search')} onNavigateToTab={handleNavigate} />} />
+          <Route path="/pricing" element={<SubscriptionPage />} />
           <Route path="/login" element={<AuthRoute mode="signin" onSuccess={handleAuthSuccess} />} />
           <Route path="/signup" element={<AuthRoute mode="signup" onSuccess={handleAuthSuccess} />} />
           <Route path="/verify" element={<VerifyPage onSuccess={handleAuthSuccess} onNavigateHome={() => navigate('/')} />} />
@@ -384,6 +388,7 @@ export const App: React.FC = () => {
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/account" element={<Navigate to="/account/search" replace />} />
           <Route path="/account/profile" element={<Navigate to="/account/search" replace />} />
+          <Route path="/account/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           <Route path="/onboarding/renter" element={<RenterOnboardingPage />} />
           <Route path="/onboarding/lister" element={<ListerOnboardingPage />} />
           <Route path="/onboarding" element={<Navigate to="/onboarding/renter" replace />} />
@@ -467,6 +472,7 @@ export const App: React.FC = () => {
           <Route path="/lister/verification/request" element={<ProtectedRoute listerOnly><ListerVerificationPage initialMode="request" onBack={() => navigate('/lister/verification')} /></ProtectedRoute>} />
           <Route path="/lister/account" element={<ProtectedRoute listerOnly><ListerRoute onReload={loadData} showToast={showToast} tab="profile" /></ProtectedRoute>} />
           <Route path="/lister/profile" element={<ProtectedRoute listerOnly><ListerRoute onReload={loadData} showToast={showToast} tab="profile" /></ProtectedRoute>} />
+          <Route path="/lister/subscription" element={<ProtectedRoute listerOnly><SubscriptionPage defaultAudience="lister" /></ProtectedRoute>} />
           <Route path="/lister/listings/new" element={<ProtectedRoute listerOnly><ListerPostingGuard><ListingEditorPage initialListing={null} onSaveSuccess={() => { void loadData(); showToast('Listing published! It is now in your Lister Dashboard.'); navigate('/lister/listings'); }} onCancel={() => navigate('/lister')} /></ListerPostingGuard></ProtectedRoute>} />
           <Route path="/lister/listings/:id/edit" element={<ProtectedRoute listerOnly><EditListingRoute onReload={loadData} showToast={showToast} /></ProtectedRoute>} />
           <Route

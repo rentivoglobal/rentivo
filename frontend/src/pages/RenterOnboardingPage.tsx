@@ -333,7 +333,7 @@ export const RenterOnboardingPage: React.FC = () => {
       `Scanning ${countStr} physically inspected listings in Ibadan…`,
       `Matching your preferred areas (${areaStr}) & budget…`,
       `Confirming direct landlord mandates…`,
-      `Applying First 100 Free Access Waiver (₦5,000 value)…`
+      `Applying available free-plan benefits…`
     ];
   }, [allListings.length, selectedAreaNames]);
 
@@ -840,8 +840,8 @@ export const RenterOnboardingPage: React.FC = () => {
               <Sparkles size={20} strokeWidth={2} />
             </span>
             <div>
-              <b>₦5,000 Free Inspection Waiver Included</b>
-              <span>Your first physical verification request is 100% free with direct landlord mandate.</span>
+              <b>Free membership unlocks included</b>
+              <span>Your free plan includes confirmed-property contact unlocks every month.</span>
             </div>
           </div>
 

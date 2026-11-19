@@ -523,7 +523,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         {/* Stats Strip */}
         <div className="stats">
           <p className="stats-line">
-            Free to browse · Dated checks on verified homes · Flat access fee after confirm · You choose the next step
+            Free to browse · Verified availability checks · Membership unlocks after confirm · You choose the next step
           </p>
         </div>
 
@@ -563,7 +563,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                   <path d="M8 58 C 70 8, 120 8, 172 28" stroke="#BE89FF" strokeWidth="1.8" strokeDasharray="5 6" strokeLinecap="round" />
                 </svg>
                 <h3>Pay only after confirmation</h3>
-                <p>The access fee is requested only when the lister confirms the property is still available.</p>
+                <p>A membership unlock is used only when the lister confirms the property is still available.</p>
               </div>
               <div className="value-wide-media">
                 <img className="stack-mid" src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=360&q=80" alt="" />

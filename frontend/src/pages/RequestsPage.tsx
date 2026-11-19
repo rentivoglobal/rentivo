@@ -40,7 +40,7 @@ interface RequestsPageProps {
  * 4-Step Visual Progress Stepper for every request card:
  * Step 1: Request Placed
  * Step 2: Landlord Vacancy Check
- * Step 3: Access Fee Payment (₦5,000)
+ * Step 3: Subscription Unlock
  * Step 4: Contact Unlocked
  */
 const RequestStepProgress: React.FC<{ request: AccessRequest }> = ({ request }) => {
@@ -64,8 +64,8 @@ const RequestStepProgress: React.FC<{ request: AccessRequest }> = ({ request }) 
     },
     {
       num: 3,
-      title: '3. Fee (₦5K)',
-      desc: isPaid ? 'Fee verified' : isConfirmed ? 'Action: Pay ₦5,000' : isUnavailable ? '₦0 charge' : 'Flat ₦5,000',
+      title: '3. Unlock',
+      desc: isPaid ? 'Unlock complete' : isConfirmed ? 'Action: Use unlock' : isUnavailable ? 'No unlock used' : 'Membership unlock',
       status: isPaid ? ('completed' as const) : isConfirmed ? ('action_required' as const) : isUnavailable ? ('skipped' as const) : ('upcoming' as const)
     },
     {
@@ -326,7 +326,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
             My Property Requests
           </h1>
           <p style={{ fontSize: '14px', color: '#636377', margin: 0, lineHeight: 1.5 }}>
-            Track free physical vacancy checks with Ibadan landlords, pay a flat access fee only when confirmed vacant, and view direct unlocked contact dossiers.
+            Track free physical vacancy checks with Ibadan landlords, use a monthly subscription unlock when confirmed vacant, and view direct unlocked contact dossiers.
           </p>
         </div>
 
@@ -600,7 +600,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                             Rentivo has dispatched an automated vacancy check to the lister. Average response time in Ibadan is <strong>24 minutes</strong>.
                           </div>
                           <div style={{ fontSize: '11.5px', color: '#7E22CE', marginTop: '4px' }}>
-                            ✓ Your account is not charged during this verification period. Flat fee (₦5,000) is only payable once vacancy is confirmed.
+                            ✓ Your subscription allowance is not used during vacancy verification. One unlock is consumed only after confirmation.
                           </div>
                         </div>
 
@@ -630,7 +630,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                             <span>Great news! Landlord confirmed this property is vacant.</span>
                           </div>
                           <div style={{ fontSize: '13.5px', color: '#17172B', marginTop: '4px', lineHeight: 1.4 }}>
-                            Pay the flat <strong>₦5,000 access fee</strong> via Paystack to unlock the landlord's direct phone number, WhatsApp, and schedule a physical inspection.
+                            Use one <strong>membership unlock</strong> to access the landlord's direct phone number and WhatsApp, and schedule a physical inspection.
                           </div>
                           <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '4px' }}>
                             Have a launch waiver promo code? You can enter it on the secure checkout screen.
@@ -656,7 +656,7 @@ export const RequestsPage: React.FC<RequestsPageProps> = ({
                               boxShadow: '0 4px 14px rgba(0,0,82,0.22)'
                             }}
                           >
-                            <span>Pay ₦5,000 via Paystack</span>
+                            <span>Use subscription unlock</span>
                             <ArrowRight size={15} />
                           </button>
                         </div>
