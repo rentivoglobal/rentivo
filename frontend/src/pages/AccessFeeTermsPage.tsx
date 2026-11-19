@@ -83,7 +83,7 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
                   <div>• Agency commission: 10% of annual rent</div>
                   <div>• Agreement/Legal fee: 10% of annual rent</div>
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #FCA5A5', fontWeight: 800 }}>
-                    Total on ₦800,000 Flat: <strong>₦170,000+</strong> wasted
+                    Total on ₦800,000 Flat: <strong>₦170,000+</strong> in typical listed fees
                   </div>
                 </div>
               </div>
@@ -98,7 +98,7 @@ export const AccessFeeTermsPage: React.FC<AccessFeeTermsPageProps> = ({
                   <div>• Upfront viewing fees: ₦0</div>
                   <div>• Post-confirmation: one subscription unlock or valid legacy unlock</div>
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #86EFAC', fontWeight: 800, color: '#15803D' }}>
-                    Total on ₦800,000 Flat: <strong>membership unlock</strong> (Save ~₦165,000)
+                    Total on ₦800,000 Flat: <strong>your chosen monthly membership plan</strong>
                   </div>
                 </div>
               </div>

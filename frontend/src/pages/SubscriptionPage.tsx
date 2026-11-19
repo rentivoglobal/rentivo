@@ -30,6 +30,9 @@ export const SubscriptionPage: React.FC<{ defaultAudience?: SubscriptionAudience
   const navigate = useNavigate();
   const { user } = useAuth();
   const initialAudience = defaultAudience || (user?.role === 'landlord' || user?.role === 'agent' ? 'lister' : 'renter');
+  const accountAudience = user
+    ? user.role === 'landlord' || user.role === 'agent' ? 'lister' : 'renter'
+    : null;
   const [audience, setAudience] = useState<SubscriptionAudience>(initialAudience);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [entitlements, setEntitlements] = useState<SubscriptionEntitlements | null>(null);
@@ -74,12 +77,13 @@ export const SubscriptionPage: React.FC<{ defaultAudience?: SubscriptionAudience
         : null;
 
   const choosePlan = async (plan: SubscriptionPlan) => {
+    const subscriptionPath = audience === 'lister' ? '/lister/subscription' : '/account/subscription';
     if (plan.isFree) {
-      navigate(user ? (audience === 'lister' ? '/lister/subscription' : '/account/subscription') : '/signup');
+      navigate(user ? subscriptionPath : `/signup?role=${audience}`);
       return;
     }
     if (!user?.email) {
-      navigate('/login?next=/account/subscription');
+      navigate(`/login?role=${audience}&next=${encodeURIComponent(subscriptionPath)}`);
       return;
     }
     setCheckoutCode(plan.code);
@@ -158,6 +162,7 @@ export const SubscriptionPage: React.FC<{ defaultAudience?: SubscriptionAudience
             {plans.map((plan) => {
               const isCurrent = selectedPlan?.code === plan.code;
               const isUnavailable = !plan.isFree && !plan.paystackPlanCode && !isLiveBackend;
+              const isWrongAudience = Boolean(accountAudience && accountAudience !== audience);
               return (
                 <article key={plan.code} style={{ background: '#fff', border: `2px solid ${isCurrent ? '#BE89FF' : '#E2E8F0'}`, borderRadius: 18, padding: 22, display: 'flex', flexDirection: 'column', boxShadow: isCurrent ? '0 8px 24px rgba(0,0,82,.08)' : 'none' }}>
                   <h2 style={{ color: '#000052', fontSize: 22 }}>{plan.name}</h2>
@@ -169,8 +174,8 @@ export const SubscriptionPage: React.FC<{ defaultAudience?: SubscriptionAudience
                       return label ? <li key={key} style={{ display: 'flex', gap: 8, color: '#475569', fontSize: 14 }}><Check size={17} color="#16794A" /> <span style={{ textTransform: value === true ? 'capitalize' : 'none' }}>{label}</span></li> : null;
                     })}
                   </ul>
-                  <button type="button" disabled={isCurrent || isUnavailable || checkoutCode === plan.code} onClick={() => void choosePlan(plan)} style={{ width: '100%', padding: '12px 14px', borderRadius: 10, background: isCurrent || isUnavailable ? '#E2E8F0' : '#000052', color: isCurrent || isUnavailable ? '#64748B' : '#fff', fontWeight: 800 }}>
-                    {isCurrent ? 'Current plan' : isUnavailable ? 'Coming soon' : checkoutCode === plan.code ? 'Opening checkout...' : plan.isFree ? 'Start free' : <><CreditCard size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />Choose plan</>}
+                  <button type="button" disabled={isCurrent || isUnavailable || isWrongAudience || checkoutCode === plan.code} onClick={() => void choosePlan(plan)} style={{ width: '100%', padding: '12px 14px', borderRadius: 10, background: isCurrent || isUnavailable || isWrongAudience ? '#E2E8F0' : '#000052', color: isCurrent || isUnavailable || isWrongAudience ? '#64748B' : '#fff', fontWeight: 800 }}>
+                    {isCurrent ? 'Current plan' : isWrongAudience ? `For ${audience} accounts` : isUnavailable ? 'Coming soon' : checkoutCode === plan.code ? 'Opening checkout...' : plan.isFree ? 'Start free' : <><CreditCard size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />Choose plan</>}
                   </button>
                 </article>
               );

@@ -556,14 +556,17 @@ export const HomePage: React.FC<HomePageProps> = ({
             <article className="value-card value-card--wide">
               <div className="value-wide-copy">
                 <div className="value-pin" aria-hidden="true">
-                  <span className="value-bubble">Flat fee</span>
+                  <span className="value-bubble">Membership</span>
                   <span className="value-pin-mark"><i></i></span>
                 </div>
                 <svg className="value-dash" viewBox="0 0 180 70" fill="none" aria-hidden="true">
                   <path d="M8 58 C 70 8, 120 8, 172 28" stroke="#BE89FF" strokeWidth="1.8" strokeDasharray="5 6" strokeLinecap="round" />
                 </svg>
-                <h3>Pay only after confirmation</h3>
+                <h3>Unlock after confirmation</h3>
                 <p>A membership unlock is used only when the lister confirms the property is still available.</p>
+                <button type="button" className="btn-pill" onClick={() => navigate('/pricing')}>
+                  Compare membership plans <ArrowRight size={14} style={{ display: 'inline', verticalAlign: '-1px', marginLeft: '4px' }} />
+                </button>
               </div>
               <div className="value-wide-media">
                 <img className="stack-mid" src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=360&q=80" alt="" />

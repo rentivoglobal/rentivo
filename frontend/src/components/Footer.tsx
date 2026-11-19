@@ -52,13 +52,18 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 </a>
               </li>
               <li>
+                <a href="/pricing" onClick={(e) => { e.preventDefault(); navigate('/pricing'); }}>
+                  Plans &amp; Pricing
+                </a>
+              </li>
+              <li>
                 <a href="/how-it-works" onClick={(e) => { e.preventDefault(); onNavigate?.('how_it_works'); }}>
-                  How Our Fee Works
+                  How Rentivo Works
                 </a>
               </li>
               <li>
                 <a href="/access-fee-terms" onClick={(e) => { e.preventDefault(); onNavigate?.('access_fee_terms'); }}>
-                  Access Fee Policy &amp; Refund Guarantee
+                  Membership &amp; Legacy Access Policy
                 </a>
               </li>
             </ul>
@@ -181,7 +186,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               Privacy Policy
             </a>
             <a href="/access-fee-terms" onClick={(e) => { e.preventDefault(); onNavigate?.('access_fee_terms'); }}>
-              Access Fee Terms
+              Membership &amp; Legacy Access Terms
             </a>
           </div>
         </div>

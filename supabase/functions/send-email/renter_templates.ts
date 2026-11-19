@@ -124,7 +124,7 @@ export function generateLandlordVacancyCheckEmailHtml(params: {
   <tr>
     <td style="padding:16px 20px;" class="px">
       <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:#55557a;">
-        <strong>No login required.</strong> Clicking either button directly updates the request in real-time. If you confirm it is available, the renter will be prompted to pay the flat access fee to unlock your contact details and schedule a physical inspection.
+        <strong>No login required.</strong> Clicking either button updates the request in real time. If you confirm availability, the renter can use a monthly membership unlock to access your contact details and arrange an inspection.
       </p>
     </td>
   </tr>
@@ -152,7 +152,7 @@ export function generateAvailabilityEmailHtml(params: {
 
   return `${emailHead(
     `Available: ${propertyTitle}`,
-    `It's still available — the landlord just confirmed. Unlock their contact for a flat access fee, fully refundable.`
+    `It's still available — the lister just confirmed. Use your monthly membership allowance if you choose to unlock their contact.`
   )}
 <tr><td style="padding:32px 32px 20px;" class="px">
 <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -160,7 +160,7 @@ export function generateAvailabilityEmailHtml(params: {
       <span style="letter-spacing:0.02em;">&#10003; Confirmed available</span>
     </td></tr></table>
 <h1 class="h1" style="margin:16px 0 8px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;font-weight:700;color:#16163a;letter-spacing:-0.01em;">Good news — it&rsquo;s still available!</h1>
-<p style="margin:0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#55557a;">The landlord just confirmed this property hasn&rsquo;t been taken. It&rsquo;s reserved for your review for the next little while, so it&rsquo;s worth acting on soon.</p>
+<p style="margin:0 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#55557a;">The lister just confirmed this property hasn&rsquo;t been taken. Review the details and choose whether to use one of your monthly membership unlocks.</p>
 </td></tr><tr><td style="padding:0 32px 24px;" class="px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #e6e2f4;border-radius:12px;">
     <tr>
       <td style="padding:16px;" class="px">
@@ -182,12 +182,12 @@ export function generateAvailabilityEmailHtml(params: {
       </td>
     </tr>
   </table></td></tr><tr><td style="padding:0 32px 20px;" class="px">
-<p style="margin:0 0 10px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#16163a;">To unlock the landlord&rsquo;s contact details</p>
+<p style="margin:0 0 10px;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#16163a;">To unlock the lister&rsquo;s contact details</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f5fc;border-radius:12px;"><tr><td style="padding:18px 20px;" class="px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr>
-    <td style="padding:11px 0;border-bottom:1px solid #e6e2f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13.5px;color:#55557a;">Access fee (one-time, flat rate)</td>
-    <td align="right" style="padding:11px 0;border-bottom:1px solid #e6e2f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:600;color:#16163a;">₦5,000</td>
+    <td style="padding:11px 0;border-bottom:1px solid #e6e2f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13.5px;color:#55557a;">Unlock cost</td>
+    <td align="right" style="padding:11px 0;border-bottom:1px solid #e6e2f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13.5px;font-weight:600;color:#16163a;">One monthly plan allowance</td>
   </tr>
     <tr>
     <td style="padding:11px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13.5px;color:#55557a;">What it unlocks</td>
@@ -197,7 +197,7 @@ export function generateAvailabilityEmailHtml(params: {
 </td></tr></table>
 </td></tr><tr><td style="padding:0 32px 28px;" class="px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e3f4ec;border-radius:12px;"><tr>
     <td style="padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13.5px;line-height:1.6;color:#16163a;" class="px">
-      <span style="color:#17794e;font-weight:700;">&#10003;&nbsp;&nbsp;</span><strong style="color:#17794e;">100% refund guarantee:</strong> if you get there and it&rsquo;s already gone, or the landlord goes quiet, we refund the full access fee &mdash; no questions asked.
+      <span style="color:#17794e;font-weight:700;">&#10003;&nbsp;&nbsp;</span><strong style="color:#17794e;">No immediate payment:</strong> the membership allowance is only used if you choose to unlock contact after availability is confirmed.
     </td></tr></table></td></tr><tr><td style="padding:0 32px 32px;" class="px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -457,7 +457,7 @@ export function generateRequestReceivedEmailHtml(params: {
   </tr></table>
 </td></tr><tr><td style="padding:0 32px 28px;" class="px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#efe6ff;border-radius:12px;"><tr>
     <td style="padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13.5px;line-height:1.6;color:#16163a;" class="px">
-      <span style="color:#5b28b0;font-weight:700;">&#10022;&nbsp;&nbsp;</span><strong style="color:#5b28b0;">No charge yet:</strong> this request costs nothing. We only ever ask for the flat access fee after the landlord confirms the property is available.
+      <span style="color:#5b28b0;font-weight:700;">&#10022;&nbsp;&nbsp;</span><strong style="color:#5b28b0;">No charge yet:</strong> requesting availability is free. If the lister confirms, you can choose to use one monthly membership unlock to access their details.
     </td></tr></table></td></tr><tr><td style="padding:0 32px 32px;" class="px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
