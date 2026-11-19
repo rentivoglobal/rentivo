@@ -35,6 +35,7 @@ import { inspectionService } from '../services/inspectionService';
 import { adminService } from '../services/adminService';
 import { authService } from '../services/authService';
 import { paymentsService } from '../services/paymentsService';
+import { subscriptionService } from '../services/subscriptionService';
 import { LocalPayment } from '../services/localStore';
 import { AdminInviteModal } from '../components/AdminInviteModal';
 import { VerificationDetailModal } from '../components/VerificationDetailModal';
@@ -121,6 +122,8 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
       : 'verification'
   );
   const [showPulse, setShowPulse] = useState(true);
+  const [isProvisioningPlans, setIsProvisioningPlans] = useState(false);
+  const [planProvisioningMessage, setPlanProvisioningMessage] = useState<string | null>(null);
 
   // Global search & filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -724,6 +727,33 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
     }
   };
 
+  const handleProvisionSubscriptionPlans = async () => {
+    if (!window.confirm('Create any missing monthly plans in Paystack? This action only creates plans that are not configured yet.')) return;
+
+    setIsProvisioningPlans(true);
+    setPlanProvisioningMessage(null);
+    try {
+      const { results } = await subscriptionService.bootstrapPlans();
+      const failures = results.filter((result) => result.status === 'failed');
+      const created = results.filter((result) => result.status === 'created').length;
+      const alreadyConfigured = results.filter((result) => result.status === 'already-configured').length;
+      const summary = `${created} created, ${alreadyConfigured} already configured${failures.length ? `, ${failures.length} failed` : ''}.`;
+      const errors = failures.map((result) => `${result.code}: ${result.error || 'Paystack rejected the plan'}`).join(' ');
+      setPlanProvisioningMessage(`${summary}${errors ? ` ${errors}` : ''}`);
+      if (failures.length) {
+        showToast('Some Paystack plans could not be provisioned. See the details above.');
+      } else {
+        showToast('Subscription plans are provisioned.');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to provision subscription plans.';
+      setPlanProvisioningMessage(message);
+      showToast(message);
+    } finally {
+      setIsProvisioningPlans(false);
+    }
+  };
+
   // Team Admin Actions
   const handleRevokeInvitation = async (inv: AdminInvitation) => {
     try {
@@ -847,7 +877,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
     },
     payments: {
       title: 'Payments and revenue',
-      lede: 'Confirm availability after the ₦5,000 access fee is paid.',
+      lede: 'Manage legacy access payments and provision monthly subscription plans.',
       count: payments.length,
       isHot: false,
       icon: CreditCard
@@ -1064,9 +1094,9 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
              ============================================================= */}
           {showPulse && (
             <section className="roc-pulse" aria-label="Pulse Metrics">
-              {/* Lead Navy Card: Payments / Access Fee Revenue */}
+              {/* Lead Navy Card: Legacy Access Fee Revenue */}
               <div className="roc-kpi lead">
-                <span className="l">Total access revenue</span>
+                <span className="l">Legacy access revenue</span>
                 <span className="v roc-num">₦{formatNaira(totalRevenue)}</span>
                 <span className="s">
                   <span className="roc-up">{paidPaymentsCount} paid</span> · held until confirmed
@@ -1700,6 +1730,27 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                ========================================================= */}
             {activeSection === 'payments' && (
               <>
+                <section
+                  aria-labelledby="subscription-plan-provisioning-title"
+                  style={{ border: '1px solid #E2E8F0', borderRadius: 12, padding: 16, marginBottom: 18, background: '#F8FAFC' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                    <div>
+                      <h3 id="subscription-plan-provisioning-title" style={{ margin: 0, color: '#000052', fontSize: 16 }}>Monthly subscription plans</h3>
+                      <p style={{ margin: '5px 0 0', color: '#64748B', fontSize: 13 }}>Uses PAYSTACK_SECRET_KEY from Supabase Edge Function Secrets. The key stays server-side; existing plans will not be duplicated.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="roc-btn b-pri b-sm"
+                      onClick={() => void handleProvisionSubscriptionPlans()}
+                      disabled={isProvisioningPlans}
+                    >
+                      <RefreshCw size={14} className={isProvisioningPlans ? 'animate-spin' : undefined} />
+                      {isProvisioningPlans ? 'Provisioning...' : 'Provision missing plans'}
+                    </button>
+                  </div>
+                  {planProvisioningMessage && <p role="status" style={{ margin: '12px 0 0', color: '#334155', fontSize: 13 }}>{planProvisioningMessage}</p>}
+                </section>
                 {filteredPayments.length > 0 ? (
                   <>
                     <div className="roc-tw">
