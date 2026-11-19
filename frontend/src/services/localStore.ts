@@ -496,6 +496,9 @@ export const localStore = {
     write(KEYS.adminInvitations, list);
     return list[idx];
   },
+  deleteAdminInvitation(id: string): void {
+    write(KEYS.adminInvitations, this.getAdminInvitations().filter((inv) => inv.id !== id));
+  },
   getAdminInvitationByToken(token: string): AdminInvitation | null {
     const list = this.getAdminInvitations();
     return list.find(i => i.token === token) || null;

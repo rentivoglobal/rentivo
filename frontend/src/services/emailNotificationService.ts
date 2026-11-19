@@ -1,9 +1,7 @@
 import { AccessRequest, Listing, ListerContact } from '../types';
 import { APP_URL, isLiveBackend } from '../lib/config';
-import { supabase } from '../lib/supabase';
+import { extractEdgeFunctionError, supabase } from '../lib/supabase';
 
-const BREVO_API_KEY = (import.meta as any).env?.VITE_BREVO_API_KEY || '';
-const DEFAULT_SENDER = { name: 'Rentivo', email: 'info@rentivos.com.ng' };
 const LOGO_URL = 'https://uovlgngsmvjcgkgznyme.supabase.co/storage/v1/object/public/assets/rentivo-logo.svg';
 const DEFAULT_PHOTO = 'https://ik.imagekit.io/3unwhixxd/Property%20type.png';
 
@@ -1044,38 +1042,6 @@ async function dispatchEmail(payload: {
   htmlContent: string;
   data: Record<string, any>;
 }): Promise<{ success: boolean; error?: string }> {
-  // 1. Direct Brevo API dispatch first (fast, reliable, zero dependency on Edge deployment status)
-  if (BREVO_API_KEY && BREVO_API_KEY.trim().length > 5) {
-    try {
-      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': BREVO_API_KEY.trim(),
-          'Content-Type': 'application/json',
-          accept: 'application/json'
-        },
-        body: JSON.stringify({
-          sender: DEFAULT_SENDER,
-          to: [{ email: payload.recipientEmail, name: payload.recipientName }],
-          subject: payload.subject,
-          htmlContent: payload.htmlContent
-        })
-      });
-
-      if (response.ok) {
-        console.info(`[Rentivo Email] Successfully dispatched "${payload.template}" to ${payload.recipientEmail} via Brevo`);
-        return { success: true };
-      }
-      const errJson = await response.json().catch(() => ({}));
-      const brevoMsg = errJson?.message || `HTTP ${response.status}`;
-      console.warn('Brevo client delivery error:', errJson);
-      // Fall through to Edge function if direct Brevo dispatch returned non-200
-    } catch (err: any) {
-      console.warn('Brevo network exception (falling through to Edge Function):', err?.message);
-    }
-  }
-
-  // 2. Fallback to Supabase Edge Function
   if (isLiveBackend && supabase) {
     try {
       const { data, error } = await supabase.functions.invoke('send-email', {
@@ -1086,14 +1052,13 @@ async function dispatchEmail(payload: {
           data: payload.data
         }
       });
-      if (!error && data?.success) {
-        if (data?.emailError) {
-          return { success: false, error: data.emailError };
-        }
+      if (!error && data?.success && (data.delivered === true || data.provider === 'brevo')) {
         return { success: true };
       }
-      if (error || (data && !data.success)) {
-        const edgeErr = error?.message || data?.error || data?.emailError || 'Edge function error';
+      if (error || (data && (!data.success || data.delivered === false || data.emailError))) {
+        const edgeErr = error
+          ? await extractEdgeFunctionError(error, 'Email delivery failed.')
+          : data?.error || data?.emailError || 'Email delivery failed.';
         console.warn(`Edge Function send-email note for ${payload.template}:`, edgeErr);
         return { success: false, error: edgeErr };
       }
@@ -1660,29 +1625,35 @@ export const emailNotificationService = {
     notes?: string;
   }): Promise<{ success: boolean; error?: string }> {
     const { recipientEmail, recipientName, invitedByName = 'Rentivo Operations', role = 'admin', inviteUrl, notes } = params;
+    if (!isLiveBackend || !supabase) {
+      return { success: false, error: 'Admin invitation email delivery requires the live Supabase service.' };
+    }
 
-    const htmlContent = generateAdminInvitationHtml({
-      recipientName,
-      invitedByName,
-      role,
-      inviteUrl,
-      notes,
-      expiresInDays: 7
-    });
-
-    return dispatchEmail({
-      template: 'admin_invitation',
-      recipientEmail,
-      recipientName,
-      subject: 'Invitation to join Rentivo Administration Team — Rentivo',
-      htmlContent,
-      data: {
-        invitedByName,
-        role,
-        inviteUrl,
-        notes,
-        expiresInDays: 7
+    try {
+      const { data, error } = await supabase.functions.invoke('send-admin-invitation', {
+        body: {
+          recipientEmail,
+          recipientName,
+          invitedByName,
+          role,
+          inviteUrl,
+          notes,
+          expiresInDays: 7
+        }
+      });
+      if (error) {
+        return { success: false, error: await extractEdgeFunctionError(error, 'Admin invitation email could not be sent.') };
       }
-    });
+      if (data?.success && data?.delivered === true && data?.provider === 'brevo') {
+        return { success: true };
+      }
+      return {
+        success: false,
+        error: data?.error || 'The email service did not confirm delivery.'
+      };
+    } catch (err) {
+      console.error('Admin invitation email dispatch failed:', err);
+      return { success: false, error: err instanceof Error ? err.message : 'Admin invitation email could not be sent.' };
+    }
   }
 };

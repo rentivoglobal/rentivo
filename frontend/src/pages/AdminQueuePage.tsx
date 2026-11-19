@@ -176,6 +176,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
   const [isLoadingTeam, setIsLoadingTeam] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [revokeConfirmInvite, setRevokeConfirmInvite] = useState<AdminInvitation | null>(null);
+  const [deleteConfirmInvite, setDeleteConfirmInvite] = useState<AdminInvitation | null>(null);
   const [removeConfirmAdmin, setRemoveConfirmAdmin] = useState<User | null>(null);
 
   // Lister Onboarding Applications State
@@ -542,18 +543,18 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
       id: u.id,
       name: u.name || (u as any).fullName || u.email.split('@')[0],
       email: u.email,
-      role: (u.role || 'ops') as 'super' | 'ops' | 'insp',
+      role: 'ops' as const,
       status: 'active' as const,
       isInvite: false,
       raw: u
     }));
 
-    const invites = adminInvitations.map((inv) => ({
+    const invites = adminInvitations.filter((inv) => inv.status !== 'accepted').map((inv) => ({
       id: inv.id,
       name: inv.fullName || inv.email.split('@')[0],
       email: inv.email,
       role: (inv.role === 'super_admin' ? 'super' : inv.role === 'admin' ? 'ops' : 'insp') as 'super' | 'ops' | 'insp',
-      status: inv.status === 'accepted' ? ('active' as const) : inv.status === 'revoked' ? ('revoked' as const) : ('pending' as const),
+      status: inv.status as 'pending' | 'revoked' | 'expired',
       isInvite: true,
       raw: inv
     }));
@@ -736,6 +737,53 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
       }
     } catch {
       showToast('Error revoking invitation');
+    }
+  };
+
+  const handleResendInvitation = async (inv: AdminInvitation) => {
+    try {
+      const res = await adminService.resendInvitation(inv.id);
+      if (!res.success) {
+        if (res.inviteUrl) {
+          try {
+            await navigator.clipboard.writeText(res.inviteUrl);
+            showToast(`${res.error} Invitation link copied to clipboard.`);
+          } catch {
+            showToast(res.error || 'Could not resend invitation.');
+          }
+        } else {
+          showToast(res.error || 'Could not resend invitation.');
+        }
+        await loadTeamData();
+        return;
+      }
+
+      if (res.inviteUrl) {
+        try {
+          await navigator.clipboard.writeText(res.inviteUrl);
+          showToast(`Invitation resent to ${inv.email}; link copied to clipboard.`);
+        } catch {
+          showToast(`Invitation resent to ${inv.email}.`);
+        }
+      }
+      await loadTeamData();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Error resending invitation.');
+    }
+  };
+
+  const handleDeleteInvitation = async (inv: AdminInvitation) => {
+    try {
+      const res = await adminService.deleteInvitation(inv.id);
+      if (!res.success) {
+        showToast(res.error || 'Failed to delete invitation.');
+        return;
+      }
+      setDeleteConfirmInvite(null);
+      showToast(`Invitation record for ${inv.email} deleted.`);
+      await loadTeamData();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Error deleting invitation.');
     }
   };
 
@@ -1916,6 +1964,8 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                                   <span className="roc-pill p-ok">Active</span>
                                 ) : member.status === 'pending' ? (
                                   <span className="roc-pill p-warn">Invite pending</span>
+                                ) : member.status === 'expired' ? (
+                                  <span className="roc-pill p-bad">Expired</span>
                                 ) : (
                                   <span className="roc-pill p-bad">Revoked</span>
                                 )}
@@ -1926,9 +1976,27 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                                     <button
                                       type="button"
                                       className="roc-btn b-sec b-sm"
-                                      onClick={() => setRevokeConfirmInvite(member.raw as AdminInvitation)}
+                                      onClick={() => handleResendInvitation(member.raw as AdminInvitation)}
                                     >
-                                      Cancel invite
+                                      Resend invite
+                                    </button>
+                                    {member.status === 'pending' && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="roc-btn b-sec b-sm"
+                                          onClick={() => setRevokeConfirmInvite(member.raw as AdminInvitation)}
+                                        >
+                                          Cancel invite
+                                        </button>
+                                      </>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="roc-btn b-sec b-sm"
+                                      onClick={() => setDeleteConfirmInvite(member.raw as AdminInvitation)}
+                                    >
+                                      Delete
                                     </button>
                                   </div>
                                 ) : (
@@ -1938,7 +2006,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                                       className="roc-btn b-sec b-sm"
                                       onClick={() => setRemoveConfirmAdmin(member.raw as User)}
                                     >
-                                      Revoke access
+                                      Remove from team
                                     </button>
                                   )
                                 )}
@@ -1968,22 +2036,53 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                             </span>
                             {member.status === 'active' ? (
                               <span className="roc-pill p-ok">Active</span>
+                            ) : member.status === 'expired' ? (
+                              <span className="roc-pill p-bad">Expired</span>
+                            ) : member.status === 'revoked' ? (
+                              <span className="roc-pill p-bad">Revoked</span>
                             ) : (
                               <span className="roc-pill p-warn">Invite pending</span>
                             )}
                           </div>
                           {member.role !== 'super' && (
                             <div className="roc-acts">
-                              <button
-                                type="button"
-                                className="roc-btn b-sec"
-                                onClick={() => {
-                                  if (member.isInvite) setRevokeConfirmInvite(member.raw as AdminInvitation);
-                                  else setRemoveConfirmAdmin(member.raw as User);
-                                }}
-                              >
-                                {member.isInvite ? 'Cancel invite' : 'Revoke access'}
-                              </button>
+                              {member.isInvite ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="roc-btn b-sec"
+                                    onClick={() => handleResendInvitation(member.raw as AdminInvitation)}
+                                  >
+                                    Resend invite
+                                  </button>
+                                  {member.status === 'pending' && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        className="roc-btn b-sec"
+                                        onClick={() => setRevokeConfirmInvite(member.raw as AdminInvitation)}
+                                      >
+                                        Cancel invite
+                                      </button>
+                                    </>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="roc-btn b-sec"
+                                    onClick={() => setDeleteConfirmInvite(member.raw as AdminInvitation)}
+                                  >
+                                    Delete
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="roc-btn b-sec"
+                                  onClick={() => setRemoveConfirmAdmin(member.raw as User)}
+                                >
+                                  Remove from team
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -2382,6 +2481,65 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
         </div>
       )}
 
+      {deleteConfirmInvite && (
+        <div className="roc-ov" role="dialog" aria-modal="true" aria-labelledby="delete-invite-title">
+          <div className="roc-scrim" onClick={() => setDeleteConfirmInvite(null)} />
+          <div className="roc-sheet">
+            <div className="roc-mh">
+              <span className="roc-mi bad">
+                <AlertTriangle size={22} />
+              </span>
+              <div>
+                <h2 id="delete-invite-title">Delete invitation record?</h2>
+                <p>{deleteConfirmInvite.email}</p>
+              </div>
+              <button
+                type="button"
+                className="roc-icon-btn"
+                onClick={() => setDeleteConfirmInvite(null)}
+                aria-label="Close"
+                style={{ marginLeft: 'auto' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="roc-mb">
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  backgroundColor: 'var(--bad-bg)',
+                  color: 'var(--bad)',
+                  fontSize: '13.5px',
+                  fontWeight: 600
+                }}
+              >
+                <AlertTriangle size={20} />
+                <div>The invitation and its link will stop working. This does not delete an existing user account.</div>
+              </div>
+            </div>
+            <div className="roc-mf">
+              <button
+                type="button"
+                className="roc-btn b-sec lft"
+                onClick={() => setDeleteConfirmInvite(null)}
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                className="roc-btn b-bad"
+                onClick={() => handleDeleteInvitation(deleteConfirmInvite)}
+              >
+                Delete invitation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 9. Remove Admin Confirmation Dialog */}
       {removeConfirmAdmin && (
         <div className="roc-ov" role="dialog" aria-modal="true" aria-labelledby="remove-admin-title">
@@ -2392,7 +2550,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                 <AlertTriangle size={22} />
               </span>
               <div>
-                <h2 id="remove-admin-title">Revoke access?</h2>
+                <h2 id="remove-admin-title">Remove from team?</h2>
                 <p>{removeConfirmAdmin.email}</p>
               </div>
               <button
@@ -2421,7 +2579,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
               >
                 <AlertTriangle size={20} />
                 <div>
-                  {removeConfirmAdmin.name || removeConfirmAdmin.email} is signed out and cannot open the admin again. Past actions stay in the log.
+                  {removeConfirmAdmin.name || removeConfirmAdmin.email} will lose administrator access. Past actions stay in the log.
                 </div>
               </div>
             </div>
@@ -2439,7 +2597,7 @@ export const AdminQueuePage: React.FC<AdminQueuePageProps> = ({
                 className="roc-btn b-bad"
                 onClick={() => handleRemoveAdmin(removeConfirmAdmin)}
               >
-                Revoke access
+                Remove from team
               </button>
             </div>
           </div>

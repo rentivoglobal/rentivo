@@ -2,14 +2,12 @@ import { cors, BREVO_API_KEY, DEFAULT_SENDER, supabaseAdmin } from "./common.ts"
 import {
   generateLandlordVacancyCheckEmailHtml,
   generateAvailabilityEmailHtml,
-  generatePaymentSuccessEmailHtml
-} from "./renter_part1.ts";
-import {
+  generatePaymentSuccessEmailHtml,
   generateRefundProcessedEmailHtml,
   generateRequestReceivedEmailHtml,
   generatePropertyUnavailableEmailHtml,
   generateListerUnresponsiveEmailHtml
-} from "./renter_part2.ts";
+} from "./renter_templates.ts";
 import {
   generateVerificationApprovedEmailHtml,
   generateVerificationChangesRequestedEmailHtml,
@@ -23,6 +21,44 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const { template, recipientEmail, recipientName = "Rentivo Member", data = {} } = body;
+
+    if (template === "admin_invitation") {
+      if (!supabaseAdmin) {
+        return new Response(JSON.stringify({ success: false, error: "Admin invitation email is not configured." }), {
+          status: 503,
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+
+      const accessToken = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+      if (!accessToken) {
+        return new Response(JSON.stringify({ success: false, error: "Sign in as an administrator to send invitations." }), {
+          status: 401,
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+
+      const { data: authData, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+      if (authError || !authData.user) {
+        return new Response(JSON.stringify({ success: false, error: "Your administrator session is invalid or expired." }), {
+          status: 401,
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from("users")
+        .select("role, is_active")
+        .eq("id", authData.user.id)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!profile || profile.role !== "admin" || !profile.is_active) {
+        return new Response(JSON.stringify({ success: false, error: "Only active administrators can send team invitations." }), {
+          status: 403,
+          headers: { ...cors, "Content-Type": "application/json" }
+        });
+      }
+    }
 
     if (!recipientEmail) {
       return new Response(JSON.stringify({ success: false, error: "Recipient email is required" }), {
@@ -206,6 +242,7 @@ Deno.serve(async (req) => {
         if (brevoRes.ok) {
           return new Response(JSON.stringify({
             success: true,
+            delivered: true,
             provider: "brevo",
             messageId: brevoData.messageId
           }), {
@@ -275,9 +312,11 @@ Deno.serve(async (req) => {
 
     // Determine delivery outcome
     const delivered = supabaseAuthSent;
-    const emailError = !delivered && brevoErrorMsg
-      ? `${brevoErrorMsg}. To fix: go to brevo.com → Settings → API Keys and enable "Transactional emails" scope on your key.`
-      : undefined;
+    const emailError = delivered
+      ? undefined
+      : brevoErrorMsg
+        ? `${brevoErrorMsg}. Check that the Brevo API key has Transactional Emails permission.`
+        : "No email provider accepted this message. Configure BREVO_API_KEY or Supabase Auth SMTP settings.";
 
     if (emailError) {
       console.warn(`[send-email] Email NOT sent for "${template}" to ${recipientEmail}. Reason: ${emailError}`);
@@ -286,7 +325,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      success: true,
+      success: delivered,
       delivered,
       mode: supabaseAuthSent ? "supabase_auth" : (brevoErrorMsg ? "failed_brevo_fallback" : "supabase_direct"),
       template,

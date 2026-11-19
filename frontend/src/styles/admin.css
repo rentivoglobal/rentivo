@@ -5,7 +5,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap');
 
-:root {
+.roc-app {
   --navy: #000052;
   --navy-2: #0B0B6B;
   --lav: #BE89FF;
@@ -53,6 +53,10 @@
   min-height: 100vh;
   background-color: var(--bg);
   color: var(--ink);
+  color-scheme: light;
+  --color-text: #14142F;
+  --color-text-muted: var(--ink-2);
+  --color-navy: #14142F;
   font-family: var(--b);
   font-size: 14.5px;
   line-height: 1.5;

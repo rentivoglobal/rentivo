@@ -247,7 +247,7 @@ export const AdminInviteModal: React.FC<AdminInviteModalProps> = ({
                   {createdInvite.emailError
                     ? <>
                         Email could not be sent to <strong>{createdInvite.invitation.email}</strong>. Share the link below directly via WhatsApp or copy it.
-                        <br /><span style={{ fontSize: '12px', opacity: 0.8, display: 'block', marginTop: '6px' }}>Fix: Go to <strong>brevo.com → Settings → API Keys</strong> and enable the <em>Transactional Emails</em> scope.</span>
+                        <br /><span style={{ fontSize: '12px', opacity: 0.8, display: 'block', marginTop: '6px' }}>{createdInvite.emailError}</span>
                       </>
                     : <>An authorization email has been sent to <strong>{createdInvite.invitation.email}</strong>.</>
                   }
